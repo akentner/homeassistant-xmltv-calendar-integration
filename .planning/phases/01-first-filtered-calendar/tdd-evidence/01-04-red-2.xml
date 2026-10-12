@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="16" time="1.316" timestamp="2026-10-13T00:57:31.088170+02:00" hostname="dev-host"><testcase classname="tests.xmltv.test_window" name="test_len" time="0.108" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_includes_programme_ending_at_range_start" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_excludes_programme_starting_at_range_end" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_spanning_programme" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_long_programme_lookback" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_sorted_by_start" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_empty_index" time="0.005"><failure message="AttributeError: 'MatchIndex' object has no attribute 'current_or_next'">def test_empty_index() -&gt; None:
+        empty = MatchIndex([])
+        assert empty.overlapping(_at(0), _at(23)) == []
+&gt;       assert empty.current_or_next(_at(12)) is None
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'MatchIndex' object has no attribute 'current_or_next'
+
+tests/xmltv/test_window.py:68: AttributeError</failure></testcase><testcase classname="tests.xmltv.test_window" name="test_current_or_next_boundaries" time="0.005"><failure message="AttributeError: 'MatchIndex' object has no attribute 'current_or_next'">def test_current_or_next_boundaries() -&gt; None:
+        only_a_b = MatchIndex([A, B])
+&gt;       assert only_a_b.current_or_next(_at(12, 30)) is A
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'MatchIndex' object has no attribute 'current_or_next'
+
+tests/xmltv/test_window.py:73: AttributeError</failure></testcase><testcase classname="tests.xmltv.test_window" name="test_current_or_next_prefers_earliest_airing_match" time="0.004"><failure message="AttributeError: 'MatchIndex' object has no attribute 'current_or_next'">def test_current_or_next_prefers_earliest_airing_match() -&gt; None:
+        # L (00:00-23:00) is airing at 12:30 alongside A and started first
+&gt;       assert INDEX.current_or_next(_at(12, 30)) is L
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'MatchIndex' object has no attribute 'current_or_next'
+
+tests/xmltv/test_window.py:83: AttributeError</failure></testcase><testcase classname="tests.test_calendar" name="test_busy_calendar_get_events_is_capped" time="0.679" /><testcase classname="tests.test_calendar" name="test_build_events_skips_invalid" time="0.014"><failure message="homeassistant.exceptions.HomeAssistantError: Failed to validate CalendarEvent: Expected minimum event duration of 0:00:00 (2026-10-12 19:00:00-07:00, 2026-10-12 18:00:00-07:00)">self = All({'start': Any(&lt;function date at 0x7f5dacd33060&gt;, &lt;function datetime at 0x7f5dacd35220&gt;, msg=None), 'end': Any(&lt;fun...mezone.&lt;locals&gt;.validate at 0x7f5da879ecf0&gt;, &lt;function has_min_duration.&lt;locals&gt;.validate at 0x7f5da879ee50&gt;, msg=None)
+value = {'end': datetime.datetime(2026, 10, 12, 18, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), 'location': 'Das Erste', '...: datetime.datetime(2026, 10, 12, 19, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), 'summary': 'Das Erste: Bad', ...}
+
+    def __call__(self, value: typing.Any) -&gt; T:
+        """Run each validator in sequence, returning the final value.
+    
+        A failure raises ``MultipleInvalid`` (matching voluptuous), unless a
+        custom ``msg`` was given, in which case it raises a bare ``AllInvalid``.
+    
+        The ``try`` wraps the whole loop rather than each step: the loop stops at
+        the first failing validator either way, so one handler per call keeps the
+        hot path (every value runs through here) a tight loop. The unrolled pair
+        path shares those handlers, so a branch failure behaves identically.
+        """
+        try:
+            if (pair := self._pair) is not None:
+                return pair[1](pair[0](value))
+            for compiled in self._compiled:
+&gt;               value = compiled(value)
+                        ^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/probatio/validators/combinators.py:308: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/_compile.py:645: in validate
+    return schema(data)
+           ^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = {'end': datetime.datetime(2026, 10, 12, 18, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), 'location': 'Das Erste', '...: datetime.datetime(2026, 10, 12, 19, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), 'summary': 'Das Erste: Bad', ...}
+
+    def validate(obj: dict[str, Any]) -&gt; dict[str, Any]:
+        if (start := obj.get(start_key)) and (end := obj.get(end_key)):
+            duration = end - start
+            if duration &lt; min_duration:
+&gt;               raise probatio.Invalid(
+                    "Expected minimum event duration"
+                    f" of {min_duration} ({start}, {end})"
+                )
+E               probatio.error.Invalid: Expected minimum event duration of 0:00:00 (2026-10-12 19:00:00-07:00, 2026-10-12 18:00:00-07:00)
+
+.venv/lib/python3.14/site-packages/homeassistant/components/calendar/helper.py:86: Invalid
+
+The above exception was the direct cause of the following exception:
+
+self = CalendarEvent(start=datetime.datetime(2026, 10, 12, 19, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), end=datetime.d...n=None, location='Das Erste', uid='daserste.de-20261013T020000Z-ba667f1b', recurrence_id=None, rrule=None, status=None)
+
+    def __post_init__(self) -&gt; None:
+        """Perform validation on the CalendarEvent."""
+    
+        def skip_none(obj: Iterable[tuple[str, Any]]) -&gt; dict[str, str]:
+            return {k: v for k, v in obj if v is not None}
+    
+        try:
+&gt;           CALENDAR_EVENT_SCHEMA(dataclasses.asdict(self, dict_factory=skip_none))
+
+.venv/lib/python3.14/site-packages/homeassistant/components/calendar/__init__.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = All({'start': Any(&lt;function date at 0x7f5dacd33060&gt;, &lt;function datetime at 0x7f5dacd35220&gt;, msg=None), 'end': Any(&lt;fun...mezone.&lt;locals&gt;.validate at 0x7f5da879ecf0&gt;, &lt;function has_min_duration.&lt;locals&gt;.validate at 0x7f5da879ee50&gt;, msg=None)
+value = {'end': datetime.datetime(2026, 10, 12, 18, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), 'location': 'Das Erste', '...: datetime.datetime(2026, 10, 12, 19, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), 'summary': 'Das Erste: Bad', ...}
+
+    def __call__(self, value: typing.Any) -&gt; T:
+        """Run each validator in sequence, returning the final value.
+    
+        A failure raises ``MultipleInvalid`` (matching voluptuous), unless a
+        custom ``msg`` was given, in which case it raises a bare ``AllInvalid``.
+    
+        The ``try`` wraps the whole loop rather than each step: the loop stops at
+        the first failing validator either way, so one handler per call keeps the
+        hot path (every value runs through here) a tight loop. The unrolled pair
+        path shares those handlers, so a branch failure behaves identically.
+        """
+        try:
+            if (pair := self._pair) is not None:
+                return pair[1](pair[0](value))
+            for compiled in self._compiled:
+                value = compiled(value)
+        except MultipleInvalid as exc:
+            if self.msg is not None:
+                raise AllInvalid(self.msg) from exc
+            raise
+        except Invalid as exc:
+            if self.msg is not None:
+                raise AllInvalid(self.msg) from exc
+&gt;           raise MultipleInvalid([exc]) from exc
+E           probatio.error.MultipleInvalid: Expected minimum event duration of 0:00:00 (2026-10-12 19:00:00-07:00, 2026-10-12 18:00:00-07:00)
+
+.venv/lib/python3.14/site-packages/probatio/validators/combinators.py:316: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7f5da51fdd30&gt;
+
+    def test_build_events_skips_invalid(caplog: pytest.LogCaptureFixture) -&gt; None:
+        good = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Good")
+        # Constructed directly, bypassing normalize: CalendarEvent rejects end &lt; start
+        bad = _programme(BUSY_DAY + timedelta(hours=2), BUSY_DAY + timedelta(hours=1), "Bad")
+        channels = {"daserste.de": Channel(id="daserste.de", display_name="Das Erste")}
+    
+        with caplog.at_level(logging.DEBUG, logger="custom_components.xmltv_calendar"):
+&gt;           events = build_events([good, bad], channels)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_calendar.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/calendar.py:50: in build_events
+    return [_to_event(programme, channels) for programme in programmes]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/calendar.py:41: in _to_event
+    return CalendarEvent(
+&lt;string&gt;:12: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = CalendarEvent(start=datetime.datetime(2026, 10, 12, 19, 0, tzinfo=zoneinfo.ZoneInfo(key='US/Pacific')), end=datetime.d...n=None, location='Das Erste', uid='daserste.de-20261013T020000Z-ba667f1b', recurrence_id=None, rrule=None, status=None)
+
+    def __post_init__(self) -&gt; None:
+        """Perform validation on the CalendarEvent."""
+    
+        def skip_none(obj: Iterable[tuple[str, Any]]) -&gt; dict[str, str]:
+            return {k: v for k, v in obj if v is not None}
+    
+        try:
+            CALENDAR_EVENT_SCHEMA(dataclasses.asdict(self, dict_factory=skip_none))
+        except probatio.Invalid as err:
+&gt;           raise HomeAssistantError(
+                f"Failed to validate CalendarEvent: {err}"
+            ) from err
+E           homeassistant.exceptions.HomeAssistantError: Failed to validate CalendarEvent: Expected minimum event duration of 0:00:00 (2026-10-12 19:00:00-07:00, 2026-10-12 18:00:00-07:00)
+
+.venv/lib/python3.14/site-packages/homeassistant/components/calendar/__init__.py:224: HomeAssistantError</failure></testcase><testcase classname="tests.test_calendar" name="test_state_turns_on_and_off_without_refresh" time="0.048" /><testcase classname="tests.test_calendar" name="test_start_offset_and_end_triggers_fire" time="0.124" /><testcase classname="tests.test_calendar" name="test_calendar_with_no_matches[channel-not-in-feed]" time="0.044" /><testcase classname="tests.test_calendar" name="test_calendar_with_no_matches[feed-without-programmes]" time="0.043" /><testcase classname="tests.test_tracer" name="test_url_source_to_calendar_events" time="0.056" /></testsuite></testsuites>
