@@ -14,20 +14,40 @@ from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
 from .xmltv import render, window
 from .xmltv.filter import FilterSpec
+from .xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
     from datetime import datetime
 
     from homeassistant.config_entries import ConfigSubentry
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from .data import XmltvConfigEntry
-    from .xmltv.model import EpgData, Programme
+    from .xmltv.model import Channel, EpgData, Programme
 
 _LOGGER = logging.getLogger(__name__)
 
 # The coordinator centralizes updates
 PARALLEL_UPDATES = 0
+
+# Hard cap per get_events query (T-01-08): an all-channels calendar can match tens of thousands of programmes
+MAX_EVENTS_PER_QUERY = 5000
+# CalendarEvent construction costs about 34 µs each; larger slices are built in the executor (RESEARCH Pitfall 5)
+EXECUTOR_BUILD_THRESHOLD = 200
+
+
+def _to_event(programme: Programme, channels: Mapping[str, Channel]) -> CalendarEvent:
+    return CalendarEvent(
+        start=dt_util.as_local(programme.start),
+        end=dt_util.as_local(programme.stop),
+        **render.to_event_fields(programme, channels.get(programme.channel_id)),
+    )
+
+
+def build_events(programmes: Sequence[Programme], channels: Mapping[str, Channel]) -> list[CalendarEvent]:
+    """Build calendar events for one requested slice of matches; safe to run in the executor."""
+    return [_to_event(programme, channels) for programme in programmes]
 
 
 async def async_setup_entry(
@@ -66,6 +86,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         )
         self._epg: EpgData | None = None
         self._matches: tuple[Programme, ...] = ()
+        self._index = MatchIndex(())
         self._generation = 0
 
     @override
@@ -94,6 +115,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             return
         self._epg = epg
         self._matches = result.matches
+        self._index = MatchIndex(result.matches)
         if result.missing_channels:
             _LOGGER.warning(
                 "Calendar %s: selected channels not in the feed: %s",
@@ -101,14 +123,6 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
                 ", ".join(sorted(result.missing_channels)),
             )
         self.async_write_ha_state()
-
-    def _to_event(self, programme: Programme) -> CalendarEvent:
-        channels = self._epg.channels if self._epg is not None else {}
-        return CalendarEvent(
-            start=dt_util.as_local(programme.start),
-            end=dt_util.as_local(programme.stop),
-            **render.to_event_fields(programme, channels.get(programme.channel_id)),
-        )
 
     @property
     @override
@@ -118,7 +132,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if programme is None:
             return None
         try:
-            return self._to_event(programme)
+            return _to_event(programme, self._epg.channels if self._epg is not None else {})
         except HomeAssistantError:
             _LOGGER.debug("Skipping invalid programme on %s", programme.channel_id)
             return None
@@ -127,13 +141,21 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
     ) -> list[CalendarEvent]:
-        """Return the matches overlapping the requested range."""
+        """Return the matches overlapping the requested range, capped and built off the loop when large."""
         if self._epg is None:
             return []
-        events: list[CalendarEvent] = []
-        for programme in window.overlapping(self._matches, start_date, end_date):
-            try:
-                events.append(self._to_event(programme))
-            except HomeAssistantError:
-                _LOGGER.debug("Skipping invalid programme on %s", programme.channel_id)
-        return events
+        channels = self._epg.channels
+        programmes = self._index.overlapping(start_date, end_date)
+        if len(programmes) > MAX_EVENTS_PER_QUERY:
+            _LOGGER.debug(
+                "Calendar %s: %d matches between %s and %s, returning the first %d",
+                self.entity_id,
+                len(programmes),
+                start_date,
+                end_date,
+                MAX_EVENTS_PER_QUERY,
+            )
+            programmes = programmes[:MAX_EVENTS_PER_QUERY]
+        if len(programmes) > EXECUTOR_BUILD_THRESHOLD:
+            return await hass.async_add_executor_job(build_events, programmes, channels)
+        return build_events(programmes, channels)
