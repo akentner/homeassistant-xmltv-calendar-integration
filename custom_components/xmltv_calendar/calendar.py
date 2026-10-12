@@ -92,7 +92,6 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             entry_type=DeviceEntryType.SERVICE,
         )
         self._epg: EpgData | None = None
-        self._matches: tuple[Programme, ...] = ()
         self._index = MatchIndex(())
         self._generation = 0
 
@@ -121,7 +120,6 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if generation != self._generation:
             return
         self._epg = epg
-        self._matches = result.matches
         self._index = MatchIndex(result.matches)
         if result.missing_channels:
             _LOGGER.warning(
