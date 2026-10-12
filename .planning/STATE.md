@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-10-12T22:52:22.819Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-10-12T23:00:14.463Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: 54e41eb67f788990ffb2f9440a22141afc4b89f8
+state_head: 8c745ed96c2c2533e7f05cf17bbb7a4d4f620f20
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 01 (First Filtered Calendar) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 01 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 6 min | 3 tasks | 27 files |
 | Phase 01 P02 | 4 min | 2 tasks | 7 files |
 | Phase 01 P03 | 4 min | 2 tasks | 3 files |
+| Phase 01 P04 | 6 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-03: channel_regex parsed like include/exclude (multiline, IGNORECASE) and re.search-ed on the channel ID
 - [Phase 01]: 01-03: missing_channels subtracts channel IDs seen in programmes, so programme-only channels are not reported missing
 - [Phase 01]: 01-03: first_invalid_pattern checks line-count cap, then length cap, then re.compile per non-blank line
+- [Phase 01]: 01-04: get_events over the cap returns the earliest-starting 5,000 matches of the range (start-sorted slice) with a debug log
+- [Phase 01]: 01-04: MatchIndex sorts its own input (stable) instead of trusting caller order
+- [Phase 01]: 01-04: boundary end-trigger test asserts event end 11:30 and firing by 11:31 (freezer runs the already-due alarm on the next tick)
 
 ### Pending Todos
 
@@ -102,6 +106,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T22:52:22.780Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-10-12T23:00:14.421Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

@@ -49,7 +49,7 @@
 ### Automation
 
 - [ ] **AUT-01**: Calendar works with calendar triggers (start/end, offsets) and `calendar.get_events`
-- [ ] **AUT-02**: Calendar state is `on` while a matching programme airs; attributes show the current/next match
+- [x] **AUT-02**: Calendar state is `on` while a matching programme airs; attributes show the current/next match
 - [ ] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
 - [ ] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
 - [ ] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
@@ -134,7 +134,7 @@
 | EVT-07 | Phase 4 | Pending |
 | EVT-08 | Phase 4 | Pending |
 | AUT-01 | Phase 1 | Pending |
-| AUT-02 | Phase 1 | Pending |
+| AUT-02 | Phase 1 | Complete |
 | AUT-03 | Phase 4 | Pending |
 | AUT-04 | Phase 3 | Pending |
 | AUT-05 | Phase 4 | Pending |
