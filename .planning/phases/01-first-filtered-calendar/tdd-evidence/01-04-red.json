@@ -1,0 +1,14 @@
+{
+  "command": "uv run pytest tests/test_calendar.py -q --junitxml=.planning/phases/01-first-filtered-calendar/tdd-evidence/01-04-red.xml",
+  "exitCode": 1,
+  "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"1\" skipped=\"0\" tests=\"1\" time=\"0.938\" timestamp=\"2026-10-13T00:54:25.309279+02:00\" hostname=\"dev-host\"><testcase classname=\"tests.test_calendar\" name=\"test_busy_calendar_get_events_is_capped\" time=\"0.865\"><failure message=\"AssertionError: assert 6000 == 5000&#10; +  where 6000 = len([{'end': '2026-10-13T02:14:00+02:00', 'location': 'Channel 0', 'start': '2026-10-13T02:00:00+02:00', 'summary': 'Chann...14:00+02:00', 'location': 'Channel 13', 'start': '2026-10-13T02:00:00+02:00', 'summary': 'Channel 13: Show 13-0'}, ...])\">hass = &lt;HomeAssistant RUNNING&gt;\nfreezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f15baf5b380&gt;\nberlin_tz = None\nsetup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f15b8ad8510&gt;\n\n    async def test_busy_calendar_get_events_is_capped(\n        hass: HomeAssistant,\n        freezer: Any,\n        berlin_tz: None,\n        setup_xmltv: Callable[..., Awaitable[Any]],\n    ) -&gt; None:\n        freezer.move_to(\"2026-10-13T00:00:00+00:00\")\n        await setup_xmltv(_busy_feed())\n    \n        events = await _get_events(hass, \"calendar.test\", \"2026-10-13T00:00:00+00:00\", 24)\n    \n&gt;       assert len(events) == 5000\nE       AssertionError: assert 6000 == 5000\nE        +  where 6000 = len([{'end': '2026-10-13T02:14:00+02:00', 'location': 'Channel 0', 'start': '2026-10-13T02:00:00+02:00', 'summary': 'Chann...14:00+02:00', 'location': 'Channel 13', 'start': '2026-10-13T02:00:00+02:00', 'summary': 'Channel 13: Show 13-0'}, ...])\n\ntests/test_calendar.py:54: AssertionError</failure></testcase></testsuite></testsuites>",
+  "targetTest": "test_busy_calendar_get_events_is_capped",
+  "targetFile": "tests/test_calendar.py",
+  "expected": "calendar.get_events over 2026-10-13 00:00Z + 24 h returns exactly 5,000 events sorted by start",
+  "actual": "get_events returned all 6,000 programmes: the 01-01 linear overlapping() has no cap",
+  "reportPath": ".planning/phases/01-first-filtered-calendar/tdd-evidence/01-04-red.xml",
+  "runStartedAt": "2026-10-12T22:54:23.000Z",
+  "reportModifiedAt": "2026-10-12T22:54:26.247Z",
+  "semanticAssessment": "Target collected, setup succeeded (calendar.test registered, feed of 60x100 programmes parsed) and it failed on the planned count assertion: 6000 == 5000, because the 01-01 linear overlapping() returns every match with no cap. No import, collection or fixture fault.",
+  "classifierVerdict": "RED_EVIDENCE_OK (target_test_failed)"
+}
