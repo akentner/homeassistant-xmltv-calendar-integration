@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic edge cases (D-15): channel without display-name, programme-only channel, three malformed programmes -->
+<tv generator-info-name="xmltv-calendar tests">
+  <channel id="nodisplay.de"/>
+  <channel id="daserste.de">
+    <display-name>Das Erste</display-name>
+  </channel>
+  <programme channel="nodisplay.de" start="20261013080000 +0000" stop="20261013090000 +0000">
+    <title>Ohne Anzeigenamen</title>
+  </programme>
+  <programme channel="orphan.de" start="20261013090000 +0000" stop="20261013100000 +0000">
+    <title>Waisenkanal</title>
+  </programme>
+  <programme channel="daserste.de" start="20261013100000 +0000" stop="20261013110000 +0000">
+    <desc>Programme without a title</desc>
+  </programme>
+  <programme channel="daserste.de" stop="20261013110000 +0000">
+    <title>Programme without a start</title>
+  </programme>
+  <programme channel="daserste.de" start="garbage" stop="20261013110000 +0000">
+    <title>Programme with an unparsable start</title>
+  </programme>
+  <programme channel="daserste.de" start="20261013120000 +0200" stop="20261013133000 +0200">
+    <title>Großer Preis</title>
+  </programme>
+</tv>

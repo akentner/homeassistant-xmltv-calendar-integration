@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="21" time="0.542" timestamp="2026-10-13T01:04:44.098624+02:00" hostname="dev-host"><testcase classname="tests.xmltv.test_parser" name="test_gzip_parses_like_plain" time="0.105" /><testcase classname="tests.xmltv.test_parser" name="test_plain_bytes_named_gz_parse" time="0.008" /><testcase classname="tests.xmltv.test_parser" name="test_gzip_decompressed_cap" time="0.006"><failure message="TypeError: parse() got an unexpected keyword argument 'max_bytes'">def test_gzip_decompressed_cap() -&gt; None:
+        bomb = gzip.compress(b"&lt;tv&gt;" + b" " * 4096 + b"&lt;/tv&gt;")
+        assert len(bomb) &lt; 1024
+    
+        with pytest.raises(FeedError) as excinfo:
+&gt;           _parse(bomb, max_bytes=1024)
+
+tests/xmltv/test_parser.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+payload = b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xed\xc1\x01\r\x00\x00\x04\x00\xb0*\x1a(`R\x99\xfcz\xd8\xff\x9a\xed\x00\x00\x00\x00\xde\xab\x9c\xed\x03Y\xae\xda\xa2\t\x10\x00\x00'
+kwargs = {'max_bytes': 1024}
+
+    def _parse(payload: bytes, **kwargs):
+&gt;       return parse(io.BytesIO(payload), **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: parse() got an unexpected keyword argument 'max_bytes'
+
+tests/xmltv/test_parser.py:21: TypeError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_plain_input_is_capped_too" time="0.005"><failure message="TypeError: parse() got an unexpected keyword argument 'max_bytes'">def test_plain_input_is_capped_too() -&gt; None:
+        with pytest.raises(FeedError) as excinfo:
+&gt;           _parse(b"&lt;tv&gt;" + b" " * 4096 + b"&lt;/tv&gt;", max_bytes=1024)
+
+tests/xmltv/test_parser.py:69: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+payload = b'&lt;tv&gt;                                                                                                                ...                                                                                                                 &lt;/tv&gt;'
+kwargs = {'max_bytes': 1024}
+
+    def _parse(payload: bytes, **kwargs):
+&gt;       return parse(io.BytesIO(payload), **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: parse() got an unexpected keyword argument 'max_bytes'
+
+tests/xmltv/test_parser.py:21: TypeError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_input_within_cap_parses" time="0.005"><failure message="TypeError: parse() got an unexpected keyword argument 'max_bytes'">def test_input_within_cap_parses() -&gt; None:
+&gt;       assert len(_parse(gzip.compress(BASIC), max_bytes=len(BASIC)).programmes) == 4
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+payload = b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xadRKN\xc30\x10\xdd\xe7\x14#oQ\x1a'\x05DQ\x92nJX!\x81T6\xecL&lt;I-\x12\xbb\xb2...\xfe\xc2\xc90\xa2?=ft~\xc4\xc4\x02\x9b\xee\x83\xfc\x87\xfe\xe4\x1b\xfdIDO\xd0w\xf56\xf5&gt;\x00o\xe0\x9d\x96N\x03\x00\x00"
+kwargs = {'max_bytes': 846}
+
+    def _parse(payload: bytes, **kwargs):
+&gt;       return parse(io.BytesIO(payload), **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: parse() got an unexpected keyword argument 'max_bytes'
+
+tests/xmltv/test_parser.py:21: TypeError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_truncated_gzip_raises_feed_error" time="0.005"><failure message="EOFError: Compressed file ended before the end-of-stream marker was reached">def test_truncated_gzip_raises_feed_error() -&gt; None:
+        payload = gzip.compress(BASIC)
+    
+        with pytest.raises(FeedError):
+&gt;           _parse(payload[: len(payload) // 2])
+
+tests/xmltv/test_parser.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:21: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:86: in parse
+    _, root = next(events)
+              ^^^^^^^^^^^^
+/usr/lib/python3.14/xml/etree/ElementTree.py:1262: in iterator
+    data = source.read(16 * 1024)
+           ^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/gzip.py:351: in read
+    return self._buffer.read(size)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/compression/_common/_streams.py:68: in readinto
+    data = self.read(len(byte_view))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;gzip._GzipReader object at 0x7f81e5f90130&gt;, size = 130909
+
+    def read(self, size=-1):
+        if size &lt; 0:
+            return self.readall()
+        # size=0 is special because decompress(max_length=0) is not supported
+        if not size:
+            return b""
+    
+        # For certain input data, a single
+        # call to decompress() may not return
+        # any data. In this case, retry until we get some data or reach EOF.
+        while True:
+            if self._decompressor.eof:
+                # Ending case: we've come to the end of a member in the file,
+                # so finish up this member, and read a new gzip header.
+                # Check the CRC and file size, and set the flag so we read
+                # a new member
+                self._read_eof()
+                self._new_member = True
+                self._decompressor = self._decomp_factory(
+                    **self._decomp_args)
+    
+            if self._new_member:
+                # If the _new_member flag is set, we have to
+                # jump to the next member, if there is one.
+                self._init_read()
+                if not self._read_gzip_header():
+                    self._size = self._pos
+                    return b""
+                self._new_member = False
+    
+            # Read a chunk of data from the file
+            if self._decompressor.needs_input:
+                buf = self._fp.read(READ_BUFFER_SIZE)
+            else:
+                buf = b""
+    
+            uncompress = self._decompressor.decompress(buf, size)
+            if self._decompressor.unused_data != b"":
+                # Prepend the already read bytes to the fileobj so they can
+                # be seen by _read_eof() and _read_gzip_header()
+                self._fp.prepend(self._decompressor.unused_data)
+    
+            if uncompress != b"":
+                break
+            if buf == b"":
+&gt;               raise EOFError("Compressed file ended before the "
+                               "end-of-stream marker was reached")
+E               EOFError: Compressed file ended before the end-of-stream marker was reached
+
+/usr/lib/python3.14/gzip.py:592: EOFError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_corrupt_gzip_raises_feed_error" time="0.005"><failure message="gzip.BadGzipFile: Unknown compression method">def test_corrupt_gzip_raises_feed_error() -&gt; None:
+        with pytest.raises(FeedError):
+&gt;           _parse(b"\x1f\x8b" + b"not a deflate stream")
+
+tests/xmltv/test_parser.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:21: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:86: in parse
+    _, root = next(events)
+              ^^^^^^^^^^^^
+/usr/lib/python3.14/xml/etree/ElementTree.py:1262: in iterator
+    data = source.read(16 * 1024)
+           ^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/gzip.py:351: in read
+    return self._buffer.read(size)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/compression/_common/_streams.py:68: in readinto
+    data = self.read(len(byte_view))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/gzip.py:572: in read
+    if not self._read_gzip_header():
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/gzip.py:541: in _read_gzip_header
+    last_mtime = _read_gzip_header(self._fp)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fp = &lt;gzip._PaddedFile object at 0x7f81e5f74f50&gt;
+
+    def _read_gzip_header(fp):
+        '''Read a gzip header from `fp` and progress to the end of the header.
+    
+        Returns last mtime if header was present or None otherwise.
+        '''
+        magic = fp.read(2)
+        if magic == b'':
+            return None
+    
+        if magic != b'\037\213':
+            raise BadGzipFile('Not a gzipped file (%r)' % magic)
+    
+        (method, flag, last_mtime) = struct.unpack("&lt;BBIxx", _read_exact(fp, 8))
+        if method != 8:
+&gt;           raise BadGzipFile('Unknown compression method')
+E           gzip.BadGzipFile: Unknown compression method
+
+/usr/lib/python3.14/gzip.py:505: BadGzipFile</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[empty]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[not-xml]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[truncated-xml]" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[unknown-encoding]" time="0.005"><failure message="LookupError: unknown encoding: SENTINEL-x9q7">payload = b'&lt;?xml version="1.0" encoding="SENTINEL-x9q7"?&gt;&lt;tv&gt;&lt;/tv&gt;'
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param(f'&lt;?xml version="1.0" encoding="{SENTINEL}"?&gt;&lt;tv&gt;&lt;/tv&gt;'.encode(), id="unknown-encoding"),
+            pytest.param(f"&lt;tv&gt;&lt;programme&gt;{SENTINEL} &amp;nbsp; &lt;/programme&gt;&lt;/tv&gt;".encode(), id="undefined-entity"),
+            pytest.param(f"&lt;tv&gt;&lt;title&gt;{SENTINEL}&lt;/title&gt;".encode(), id="truncated"),
+            pytest.param(gzip.compress(f"&lt;tv&gt;&lt;title&gt;{SENTINEL}&lt;/title&gt;&lt;/tv&gt;".encode())[:20], id="truncated-gzip"),
+        ],
+    )
+    def test_error_message_has_no_feed_content(payload: bytes) -&gt; None:
+        with pytest.raises(FeedError) as excinfo:
+&gt;           _parse(payload)
+
+tests/xmltv/test_parser.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:21: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:86: in parse
+    _, root = next(events)
+              ^^^^^^^^^^^^
+/usr/lib/python3.14/xml/etree/ElementTree.py:1265: in iterator
+    pullparser.feed(data)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;xml.etree.ElementTree.XMLPullParser object at 0x7f81e5f8a850&gt;
+data = b'&lt;?xml version="1.0" encoding="SENTINEL-x9q7"?&gt;&lt;tv&gt;&lt;/tv&gt;'
+
+    def feed(self, data):
+        """Feed encoded data to parser."""
+        if self._parser is None:
+            raise ValueError("feed() called after end of stream")
+        if data:
+            try:
+&gt;               self._parser.feed(data)
+E               LookupError: unknown encoding: SENTINEL-x9q7
+
+/usr/lib/python3.14/xml/etree/ElementTree.py:1315: LookupError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[undefined-entity]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[truncated]" time="0.004" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[truncated-gzip]" time="0.005"><failure message="EOFError: Compressed file ended before the end-of-stream marker was reached">payload = b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xb3))\xb3\xb3)\xc9,\xc9I'
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param(f'&lt;?xml version="1.0" encoding="{SENTINEL}"?&gt;&lt;tv&gt;&lt;/tv&gt;'.encode(), id="unknown-encoding"),
+            pytest.param(f"&lt;tv&gt;&lt;programme&gt;{SENTINEL} &amp;nbsp; &lt;/programme&gt;&lt;/tv&gt;".encode(), id="undefined-entity"),
+            pytest.param(f"&lt;tv&gt;&lt;title&gt;{SENTINEL}&lt;/title&gt;".encode(), id="truncated"),
+            pytest.param(gzip.compress(f"&lt;tv&gt;&lt;title&gt;{SENTINEL}&lt;/title&gt;&lt;/tv&gt;".encode())[:20], id="truncated-gzip"),
+        ],
+    )
+    def test_error_message_has_no_feed_content(payload: bytes) -&gt; None:
+        with pytest.raises(FeedError) as excinfo:
+&gt;           _parse(payload)
+
+tests/xmltv/test_parser.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:21: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:86: in parse
+    _, root = next(events)
+              ^^^^^^^^^^^^
+/usr/lib/python3.14/xml/etree/ElementTree.py:1262: in iterator
+    data = source.read(16 * 1024)
+           ^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/gzip.py:351: in read
+    return self._buffer.read(size)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/compression/_common/_streams.py:68: in readinto
+    data = self.read(len(byte_view))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;gzip._GzipReader object at 0x7f81e5f939a0&gt;, size = 131063
+
+    def read(self, size=-1):
+        if size &lt; 0:
+            return self.readall()
+        # size=0 is special because decompress(max_length=0) is not supported
+        if not size:
+            return b""
+    
+        # For certain input data, a single
+        # call to decompress() may not return
+        # any data. In this case, retry until we get some data or reach EOF.
+        while True:
+            if self._decompressor.eof:
+                # Ending case: we've come to the end of a member in the file,
+                # so finish up this member, and read a new gzip header.
+                # Check the CRC and file size, and set the flag so we read
+                # a new member
+                self._read_eof()
+                self._new_member = True
+                self._decompressor = self._decomp_factory(
+                    **self._decomp_args)
+    
+            if self._new_member:
+                # If the _new_member flag is set, we have to
+                # jump to the next member, if there is one.
+                self._init_read()
+                if not self._read_gzip_header():
+                    self._size = self._pos
+                    return b""
+                self._new_member = False
+    
+            # Read a chunk of data from the file
+            if self._decompressor.needs_input:
+                buf = self._fp.read(READ_BUFFER_SIZE)
+            else:
+                buf = b""
+    
+            uncompress = self._decompressor.decompress(buf, size)
+            if self._decompressor.unused_data != b"":
+                # Prepend the already read bytes to the fileobj so they can
+                # be seen by _read_eof() and _read_gzip_header()
+                self._fp.prepend(self._decompressor.unused_data)
+    
+            if uncompress != b"":
+                break
+            if buf == b"":
+&gt;               raise EOFError("Compressed file ended before the "
+                               "end-of-stream marker was reached")
+E               EOFError: Compressed file ended before the end-of-stream marker was reached
+
+/usr/lib/python3.14/gzip.py:592: EOFError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_display_name_fallback" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_programme_only_channel_is_listed" time="0.005"><failure message="AssertionError: assert None == Channel(id='orphan.de', display_name='orphan.de')&#10; +  where None = &lt;built-in method get of dict object at 0x7f81e4d36c00&gt;('orphan.de')&#10; +    where &lt;built-in method get of dict object at 0x7f81e4d36c00&gt; = {'daserste.de': Channel(id='daserste.de', display_name='Das Erste'), 'nodisplay.de': Channel(id='nodisplay.de', display_name='nodisplay.de')}.get&#10; +      where {'daserste.de': Channel(id='daserste.de', display_name='Das Erste'), 'nodisplay.de': Channel(id='nodisplay.de', display_name='nodisplay.de')} = EpgData(channels={'nodisplay.de': Channel(id='nodisplay.de', display_name='nodisplay.de'), 'daserste.de': Channel(id='...one)), stats=ParseStats(programmes=3, channels=2, skipped_malformed=3, duplicates=0, inferred_stops=0, dropped_past=0)).channels&#10; +  and   Channel(id='orphan.de', display_name='orphan.de') = Channel('orphan.de', 'orphan.de')">def test_programme_only_channel_is_listed() -&gt; None:
+        data = _parse(EDGE_CASES)
+    
+&gt;       assert data.channels.get("orphan.de") == Channel("orphan.de", "orphan.de")
+E       AssertionError: assert None == Channel(id='orphan.de', display_name='orphan.de')
+E        +  where None = &lt;built-in method get of dict object at 0x7f81e4d36c00&gt;('orphan.de')
+E        +    where &lt;built-in method get of dict object at 0x7f81e4d36c00&gt; = {'daserste.de': Channel(id='daserste.de', display_name='Das Erste'), 'nodisplay.de': Channel(id='nodisplay.de', display_name='nodisplay.de')}.get
+E        +      where {'daserste.de': Channel(id='daserste.de', display_name='Das Erste'), 'nodisplay.de': Channel(id='nodisplay.de', display_name='nodisplay.de')} = EpgData(channels={'nodisplay.de': Channel(id='nodisplay.de', display_name='nodisplay.de'), 'daserste.de': Channel(id='...one)), stats=ParseStats(programmes=3, channels=2, skipped_malformed=3, duplicates=0, inferred_stops=0, dropped_past=0)).channels
+E        +  and   Channel(id='orphan.de', display_name='orphan.de') = Channel('orphan.de', 'orphan.de')
+
+tests/xmltv/test_parser.py:130: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_skips_malformed_programmes" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_umlaut_title_preserved" time="0.004" /><testcase classname="tests.xmltv.test_parser" name="test_latin1_declared_encoding" time="0.004" /><testcase classname="tests.xmltv.test_parser" name="test_yield_every_calls_sleep[250-4]" time="0.020" /><testcase classname="tests.xmltv.test_parser" name="test_yield_every_calls_sleep[0-0]" time="0.020" /></testsuite></testsuites>

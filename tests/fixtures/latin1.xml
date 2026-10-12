@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Synthetic (D-15): ISO-8859-1 bytes with the encoding declared -->
+<tv generator-info-name="xmltv-calendar tests">
+  <channel id="daserste.de">
+    <display-name>Das Erste Ö</display-name>
+  </channel>
+  <programme channel="daserste.de" start="20261013120000 +0200" stop="20261013133000 +0200">
+    <title>Straße</title>
+  </programme>
+</tv>
