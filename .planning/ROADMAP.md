@@ -32,14 +32,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A calendar trigger automation (start and end, with offset) fires for a matching programme. `calendar.get_events` returns all events overlapping the queried range. The calendar is `on` while a match airs, and its attributes show the current/next match.
   5. A 50+ MB fixture feed refreshes without blocking the HA event loop and stays within a bounded memory budget (benchmark). Every push runs hassfest, HACS validation, Ruff and pytest green, and HACS accepts the repo as a custom repository (valid `hacs.json`, `manifest.json`, brand icon).
 
-**Plans**: 1/10 plans executed
+**Plans**: 2/10 plans executed
 
 Plans:
 **Wave 1**
 - [x] 01-01-PLAN.md — Walking skeleton: package gate, pinned dev tooling, then tracer URL source → one calendar → events (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 01-02-PLAN.md — TDD: timestamp variants, stop inference, dedup, stable UIDs (wave 2)
+- [x] 01-02-PLAN.md — TDD: timestamp variants, stop inference, dedup, stable UIDs (wave 2)
 - [ ] 01-03-PLAN.md — TDD: filter engine (channel ∪ channel regex, include/exclude, validation API) (wave 2)
 - [ ] 01-04-PLAN.md — TDD: calendar window reads (bisect index, end-inclusive, capped), triggers and live state (wave 2)
 - [ ] 01-05-PLAN.md — TDD: robust ingestion (gzip by content, size caps, typed failures, host-only logs) (wave 2)
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First Filtered Calendar | 1/10 | In Progress | - |
+| 1. First Filtered Calendar | 2/10 | In Progress | - |
 | 2. Precise Filters & Preview | 0/TBD | Not started | - |
 | 3. Resilient Sources | 0/TBD | Not started | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |

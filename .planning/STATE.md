@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-10-12T22:39:40.992Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-10-12T22:46:15.193Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: a50638409c78a233944b5007719831ef5781e328
+state_head: 982701b344d5b95b47f04c548653ed281a0b4cb0
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 01 (First Filtered Calendar) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 01 execution started
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 6 min | 3 tasks | 27 files |
+| Phase 01 P02 | 4 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-01 Task 1 approved: dev pins pytest-homeassistant-custom-component 0.13.372 (HA 2026.10.1) and ruff 0.17.0
 - [Phase 01]: iot_class cloud_polling (most sources are internet feeds, like core remote_calendar)
 - [Phase 01]: Parser passes a missing stop as stop == start; normalize infers any stop <= start; keep_after drop runs after normalize
+- [Phase 01]: 01-02: dedup before grouping, keyed on (channel_id, UTC start, title), first occurrence wins
+- [Phase 01]: 01-02: EventFields.uid narrowed to str; UID = <channel_id>-<UTC start>-<crc32(title):08x> (A7)
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T22:39:40.932Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-10-12T22:46:15.154Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
