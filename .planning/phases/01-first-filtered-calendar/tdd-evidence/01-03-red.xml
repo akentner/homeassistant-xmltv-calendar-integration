@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.266" timestamp="2026-10-13T00:47:49.251593+02:00" hostname="dev-host"><testcase classname="tests.test_filtering" name="test_include_pattern_end_to_end" time="0.191"><failure message="AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Das Erste: Tagesschau']&#10;  &#10;  At index 0 diff: 'Das Erste: Formel 1: Großer Preis von Mexiko' != 'Das Erste: Tagesschau'&#10;  Left contains 3 more items, first extra item: 'ZDF: heute'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f8b1f2270e0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f8b1f267b60&gt;
+
+    async def test_include_pattern_end_to_end(
+        hass: HomeAssistant,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T08:00:00+00:00")
+        await setup_xmltv(BASIC_FEED, calendars=(("News", {"include": "^Tagesschau$"}),))
+    
+&gt;       assert await _summaries(hass, "calendar.news") == ["Das Erste: Tagesschau"]
+E       AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Das Erste: Tagesschau']
+E         
+E         At index 0 diff: 'Das Erste: Formel 1: Großer Preis von Mexiko' != 'Das Erste: Tagesschau'
+E         Left contains 3 more items, first extra item: 'ZDF: heute'
+E         Use -v to get more diff
+
+tests/test_filtering.py:33: AssertionError</failure></testcase></testsuite></testsuites>

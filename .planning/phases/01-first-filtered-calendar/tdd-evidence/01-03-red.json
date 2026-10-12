@@ -1,0 +1,14 @@
+{
+  "command": "uv run pytest tests/test_filtering.py -q --junitxml=.planning/phases/01-first-filtered-calendar/tdd-evidence/01-03-red.xml",
+  "exitCode": 1,
+  "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"1\" skipped=\"0\" tests=\"1\" time=\"0.266\" timestamp=\"2026-10-13T00:47:49.251593+02:00\" hostname=\"dev-host\"><testcase classname=\"tests.test_filtering\" name=\"test_include_pattern_end_to_end\" time=\"0.191\"><failure message=\"AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Das Erste: Tagesschau']&#10;  &#10;  At index 0 diff: 'Das Erste: Formel 1: Gro\u00dfer Preis von Mexiko' != 'Das Erste: Tagesschau'&#10;  Left contains 3 more items, first extra item: 'ZDF: heute'&#10;  Use -v to get more diff\">hass = &lt;HomeAssistant RUNNING&gt;\nfreezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f8b1f2270e0&gt;\nsetup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f8b1f267b60&gt;\n\n    async def test_include_pattern_end_to_end(\n        hass: HomeAssistant,\n        freezer: Any,\n        setup_xmltv: Callable[..., Awaitable[Any]],\n    ) -&gt; None:\n        freezer.move_to(\"2026-10-13T08:00:00+00:00\")\n        await setup_xmltv(BASIC_FEED, calendars=((\"News\", {\"include\": \"^Tagesschau$\"}),))\n    \n&gt;       assert await _summaries(hass, \"calendar.news\") == [\"Das Erste: Tagesschau\"]\nE       AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Das Erste: Tagesschau']\nE         \nE         At index 0 diff: 'Das Erste: Formel 1: Gro\u00dfer Preis von Mexiko' != 'Das Erste: Tagesschau'\nE         Left contains 3 more items, first extra item: 'ZDF: heute'\nE         Use -v to get more diff\n\ntests/test_filtering.py:33: AssertionError</failure></testcase></testsuite></testsuites>",
+  "targetTest": "test_include_pattern_end_to_end",
+  "targetFile": "tests/test_filtering.py",
+  "expected": "calendar.news get_events returns exactly ['Das Erste: Tagesschau']",
+  "actual": "get_events returned all four basic.xml programmes; the 01-01 FilterSpec ignores the include key",
+  "reportPath": ".planning/phases/01-first-filtered-calendar/tdd-evidence/01-03-red.xml",
+  "runStartedAt": "2026-10-12T22:47:47.000Z",
+  "reportModifiedAt": "2026-10-12T22:47:49.517Z",
+  "semanticAssessment": "Target collected, setup succeeded (calendar.news registered) and it failed on the planned summary-list assertion: four events instead of ['Das Erste: Tagesschau'], because FilterSpec ignores the include key. No import, collection or fixture fault.",
+  "classifierVerdict": "RED_EVIDENCE_OK (target_test_failed)"
+}
