@@ -101,13 +101,57 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (filled by roadmap) | | |
+| SRC-01 | Phase 1 | Pending |
+| SRC-02 | Phase 1 | Pending |
+| SRC-03 | Phase 1 | Pending |
+| SRC-04 | Phase 1 | Pending |
+| SRC-05 | Phase 3 | Pending |
+| SRC-06 | Phase 3 | Pending |
+| SRC-07 | Phase 3 | Pending |
+| SRC-08 | Phase 3 | Pending |
+| SRC-09 | Phase 1 | Pending |
+| SRC-10 | Phase 3 | Pending |
+| SRC-11 | Phase 3 | Pending |
+| SRC-12 | Phase 3 | Pending |
+| SRC-13 | Phase 1 | Pending |
+| FLT-01 | Phase 1 | Pending |
+| FLT-02 | Phase 1 | Pending |
+| FLT-03 | Phase 1 | Pending |
+| FLT-04 | Phase 1 | Pending |
+| FLT-05 | Phase 2 | Pending |
+| FLT-06 | Phase 2 | Pending |
+| FLT-07 | Phase 1 | Pending |
+| FLT-08 | Phase 2 | Pending |
+| FLT-09 | Phase 2 | Pending |
+| FLT-10 | Phase 2 | Pending |
+| FLT-11 | Phase 2 | Pending |
+| EVT-01 | Phase 1 | Pending |
+| EVT-02 | Phase 1 | Pending |
+| EVT-03 | Phase 2 | Pending |
+| EVT-04 | Phase 2 | Pending |
+| EVT-05 | Phase 1 | Pending |
+| EVT-06 | Phase 1 | Pending |
+| EVT-07 | Phase 4 | Pending |
+| EVT-08 | Phase 4 | Pending |
+| AUT-01 | Phase 1 | Pending |
+| AUT-02 | Phase 1 | Pending |
+| AUT-03 | Phase 4 | Pending |
+| AUT-04 | Phase 3 | Pending |
+| AUT-05 | Phase 4 | Pending |
+| CFG-01 | Phase 1 | Pending |
+| CFG-02 | Phase 3 | Pending |
+| CFG-03 | Phase 3 | Pending |
+| CFG-04 | Phase 4 | Pending |
+| DST-01 | Phase 1 | Pending |
+| DST-02 | Phase 1 | Pending |
+| DST-03 | Phase 4 | Pending |
+| DST-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 45 total
-- Mapped to phases: 0
-- Unmapped: 45 ⚠️
+- Mapped to phases: 45
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-12*
-*Last updated: 2026-10-12 after initial definition*
+*Last updated: 2026-10-12 after roadmap creation (traceability mapped)*
