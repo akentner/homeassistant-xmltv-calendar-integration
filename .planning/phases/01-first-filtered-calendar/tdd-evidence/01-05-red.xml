@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.256" timestamp="2026-10-13T01:02:20.889176+02:00" hostname="dev-host"><testcase classname="tests.test_ingestion" name="test_gzip_behind_xml_url_end_to_end" time="0.183"><failure message="AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;&#10; +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M4S8Y5005HJK2NE8NA0N3Z2C version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.SETUP_RETRY unique_id=None&gt;.state&#10; +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f39ea752f90&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f39ea78d6a0&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f39e82dc510&gt;
+
+    async def test_gzip_behind_xml_url_end_to_end(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T00:00:00+00:00")
+        payload = gzip.compress(BASIC_FEED)
+        # Registered before setup_xmltv's own mock, so this response (gzip body, generic content type) wins
+        aioclient_mock.get(FEED_URL, content=payload, headers=OCTET_STREAM)
+    
+        entry = await setup_xmltv(payload, calendars=(("All", {}),))
+    
+        assert FEED_URL.endswith(".xml")
+&gt;       assert entry.state is ConfigEntryState.LOADED
+E       AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;
+E        +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M4S8Y5005HJK2NE8NA0N3Z2C version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.SETUP_RETRY unique_id=None&gt;.state
+E        +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED
+
+tests/test_ingestion.py:47: AssertionError</failure></testcase></testsuite></testsuites>
