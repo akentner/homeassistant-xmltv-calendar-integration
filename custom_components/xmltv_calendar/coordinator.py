@@ -10,9 +10,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_REFRESH_HOURS, CONF_URL, DEFAULT_DURATION, DEFAULT_REFRESH_HOURS, DOMAIN, KEEP_PAST
-from .source import SourceError, async_fetch_url
+from .source import SourceError, SourceTooLargeError, async_fetch_url
 from .xmltv.model import EpgData
-from .xmltv.parser import FeedError, parse
+from .xmltv.parser import FeedError, FeedTooLargeError, parse
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -42,6 +42,9 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         """Download the feed, then parse it off the event loop."""
         try:
             payload = await async_fetch_url(self.hass, self.config_entry.data[CONF_URL])
+        except SourceTooLargeError as err:
+            _LOGGER.debug("Source %s is too large: %s", self.config_entry.title, err)
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="feed_too_large") from err
         except SourceError as err:
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
@@ -54,6 +57,9 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
                     default_duration=DEFAULT_DURATION,
                 )
             )
+        except FeedTooLargeError as err:
+            _LOGGER.debug("Source %s is too large: %s", self.config_entry.title, err)
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="feed_too_large") from err
         except FeedError as err:
             _LOGGER.debug("Source %s returned an invalid feed: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="invalid_feed") from err
