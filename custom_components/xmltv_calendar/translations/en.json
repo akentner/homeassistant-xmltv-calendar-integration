@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add XMLTV source",
+        "menu_options": {
+          "url": "Feed URL"
+        }
+      },
+      "url": {
+        "title": "XMLTV feed URL",
+        "description": "The feed is downloaded once per refresh and shared by all calendars of this source.",
+        "data": {
+          "url": "URL",
+          "refresh_hours": "Refresh interval"
+        },
+        "data_description": {
+          "url": "HTTP or HTTPS address of the XMLTV file.",
+          "refresh_hours": "How often the feed is downloaded again, in hours (1 to 168)."
+        }
+      },
+      "name": {
+        "title": "Name the source",
+        "data": {
+          "name": "Name"
+        },
+        "data_description": {
+          "name": "Shown as the title of this source in Home Assistant."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Enter an http:// or https:// URL.",
+      "name_required": "Enter a name."
+    },
+    "abort": {
+      "already_configured": "This source is already configured."
+    }
+  },
+  "config_subentries": {
+    "calendar": {
+      "initiate_flow": {
+        "user": "Add calendar"
+      },
+      "entry_type": "Calendar",
+      "step": {
+        "user": {
+          "title": "Add calendar",
+          "data": {
+            "name": "Name",
+            "channels": "Channels"
+          },
+          "data_description": {
+            "name": "The calendar entity is named after it, for example calendar.formel_1.",
+            "channels": "Channel IDs to include. Leave empty to include all channels."
+          }
+        }
+      },
+      "error": {
+        "name_required": "Enter a name."
+      },
+      "abort": {
+        "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again."
+      }
+    }
+  },
+  "exceptions": {
+    "unable_to_fetch": {
+      "message": "Unable to download the XMLTV feed."
+    },
+    "invalid_feed": {
+      "message": "The downloaded file is not a valid XMLTV feed."
+    }
+  }
+}

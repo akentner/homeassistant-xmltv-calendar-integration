@@ -1,0 +1,48 @@
+"""Constants for the XMLTV Calendar integration."""
+
+from datetime import timedelta
+
+from homeassistant.const import CONF_NAME, CONF_PATH, CONF_URL
+
+from .xmltv.filter import KEY_CHANNEL_REGEX, KEY_CHANNELS, KEY_EXCLUDE, KEY_INCLUDE
+
+DOMAIN = "xmltv_calendar"  # D-01: one-way door
+SUBENTRY_TYPE_CALENDAR = "calendar"
+
+CONF_SOURCE_TYPE = "source_type"
+SOURCE_TYPE_URL = "url"
+SOURCE_TYPE_FILE = "file"
+
+CONF_REFRESH_HOURS = "refresh_hours"
+DEFAULT_REFRESH_HOURS = 24  # D-13
+MIN_REFRESH_HOURS = 1
+MAX_REFRESH_HOURS = 168
+
+CONF_CHANNELS = KEY_CHANNELS
+CONF_CHANNEL_REGEX = KEY_CHANNEL_REGEX
+CONF_INCLUDE = KEY_INCLUDE
+CONF_EXCLUDE = KEY_EXCLUDE
+
+DEFAULT_DURATION = timedelta(minutes=60)  # D-12
+KEEP_PAST = timedelta(days=1)
+
+__all__ = [
+    "CONF_CHANNELS",
+    "CONF_CHANNEL_REGEX",
+    "CONF_EXCLUDE",
+    "CONF_INCLUDE",
+    "CONF_NAME",
+    "CONF_PATH",
+    "CONF_REFRESH_HOURS",
+    "CONF_SOURCE_TYPE",
+    "CONF_URL",
+    "DEFAULT_DURATION",
+    "DEFAULT_REFRESH_HOURS",
+    "DOMAIN",
+    "KEEP_PAST",
+    "MAX_REFRESH_HOURS",
+    "MIN_REFRESH_HOURS",
+    "SOURCE_TYPE_FILE",
+    "SOURCE_TYPE_URL",
+    "SUBENTRY_TYPE_CALENDAR",
+]
