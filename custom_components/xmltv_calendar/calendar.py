@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
-from .xmltv import render, window
+from .xmltv import render
 from .xmltv.filter import FilterSpec
 from .xmltv.window import MatchIndex
 
@@ -47,7 +47,14 @@ def _to_event(programme: Programme, channels: Mapping[str, Channel]) -> Calendar
 
 def build_events(programmes: Sequence[Programme], channels: Mapping[str, Channel]) -> list[CalendarEvent]:
     """Build calendar events for one requested slice of matches; safe to run in the executor."""
-    return [_to_event(programme, channels) for programme in programmes]
+    # A match that fails CalendarEvent validation is skipped, so it cannot break a read or trigger poll (T-01-09)
+    events: list[CalendarEvent] = []
+    for programme in programmes:
+        try:
+            events.append(_to_event(programme, channels))
+        except HomeAssistantError:
+            _LOGGER.debug("Skipping invalid programme on %s at %s", programme.channel_id, programme.start)
+    return events
 
 
 async def async_setup_entry(
@@ -128,7 +135,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
     @override
     def event(self) -> CalendarEvent | None:
         """Return the programme airing now, else the next one; computed live from the current time (AUT-02)."""
-        programme = window.current_or_next(self._matches, dt_util.now())
+        programme = self._index.current_or_next(dt_util.now())
         if programme is None:
             return None
         try:

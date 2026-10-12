@@ -36,6 +36,13 @@ class MatchIndex:
         hi = bisect_left(self._starts, end)
         return [p for p in self._programmes[lo:hi] if p.stop >= start]
 
+    def current_or_next(self, now: datetime) -> Programme | None:
+        """Return the earliest-start match whose stop is after `now` (airing, else the next one)."""
+        for i in range(bisect_left(self._starts, now - self._max_duration), len(self._programmes)):
+            if (programme := self._programmes[i]).stop > now:
+                return programme
+        return None
+
 
 def overlapping(matches: Sequence[Programme], start: datetime, end: datetime) -> list[Programme]:
     """Return programmes overlapping [start, end), end-inclusive on the programme's stop, sorted by start."""
