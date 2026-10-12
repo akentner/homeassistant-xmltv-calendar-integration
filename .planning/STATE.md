@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-10-12T23:00:14.463Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-10-12T23:09:19.641Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: 8c745ed96c2c2533e7f05cf17bbb7a4d4f620f20
+state_head: be504e70aff0b3d8d7cfc5a5e2010212352f33ec
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 01 (First Filtered Calendar) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 01 execution started
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 4 min | 2 tasks | 7 files |
 | Phase 01 P03 | 4 min | 2 tasks | 3 files |
 | Phase 01 P04 | 6 min | 2 tasks | 9 files |
+| Phase 01 P05 | 6 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-04: get_events over the cap returns the earliest-starting 5,000 matches of the range (start-sorted slice) with a debug log
 - [Phase 01]: 01-04: MatchIndex sorts its own input (stable) instead of trusting caller order
 - [Phase 01]: 01-04: boundary end-trigger test asserts event end 11:30 and firing by 11:31 (freezer runs the already-due alarm on the next tick)
+- [Phase 01]: 01-05: LookupError and ValueError are also translated into content-free FeedError (unknown encoding declarations leak feed text via LookupError)
+- [Phase 01]: 01-05: programme-only channels are synthesized as Channel(id, id) from all parsed programmes, before the keep_after drop
+- [Phase 01]: 01-05: successful downloads log byte count and host only; size failures use translation key feed_too_large
 
 ### Pending Todos
 
@@ -106,6 +110,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T23:00:14.421Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-10-12T23:09:19.597Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None

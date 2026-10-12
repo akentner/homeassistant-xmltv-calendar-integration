@@ -38,7 +38,7 @@
 ### Events
 
 - [x] **EVT-01**: Each matching programme becomes exactly one calendar event (no merging); exact duplicates (same channel+start+title) are collapsed
-- [ ] **EVT-02**: Event location is the channel display name
+- [x] **EVT-02**: Event location is the channel display name
 - [ ] **EVT-03**: User can configure the event title via placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`); default `{channel}: {title}`; unknown placeholders rejected in flow
 - [ ] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template
 - [x] **EVT-05**: Event start/end are correct and timezone-aware for all XMLTV timestamp variants; missing stop times are inferred
@@ -126,7 +126,7 @@
 | FLT-10 | Phase 2 | Pending |
 | FLT-11 | Phase 2 | Pending |
 | EVT-01 | Phase 1 | Complete |
-| EVT-02 | Phase 1 | Pending |
+| EVT-02 | Phase 1 | Complete |
 | EVT-03 | Phase 2 | Pending |
 | EVT-04 | Phase 2 | Pending |
 | EVT-05 | Phase 1 | Complete |
