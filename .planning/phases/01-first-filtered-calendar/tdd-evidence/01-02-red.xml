@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="24" time="0.427" timestamp="2026-10-13T00:41:37.498629+02:00" hostname="dev-host"><testcase classname="tests.test_timing" name="test_short_timestamp_and_missing_stop_end_to_end" time="0.188"><failure message="AssertionError: assert [] == [('X: Rennen'...imezone.utc))]&#10;  &#10;  Right contains 2 more items, first extra item: ('X: Rennen', HAFakeDatetime(2026, 10, 13, 10, 0, tzinfo=datetime.timezone.utc), HAFakeDatetime(2026, 10, 13, 12, 0, tzinfo=datetime.timezone.utc))&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f4a6a18b230&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f4a63ee0510&gt;
+
+    async def test_short_timestamp_and_missing_stop_end_to_end(
+        hass: HomeAssistant,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T09:00:00+00:00")
+        await setup_xmltv(FEED)
+    
+        response = await hass.services.async_call(
+            "calendar",
+            "get_events",
+            {"entity_id": "calendar.test", "start_date_time": "2026-10-13T00:00:00+00:00", "duration": {"hours": 24}},
+            blocking=True,
+            return_response=True,
+        )
+        events = [
+            (event["summary"], datetime.fromisoformat(event["start"]), datetime.fromisoformat(event["end"]))
+            for event in response["calendar.test"]["events"]
+        ]
+&gt;       assert events == [
+            ("X: Rennen", datetime(2026, 10, 13, 10, tzinfo=UTC), datetime(2026, 10, 13, 12, tzinfo=UTC)),
+            ("X: Analyse", datetime(2026, 10, 13, 12, tzinfo=UTC), datetime(2026, 10, 13, 13, tzinfo=UTC)),
+        ]
+E       AssertionError: assert [] == [('X: Rennen'...imezone.utc))]
+E         
+E         Right contains 2 more items, first extra item: ('X: Rennen', HAFakeDatetime(2026, 10, 13, 10, 0, tzinfo=datetime.timezone.utc), HAFakeDatetime(2026, 10, 13, 12, 0, tzinfo=datetime.timezone.utc))
+E         Use -v to get more diff
+
+tests/test_timing.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 +0200-expected0]" time="0.008" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[202610122030 +0200-expected1]" time="0.005"><failure message="assert None is not None">value = '202610122030 +0200'
+expected = datetime.datetime(2026, 10, 12, 18, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 +02:00-expected2]" time="0.005"><failure message="assert None is not None">value = '20261012203000 +02:00'
+expected = datetime.datetime(2026, 10, 12, 18, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000+0200-expected3]" time="0.005"><failure message="assert None is not None">value = '20261012203000+0200'
+expected = datetime.datetime(2026, 10, 12, 18, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 -0130-expected4]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000-expected5]" time="0.005"><failure message="assert None is not None">value = '20261012203000'
+expected = datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 Z-expected6]" time="0.005"><failure message="assert None is not None">value = '20261012203000 Z'
+expected = datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 UTC-expected7]" time="0.005"><failure message="assert None is not None">value = '20261012203000 UTC'
+expected = datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 GMT-expected8]" time="0.005"><failure message="assert None is not None">value = '20261012203000 GMT'
+expected = datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 BST-expected9]" time="0.005"><failure message="assert None is not None">value = '20261012203000 BST'
+expected = datetime.datetime(2026, 10, 12, 19, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 CET-expected10]" time="0.005"><failure message="assert None is not None">value = '20261012203000 CET'
+expected = datetime.datetime(2026, 10, 12, 19, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 CEST-expected11]" time="0.005"><failure message="assert None is not None">value = '20261012203000 CEST'
+expected = datetime.datetime(2026, 10, 12, 18, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 EET-expected12]" time="0.005"><failure message="assert None is not None">value = '20261012203000 EET'
+expected = datetime.datetime(2026, 10, 12, 18, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 EEST-expected13]" time="0.005"><failure message="assert None is not None">value = '20261012203000 EEST'
+expected = datetime.datetime(2026, 10, 12, 17, 30, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("20261012203000 +0200", _utc(2026, 10, 12, 18, 30)),
+            ("202610122030 +0200", _utc(2026, 10, 12, 18, 30)),  # 12-digit, not 20:03
+            ("20261012203000 +02:00", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000+0200", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 -0130", _utc(2026, 10, 12, 22, 0)),
+            ("20261012203000", _utc(2026, 10, 12, 20, 30)),  # D-14: no offset means UTC
+            ("20261012203000 Z", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 UTC", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 GMT", _utc(2026, 10, 12, 20, 30)),
+            ("20261012203000 BST", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CET", _utc(2026, 10, 12, 19, 30)),
+            ("20261012203000 CEST", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EET", _utc(2026, 10, 12, 18, 30)),
+            ("20261012203000 EEST", _utc(2026, 10, 12, 17, 30)),
+            # DST nights with explicit offsets
+            ("20261025023000 +0200", _utc(2026, 10, 25, 0, 30)),
+            ("20261025023000 +0100", _utc(2026, 10, 25, 1, 30)),
+            ("20260329030000 +0200", _utc(2026, 3, 29, 1, 0)),
+        ],
+    )
+    def test_valid_timestamps(value: str, expected: datetime) -&gt; None:
+        result = parse_xmltv_time(value)
+&gt;       assert result is not None
+E       assert None is not None
+
+tests/xmltv/test_timeparse.py:39: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261025023000 +0200-expected14]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261025023000 +0100-expected15]" time="0.004" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20260329030000 +0200-expected16]" time="0.004" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 XYZ]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[garbage]" time="0.004" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[]" time="0.004" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[None]" time="0.004" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261332000000 +0000]" time="0.004" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012253000 +0000]" time="0.005" /></testsuite></testsuites>
