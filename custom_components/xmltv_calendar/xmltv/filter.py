@@ -57,20 +57,37 @@ def _str_set(value: object) -> frozenset[str]:
     return frozenset()
 
 
+def _fields(programme: Programme) -> tuple[str, ...]:
+    """Return the matched fields: the title, then each sub-title, each tested on its own (D-07)."""
+    return (programme.title, *programme.sub_titles)
+
+
+def _any_match(patterns: tuple[re.Pattern[str], ...], fields: tuple[str, ...]) -> bool:
+    return any(pattern.search(field) for pattern in patterns for field in fields)
+
+
 @dataclass(frozen=True)
 class FilterSpec:
-    """Filter settings of one calendar subentry. Plan 01-03 adds channel regex, include and exclude."""
+    """Filter settings of one calendar subentry."""
 
     channels: frozenset[str]
+    include: tuple[re.Pattern[str], ...] = ()
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> FilterSpec:
         """Build the spec from stored subentry data."""
-        return cls(channels=_str_set(data.get(KEY_CHANNELS)))
+        return cls(
+            channels=_str_set(data.get(KEY_CHANNELS)),
+            include=compile_patterns(str(data.get(KEY_INCLUDE) or "")),
+        )
+
+    def _matches(self, programme: Programme) -> bool:
+        if self.channels and programme.channel_id not in self.channels:
+            return False
+        return not self.include or _any_match(self.include, _fields(programme))
 
     def apply(self, epg: EpgData) -> FilterResult:
-        """Return the programmes on the selected channels; no channels selected means all (D-02, D-06)."""
-        if not self.channels:
-            return FilterResult(matches=epg.programmes)
-        matches = tuple(p for p in epg.programmes if p.channel_id in self.channels)
-        return FilterResult(matches=matches, missing_channels=frozenset(self.channels - epg.channels.keys()))
+        """Return the programmes on the selected channels (none selected = all) that pass include (D-02, D-05)."""
+        matches = tuple(p for p in epg.programmes if self._matches(p))
+        missing = frozenset(self.channels - epg.channels.keys()) if self.channels else frozenset()
+        return FilterResult(matches=matches, missing_channels=missing)
