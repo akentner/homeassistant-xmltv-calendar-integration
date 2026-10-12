@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 10 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Walking skeleton: package gate, then tracer URL source → one calendar → events (wave 1)
+- [ ] 01-01-PLAN.md — Walking skeleton: package gate, pinned dev tooling, then tracer URL source → one calendar → events (wave 1)
 - [ ] 01-02-PLAN.md — TDD: timestamp variants, stop inference, dedup, stable UIDs (wave 2)
 - [ ] 01-03-PLAN.md — TDD: filter engine (channel ∪ channel regex, include/exclude, validation API) (wave 2)
 - [ ] 01-04-PLAN.md — TDD: calendar window reads (bisect index, end-inclusive, capped), triggers and live state (wave 2)

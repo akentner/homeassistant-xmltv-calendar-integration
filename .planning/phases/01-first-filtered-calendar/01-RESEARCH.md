@@ -553,23 +553,38 @@ res = await hass.services.async_call("calendar", "get_events",
 |---|-------|---------|---------------|
 | A1 | A real German XMLTV excerpt can be obtained and committed without licensing issues (iptv-org no longer hosts prebuilt guides; epgshare01 is a third-party mirror) | D-15 / Open Questions | Excerpt must be replaced by a self-generated or user-supplied one. Needs a human checkpoint |
 | A2 | `ha-host` (x86 OptiPlex) parses a 60 MB feed in the same order of magnitude as the dev box (1.4–2 s) | SRC-09 | If much slower, the loop-yield interval and refresh UX need retuning. Benchmark numbers are from an i5-10400H only |
-| A3 | All APIs used work on the `hacs.json` floor 2026.3.0 (subentries 2025.3, `config_subentry_id` 2025.3, calendar triggers) | Standard Stack | Tests only run on 2026.10.1; a 2026.3 user could hit an API gap. Mitigation: raise the floor to the tested version, or accept |
+| A3 | All APIs used work on the `hacs.json` floor 2026.3.0 (subentries 2025.3, `config_subentry_id` 2025.3, calendar triggers) | Standard Stack | Tests only run on 2026.10.1; a 2026.3 user could hit an API gap. Mitigation: raise the floor to the tested version, or accept. **Disposition: accepted** (Open Question 3, RESOLVED) |
 | A4 | Frontend multi-select dropdown with thousands of channel IDs is usable (fuzzy search + virtualization) | FLT-02 | Verified on the frontend `dev` branch source only, not on the 2026.10 release build; manual check on `ha-dev` with the large feed |
 | A5 | `cloud_polling` is the right `iot_class` (core `remote_calendar` precedent; most feeds are internet URLs) | manifest | Cosmetic only; `local_polling` would fit file sources better |
 | A6 | Caps (download 256 MB, decompressed 1 GiB, regex line 300 chars / 50 lines, event slice 5,000) are sensible defaults | Patterns / Security | Too low rejects legit huge feeds; tune after real feeds |
 | A7 | UID format `"{channel_id}-{start_utc:%Y%m%dT%H%M%SZ}-{crc32(title):08x}"` is stable enough | EVT-06 | A title correction in the feed changes the UID (acceptable: it is a different event) |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Real German feed excerpt (D-15)**
+1. **Real German feed excerpt (D-15)**: RESOLVED
    - What we know: iptv-org/epg no longer publishes prebuilt guides; community mirrors (epgshare01) exist with unclear licensing.
    - What's unclear: which source the user wants, and whether redistributing an excerpt in a public repo is acceptable.
    - Recommendation: a human checkpoint task. The user supplies a feed (e.g. their own 18:00 source), the executor trims it to ~5 channels × 1–2 days, and the user approves before commit. Until then the synthetic fixtures carry all tests.
-2. **GitHub repository creation (DST-01/02)**
+   - **Resolution:** plan 01-09 handles this.
+     - Task 2 is a blocking `checkpoint:decision` with three options: the user's own feed, a public feed whose licence allows redistribution, or none. For own or public, the user must confirm redistribution.
+     - Task 3 trims the approved feed with `scripts/trim_feed.py` to about 5 channels × 2 days (< 500 KB) and commits it with `tests/xmltv/test_real_feed.py`.
+     - Choosing "none" records the excerpt as a deferred item in STATE.md.
+     - Synthetic fixtures carry every other test either way.
+2. **GitHub repository creation (DST-01/02)**: RESOLVED
    - What we know: the repo doesn't exist; pushes are user-only.
    - Recommendation: a `checkpoint:human-action` task covering create public repo `akentner/homeassistant-xmltv-integration`, description, topics (`hacs`, `home-assistant`, `custom-component`, `integration`, `xmltv`, `epg`, `calendar`), enable issues, push, confirm CI green, add as a HACS custom repository on `ha-dev`.
-3. **Floor vs tested version**
+   - **Resolution:** plan 01-10 handles this.
+     - Task 1 runs the pre-publish gate: everything CI runs, plus a secret scan.
+     - Task 2 is the `checkpoint:human-action` where the user creates the public repository and pushes. Pushes stay user-only.
+     - Task 3 confirms CI and Validate are green on GitHub and queues the HACS custom-repository check for UAT.
+3. **Floor vs tested version**: RESOLVED
    - Recommendation: keep `2026.3.0` per STACK (user decision), but note A3. Alternatively, set the floor to `2026.10.0` to match what is tested. Ask only if the planner sees a cheap way to test 2026.3; otherwise keep.
+   - **Resolution:** keep `hacs.json` `"homeassistant": "2026.3.0"`. The project CLAUDE.md Technology Stack prescribes this: floor 2026.3.0, dev/test on 2026.10.1. Plan 01-06 writes and asserts it.
+     - Phase 1 tests only on the HA version pinned by phcc: 2026.10.1, or 2026.9.4 if the 01-01 gate answer is "fallback".
+     - There is no cheap way to test 2026.3: each phcc release pins exactly one HA version, so a floor matrix would mean a second locked environment. No floor-version test job is planned.
+     - The untested-floor risk (A3) is **accepted** and noted.
+     - Guard: no plan uses an API newer than the floor. `CalendarEvent.status` (2026.10) is not used, and `import voluptuous as vol` is kept instead of probatio.
+     - Revisit trigger: if a user on 2026.3–2026.9 reports an API gap, raise the floor in a patch release.
 
 ## Environment Availability
 
