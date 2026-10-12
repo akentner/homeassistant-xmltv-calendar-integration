@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: First Filtered Calendar
+
 **Goal:** User can add an XMLTV source (URL or local file) in the HA UI, attach calendars filtered by channel and include/exclude regex, and see exactly the matching programmes as correctly timed calendar events that drive calendar triggers.
 **Mode:** mvp
 **Depends on**: Nothing (first phase)
@@ -30,23 +31,37 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Event start/end are timezone-aware and correct for every XMLTV timestamp variant (full, shortened, with and without offset). Missing stop times are inferred, event UIDs stay the same across refreshes, and a single malformed programme never breaks the calendar.
   4. A calendar trigger automation (start and end, with offset) fires for a matching programme. `calendar.get_events` returns all events overlapping the queried range. The calendar is `on` while a match airs, and its attributes show the current/next match.
   5. A 50+ MB fixture feed refreshes without blocking the HA event loop and stays within a bounded memory budget (benchmark). Every push runs hassfest, HACS validation, Ruff and pytest green, and HACS accepts the repo as a custom repository (valid `hacs.json`, `manifest.json`, brand icon).
+
 **Plans**: 10 plans
 
 Plans:
+**Wave 1**
 - [ ] 01-01-PLAN.md — Walking skeleton: package gate, pinned dev tooling, then tracer URL source → one calendar → events (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — TDD: timestamp variants, stop inference, dedup, stable UIDs (wave 2)
 - [ ] 01-03-PLAN.md — TDD: filter engine (channel ∪ channel regex, include/exclude, validation API) (wave 2)
 - [ ] 01-04-PLAN.md — TDD: calendar window reads (bisect index, end-inclusive, capped), triggers and live state (wave 2)
 - [ ] 01-05-PLAN.md — TDD: robust ingestion (gzip by content, size caps, typed failures, host-only logs) (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-06-PLAN.md — HACS metadata, brand, CI/Validate workflows, 60 MB benchmark (wave 3)
 - [ ] 01-07-PLAN.md — Local-file sources, flow validation, duplicate protection (unique_id decision gate) (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 01-08-PLAN.md — Full "Add calendar" form with pattern validation; multiple calendars per source (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 01-09-PLAN.md — ha-dev deployment, real German feed excerpt (decision gate), UAT walkthrough (wave 5)
+
+**Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 01-10-PLAN.md — Publish to GitHub (user push), CI/Validate green, HACS custom-repo check (wave 6)
+
 **UI hint**: yes
 **Notes**: Build the pure `xmltv/` library (parser, models, filter, render; no `homeassistant` imports) test-first, before the HA layer. The subentry flow reads channels from the loaded coordinator (abort `source_not_loaded` otherwise) and must handle subentries added before the platform has loaded. Register exactly one update listener on the source entry; reload-on-change is acceptable here, and Phase 2 makes it diffing. Set `unique_id` from the normalized source now so it never needs a migration. Decide `iot_class`. Research flags: `cache_path`/coordinator APIs (light check), `SelectSelector` with thousands of channels (may need a fallback).
 
 ### Phase 2: Precise Filters & Preview
+
 **Goal:** User can pinpoint specific shows with field-scoped, Unicode-safe regex plus duration and time-window filters, shape event title and description via templates, check the result in a live preview before saving, and retune any calendar instantly without touching the source.
 **Mode:** mvp
 **Depends on**: Phase 1
@@ -57,11 +72,13 @@ Plans:
   3. Before saving, the calendar flow shows the match count and the next ~10 matches, with channel and start time, for the entered filters.
   4. User sets the event title via a placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`) and can optionally set a description template. Unknown placeholders are rejected in the flow. Without a description template, events show sub-title, episode, categories and description.
   5. User reconfigures all filters and templates of an existing calendar and sees the updated events without a re-download or re-parse, and without reloading the source's other calendars.
+
 **Plans**: TBD
 **UI hint**: yes
 **Notes**: Introduce the single diffing update listener: subentry add/edit/remove updates entities in place, and only changes to source data/options trigger a reload. Subentry reconfigure ends via `async_update_and_abort`. Rendering uses a restricted `str.format_map` (no Jinja, no `.`/`[` in fields, missing values become empty). Normalize text (NFC) before matching, and validate patterns with ReDoS in mind. Research flags: subentry reconfigure/helper APIs, preview rendering inside a flow step.
 
 ### Phase 3: Resilient Sources
+
 **Goal:** Sources keep every calendar populated at minimal network and CPU cost: cached across restarts, refreshed on the user's schedule and only when changed, tolerant of failures and timezone quirks, editable later, and visible to the user when something goes wrong.
 **Mode:** mvp
 **Depends on**: Phase 2
@@ -72,10 +89,12 @@ Plans:
   3. User can declare per source that timestamps without offset are local time and/or apply an offset correction, and event times shift accordingly.
   4. When a fetch or parse fails, calendars keep showing the last good data. A source that keeps failing raises a Repairs issue, which clears automatically after the next successful refresh.
   5. User downloads diagnostics for a source showing programme/channel/match counts and last success/failure, with URL and credentials redacted.
+
 **Plans**: TBD
 **Notes**: Use a plain `OptionsFlow` only, never `OptionsFlowWithReload` (it conflicts with the update listener and raises an error from 2026.12). Source option changes go through the Phase 2 diffing listener. Store the raw-file cache in `hass.config.cache_path`. Research flags: `async_show_progress`, Repairs issue lifecycle.
 
 ### Phase 4: Automation Extras & Release
+
 **Goal:** User can automate around matches beyond plain calendar triggers (next-match sensor, new-match event, recent past matches, ready-made blueprint) and install a documented, bilingual, tagged release via HACS.
 **Mode:** mvp
 **Depends on**: Phase 3
@@ -86,6 +105,7 @@ Plans:
   3. User imports the shipped blueprint "notify before a matching programme starts" (`mode: queued`) and gets one notification per match, including overlapping matches.
   4. Every config, subentry and options flow step, error and abort reason is shown in German when HA runs in German, and in English otherwise.
   5. Pushing a version tag publishes a GitHub release whose version matches `manifest.json`, and HACS offers it for install/update. The README documents setup, regex filter examples, automation examples and calendar limitations (15-min trigger window, overlapping events).
+
 **Plans**: TBD
 **Notes**: EVT-07 and EVT-08 share one persisted match store (HA `Store`) holding the seen-set and retained past matches. Copy the release workflow (tag == manifest version) from mqtt-actions.
 
