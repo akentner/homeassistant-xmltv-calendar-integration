@@ -52,3 +52,26 @@ async def test_gzip_behind_xml_url_end_to_end(
         ("2026-10-13T19:00:00+02:00", "ZDF: heute"),
         ("2026-10-13T20:00:00+02:00", "Das Erste: Tagesschau"),
     ]
+
+
+async def test_refresh_with_truncated_gzip_keeps_previous_data(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[Any]],
+) -> None:
+    freezer.move_to("2026-10-13T00:00:00+00:00")
+    payload = gzip.compress(BASIC_FEED)
+    entry = await setup_xmltv(payload)
+    assert entry.state is ConfigEntryState.LOADED
+    coordinator = entry.runtime_data.coordinator
+    previous = coordinator.data
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, content=payload[: len(payload) // 2], headers=OCTET_STREAM)
+    await coordinator.async_refresh()
+
+    assert aioclient_mock.call_count == 1
+    assert coordinator.last_update_success is False
+    assert coordinator.last_exception.translation_key == "invalid_feed"
+    assert coordinator.data is previous
