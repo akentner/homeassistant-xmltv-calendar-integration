@@ -16,9 +16,10 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 
 ### Active
 
-- [ ] Multiple independent instances (config entries) can be set up, each producing one calendar entity
+- [ ] Multiple XMLTV sources can be configured (one config entry per source)
+- [ ] Each source can have multiple calendars (one config subentry per calendar), each with its own filters and one calendar entity
 - [ ] XMLTV source can be an HTTP(S) URL or a local file; gzip-compressed (`.xml.gz`) sources are supported
-- [ ] Instances sharing the same source share one download/parse (shared data layer, XMLTV files can be 50+ MB)
+- [ ] All calendars of a source share one download/parse (XMLTV files can be 50+ MB)
 - [ ] Refresh interval is configurable per source
 - [ ] Filter by channel (channel list selectable from channels found in the XMLTV data)
 - [ ] Filter by include regex and exclude regex on title and description (flexible enough to precisely identify specific shows)
@@ -36,7 +37,7 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 - Use-case-specific logic (e.g. hardcoded Formula 1 handling) — integration must stay generic
 - Recorder/PVR control (Enigma2, TVHeadend recording) — not requested; can be done via automations on calendar triggers
 - YAML configuration — UI-only (Config + Options Flow) by user choice
-- Multiple calendar entities per instance (e.g. per channel) — one calendar per config entry
+- Multiple calendar entities per calendar subentry (e.g. per channel) — one calendar per filter set
 
 ## Context
 
@@ -58,8 +59,8 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| One calendar entity per config entry | Simple mental model: one filter set = one calendar | — Pending |
-| Shared download/parse per source | Avoid repeated download/parse of large XMLTV files | — Pending |
+| Source = config entry, calendar = config subentry | HA-native sharing of one download/parse per source (coordinator in runtime_data), no custom ref-counting; chosen after research (2026-10-12) | — Pending |
+| One calendar entity per subentry | Simple mental model: one filter set = one calendar | — Pending |
 | 1 programme = 1 event, no merging | Predictable; exclude regex handles noise | — Pending |
 | Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | — Pending |
 | UI-only configuration | User preference, editable via Options Flow | — Pending |
@@ -83,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-12 after initialization*
+*Last updated: 2026-10-12 after initialization (topology updated after research)*
