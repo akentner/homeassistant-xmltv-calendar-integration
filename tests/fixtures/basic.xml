@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="xmltv-calendar tests">
+  <channel id="daserste.de">
+    <display-name>Das Erste</display-name>
+  </channel>
+  <channel id="zdf.de">
+    <display-name>ZDF</display-name>
+  </channel>
+  <programme channel="daserste.de" start="20261013120000 +0200" stop="20261013133000 +0200">
+    <title>Formel 1: Großer Preis von Mexiko</title>
+    <sub-title>Qualifying</sub-title>
+  </programme>
+  <programme channel="daserste.de" start="20261013200000 +0200" stop="20261013201500 +0200">
+    <title>Tagesschau</title>
+  </programme>
+  <programme channel="zdf.de" start="20261013120000 +0200" stop="20261013124500 +0200">
+    <title>heute</title>
+  </programme>
+  <programme channel="zdf.de" start="20261013190000 +0200" stop="20261013192000 +0200">
+    <title>heute</title>
+  </programme>
+</tv>

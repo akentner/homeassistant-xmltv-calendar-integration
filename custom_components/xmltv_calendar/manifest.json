@@ -1,0 +1,12 @@
+{
+  "domain": "xmltv_calendar",
+  "name": "XMLTV Calendar",
+  "codeowners": ["@akentner"],
+  "config_flow": true,
+  "documentation": "https://github.com/akentner/homeassistant-xmltv-integration",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/akentner/homeassistant-xmltv-integration/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
