@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-10-12T22:18:24.968Z"
-last_activity: 2026-10-12
-last_activity_desc: Roadmap created (4 vertical MVP phases, 45/45 v1 requirements mapped)
-state_head: 2cc38a06f1caa84d80ad52c2faf8707cc9bcf0ec
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-10-12T22:39:40.992Z"
+last_activity: 2026-10-13
+last_activity_desc: Phase 01 execution started
+state_head: a50638409c78a233944b5007719831ef5781e328
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-12)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 1: First Filtered Calendar
+**Current focus:** Phase 01 — First Filtered Calendar
 
 ## Current Position
 
-Phase: 01 (First Filtered Calendar) — READY TO EXECUTE
-Plan: 0 of TBD in current phase
+Phase: 01 (First Filtered Calendar) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
-Last activity: 2026-10-12 — Roadmap created (4 vertical MVP phases, 45/45 v1 requirements mapped)
+Last activity: 2026-10-13 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 6 min | 3 tasks | 27 files |
 
 ## Accumulated Context
 
@@ -64,6 +69,9 @@ Recent decisions affecting current work:
 - [Init]: Vertical MVP roadmap (4 coarse phases); the pure `xmltv/` library is still built first, inside Phase 1
 - [Init]: Plain `OptionsFlow` + exactly one diffing update listener; never `OptionsFlowWithReload`
 - [Init]: Zero runtime deps (stdlib `iterparse` + `gzip` in executor); titles via restricted `str.format_map`, no Jinja
+- [Phase 01]: 01-01 Task 1 approved: dev pins pytest-homeassistant-custom-component 0.13.372 (HA 2026.10.1) and ruff 0.17.0
+- [Phase 01]: iot_class cloud_polling (most sources are internet feeds, like core remote_calendar)
+- [Phase 01]: Parser passes a missing stop as stop == start; normalize infers any stop <= start; keep_after drop runs after normalize
 
 ### Pending Todos
 
@@ -87,6 +95,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T21:11:15.143Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-first-filtered-calendar/01-CONTEXT.md
+Last session: 2026-10-12T22:39:40.932Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
