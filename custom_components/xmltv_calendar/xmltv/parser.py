@@ -1,5 +1,6 @@
 """Streaming XMLTV parser. Always run it in an executor: it is CPU-bound and may sleep."""
 
+import gzip
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -9,6 +10,8 @@ from typing import BinaryIO
 from .model import Channel, EpgData, ParseStats, Programme
 from .normalize import normalize_programmes
 from .timeparse import parse_xmltv_time
+
+GZIP_MAGIC = b"\x1f\x8b"
 
 
 class FeedError(Exception):
@@ -64,7 +67,7 @@ def parse(
     default_duration: timedelta = timedelta(minutes=60),
 ) -> EpgData:
     """
-    Parse a plain XMLTV document into `EpgData`.
+    Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
 
     Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
     `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
@@ -73,9 +76,13 @@ def parse(
     channels: dict[str, Channel] = {}
     programmes: list[Programme] = []
     seen = 0
+    # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
+    head = fileobj.read(2)
+    fileobj.seek(0)
+    stream: BinaryIO = gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj
     try:
         # Stdlib ElementTree never resolves external entities or DTDs; Expat guards entity amplification
-        events = ET.iterparse(fileobj, events=("start", "end"))  # noqa: S314
+        events = ET.iterparse(stream, events=("start", "end"))  # noqa: S314
         _, root = next(events)
         for event, elem in events:
             if event != "end":
