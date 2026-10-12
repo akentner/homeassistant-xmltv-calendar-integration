@@ -1,6 +1,7 @@
-"""Normalization of parsed programmes: stop inference and ordering."""
+"""Normalization of parsed programmes: exact-duplicate removal, stop inference and ordering."""
 
 from dataclasses import replace
+from datetime import UTC
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -39,18 +40,25 @@ def normalize_programmes(
     programmes: Iterable[Programme], *, default_duration: timedelta, stats: ParseStats
 ) -> tuple[Programme, ...]:
     """
-    Return the programmes sorted by (start, channel_id, title) with a valid stop.
+    Return the programmes sorted by (start, channel_id, title), without exact duplicates and with a valid stop.
 
-    The parser passes a missing or unparsable stop as `stop == start`. Any stop not after the start is inferred from
-    the next strictly later start on the same channel, else `start + default_duration`, and counted in
-    `stats.inferred_stops`.
+    Exact duplicates (same channel_id, start instant and title) collapse to the first in input order and are counted
+    in `stats.duplicates` (EVT-01). The parser passes a missing or unparsable stop as `stop == start`. Any stop not
+    after the start is inferred from the next strictly later start on the same channel, else
+    `start + default_duration`, and counted in `stats.inferred_stops` (D-12).
     """
+    seen: set[tuple[str, datetime, str]] = set()
     by_channel: dict[str, list[Programme]] = {}
     for programme in programmes:
+        key = (programme.channel_id, programme.start.astimezone(UTC), programme.title)
+        if key in seen:
+            stats.duplicates += 1
+            continue
+        seen.add(key)
         by_channel.setdefault(programme.channel_id, []).append(programme)
     result: list[Programme] = []
     for group in by_channel.values():
-        group.sort(key=lambda programme: programme.start)  # stable: ties keep input order
+        group.sort(key=lambda programme: (programme.start, programme.title))  # stable: ties keep input order
         result.extend(_infer_stops(group, default_duration, stats))
     result.sort(key=_sort_key)
     return tuple(result)
