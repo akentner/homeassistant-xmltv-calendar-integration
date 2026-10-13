@@ -44,6 +44,10 @@
     },
     "error": {
       "invalid_url": "Enter an http:// or https:// URL.",
+      "cannot_connect": "The URL could not be reached or answered with an HTTP error.",
+      "invalid_feed": "The source is neither an XML nor a gzip-compressed XMLTV file.",
+      "path_not_allowed": "Enter an absolute path inside a directory Home Assistant allows (media folders or allowlist_external_dirs).",
+      "file_not_found": "The file does not exist, is not a regular file or cannot be read.",
       "name_required": "Enter a name."
     },
     "abort": {

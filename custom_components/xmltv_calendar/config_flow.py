@@ -40,13 +40,23 @@ from .const import (
     SOURCE_TYPE_URL,
     SUBENTRY_TYPE_CALENDAR,
 )
+from .source import (
+    FileMissingError,
+    InvalidFeedError,
+    InvalidUrlError,
+    PathNotAllowedError,
+    SourceError,
+    async_probe_url,
+    check_file,
+    normalize_url,
+    probe_file,
+    source_unique_id,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
     from .data import XmltvConfigEntry
-
-_URL_SCHEMES = frozenset({"http", "https"})
 
 
 def _refresh_selector() -> NumberSelector:
@@ -60,17 +70,6 @@ def _refresh_selector() -> NumberSelector:
             unit_of_measurement="h",
         )
     )
-
-
-def _host_of(url: str) -> str | None:
-    """Return the host of an http(s) URL, or None when the URL is not usable."""
-    try:
-        parsed = URL(url)
-    except ValueError:
-        return None
-    if parsed.scheme not in _URL_SCHEMES or not parsed.host:
-        return None
-    return parsed.host
 
 
 class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -89,17 +88,27 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_menu(step_id="user", menu_options=[SOURCE_TYPE_URL, SOURCE_TYPE_FILE])
 
     async def async_step_url(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Ask for the feed URL and the refresh interval."""
+        """Ask for the feed URL and the refresh interval; reject bad URLs, duplicates and non-feeds."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            url = str(user_input[CONF_URL]).strip()
-            if (host := _host_of(url)) is None:
+            try:
+                url = normalize_url(str(user_input[CONF_URL]))
+            except InvalidUrlError:
                 errors[CONF_URL] = "invalid_url"
             else:
-                self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_URL, CONF_URL: url}
-                self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
-                self._suggested_name = host
-                return await self.async_step_name()
+                await self.async_set_unique_id(source_unique_id(SOURCE_TYPE_URL, url))
+                self._abort_if_unique_id_configured()
+                try:
+                    await async_probe_url(self.hass, url)
+                except InvalidFeedError:
+                    errors["base"] = "invalid_feed"
+                except SourceError:
+                    errors["base"] = "cannot_connect"
+                else:
+                    self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_URL, CONF_URL: url}
+                    self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
+                    self._suggested_name = URL(url).host or url
+                    return await self.async_step_name()
 
         schema = vol.Schema(
             {
@@ -112,13 +121,30 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="url", data_schema=schema, errors=errors)
 
     async def async_step_file(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Ask for the local file path and the refresh interval."""
+        """Ask for the local file path and the refresh interval; only allowed directories can be read."""
+        errors: dict[str, str] = {}
         if user_input is not None:
             path = str(user_input[CONF_PATH]).strip()
-            self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_FILE, CONF_PATH: path}
-            self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
-            self._suggested_name = PurePath(path).name
-            return await self.async_step_name()
+            try:
+                real_path = await self.hass.async_add_executor_job(check_file, self.hass.config, path)
+            except PathNotAllowedError:
+                errors[CONF_PATH] = "path_not_allowed"
+            except FileMissingError:
+                errors[CONF_PATH] = "file_not_found"
+            else:
+                await self.async_set_unique_id(source_unique_id(SOURCE_TYPE_FILE, real_path))
+                self._abort_if_unique_id_configured()
+                try:
+                    await self.hass.async_add_executor_job(probe_file, real_path)
+                except InvalidFeedError:
+                    errors["base"] = "invalid_feed"
+                except SourceError:
+                    errors[CONF_PATH] = "file_not_found"
+                else:
+                    self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_FILE, CONF_PATH: real_path}
+                    self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
+                    self._suggested_name = PurePath(real_path).name
+                    return await self.async_step_name()
 
         schema = vol.Schema(
             {
@@ -126,7 +152,9 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_REFRESH_HOURS, default=DEFAULT_REFRESH_HOURS): _refresh_selector(),
             }
         )
-        return self.async_show_form(step_id="file", data_schema=schema)
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(step_id="file", data_schema=schema, errors=errors)
 
     async def async_step_name(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for the entry name, pre-filled from the source (D-09); shared by every source type."""

@@ -5,6 +5,7 @@ Logs and errors name only the host: path and query may carry credentials. File h
 `hass.config.is_allowed_path` and must only run in an executor job.
 """
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -31,6 +32,7 @@ _CHUNK_SIZE = 1 << 16
 _HTTP_ERROR_MIN = 400
 PROBE_BYTES = 64 * 1024  # flow-time sniff of a source; the full read happens at setup
 _UTF8_BOM = b"\xef\xbb\xbf"
+_URL_SCHEMES = frozenset({"http", "https"})
 
 
 class SourceError(Exception):
@@ -57,11 +59,75 @@ class InvalidFeedError(SourceError):
     """The first bytes of the source are neither gzip nor XML."""
 
 
+class InvalidUrlError(SourceError):
+    """The URL is not an http(s) URL with a host."""
+
+
+def normalize_url(url: str) -> str:
+    """
+    Return the canonical form of an http(s) URL; raise `InvalidUrlError` for anything else.
+
+    yarl lower-cases scheme and host, drops the default port and removes dot segments; the fragment is
+    dropped here. The query is kept as is (order matters, it may be part of the source's identity).
+    """
+    try:
+        parsed = URL(url.strip())
+    except ValueError:
+        msg = "not a URL"
+        raise InvalidUrlError(msg) from None
+    if parsed.scheme not in _URL_SCHEMES or not parsed.host:
+        msg = "only http and https URLs with a host are supported"
+        raise InvalidUrlError(msg)
+    return str(parsed.with_fragment(None))
+
+
+def source_unique_id(source_type: str, normalized: str) -> str:
+    """
+    Return the persisted config entry unique_id: SHA-256 hex of "<source_type>:<normalized locator>".
+
+    Hashed (01-07 Task 2 decision) so query tokens of a URL are not copied into a second persisted field.
+    Changing this scheme needs an entry migration.
+    """
+    return hashlib.sha256(f"{source_type}:{normalized}".encode()).hexdigest()
+
+
 def looks_like_feed(head: bytes) -> bool:
     """Return True when `head` starts with the gzip magic or, after a UTF-8 BOM and whitespace, with '<'."""
     if head.startswith(GZIP_MAGIC):
         return True
     return head.removeprefix(_UTF8_BOM).lstrip().startswith(b"<")
+
+
+async def async_probe_url(hass: HomeAssistant, url: str) -> None:
+    """
+    Read at most `PROBE_BYTES` of the URL and check that it starts like a feed.
+
+    Raises `SourceUnavailableError` when the source cannot be reached or answers with an HTTP error, and
+    `InvalidFeedError` when the first bytes are neither gzip nor XML. The connection is released after the
+    probe; the full download happens at setup.
+    """
+    host = URL(url).host
+    session = async_get_clientsession(hass)
+    head = b""
+    try:
+        async with session.get(url, timeout=DOWNLOAD_TIMEOUT) as response:
+            if response.status >= _HTTP_ERROR_MIN:
+                _LOGGER.debug("Probe of source host %s answered HTTP %s", host, response.status)
+                msg = f"HTTP {response.status} from {host}"
+                raise SourceUnavailableError(msg)
+            stream = response.content  # bind once, see async_fetch_url
+            async for chunk in stream.iter_chunked(_CHUNK_SIZE):
+                head += chunk
+                if len(head) >= PROBE_BYTES:
+                    break
+    except (aiohttp.ClientError, TimeoutError) as err:
+        _LOGGER.debug("Probe of source host %s failed: %s", host, type(err).__name__)
+        msg = f"cannot fetch from {host}: {type(err).__name__}"
+        raise SourceUnavailableError(msg) from None
+    if not looks_like_feed(head[:PROBE_BYTES]):
+        _LOGGER.debug("Source host %s did not answer with gzip or XML", host)
+        msg = f"response from {host} is neither gzip nor XML"
+        raise InvalidFeedError(msg)
 
 
 def check_file(config: Config, path: str) -> str:
