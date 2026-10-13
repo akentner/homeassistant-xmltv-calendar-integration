@@ -255,3 +255,13 @@ def test_renovate_requires_approval_for_phcc() -> None:
     ]
     assert len(rules) == 1
     assert rules[0].get("dependencyDashboardApproval") is True
+
+
+def test_ci_has_benchmark_job() -> None:
+    jobs = _load_workflow("ci.yml")["jobs"]
+    runners = [
+        name
+        for name, job in jobs.items()
+        if any(step.get("run", "").strip() == "uv run pytest -q -m benchmark" for step in job.get("steps", []))
+    ]
+    assert runners == ["benchmark"], f"jobs running the benchmark: {runners}"
