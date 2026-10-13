@@ -4,7 +4,8 @@
       "user": {
         "title": "Add XMLTV source",
         "menu_options": {
-          "url": "Feed URL"
+          "url": "Feed URL",
+          "file": "Local file"
         }
       },
       "url": {
@@ -17,6 +18,18 @@
         "data_description": {
           "url": "HTTP or HTTPS address of the XMLTV file.",
           "refresh_hours": "How often the feed is downloaded again, in hours (1 to 168)."
+        }
+      },
+      "file": {
+        "title": "Local XMLTV file",
+        "description": "The file is read once per refresh and shared by all calendars of this source.",
+        "data": {
+          "path": "File path",
+          "refresh_hours": "Refresh interval"
+        },
+        "data_description": {
+          "path": "Absolute path of the XMLTV file (plain or gzip), for example /media/epg/guide.xml. Only directories Home Assistant allows can be read: the media folders and those listed under allowlist_external_dirs.",
+          "refresh_hours": "How often the file is read again, in hours (1 to 168)."
         }
       },
       "name": {
@@ -73,6 +86,12 @@
     },
     "feed_too_large": {
       "message": "The XMLTV feed is too large (limits: 256 MiB download, 1 GiB uncompressed)."
+    },
+    "path_not_allowed": {
+      "message": "The file path is not in a directory Home Assistant allows (media folders or allowlist_external_dirs)."
+    },
+    "file_not_found": {
+      "message": "The XMLTV file does not exist or is not a regular file."
     }
   }
 }

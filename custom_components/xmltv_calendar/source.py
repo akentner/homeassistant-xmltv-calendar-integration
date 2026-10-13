@@ -1,14 +1,27 @@
-"""Feed download, size- and time-bounded. Logs and errors name only the host: path and query may carry credentials."""
+"""
+Feed sources: bounded URL download and allowed-path file reads.
+
+Logs and errors name only the host: path and query may carry credentials. File helpers do blocking IO and
+`hass.config.is_allowed_path` and must only run in an executor job.
+"""
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import aiohttp
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from yarl import URL
 
+from .xmltv.parser import GZIP_MAGIC, parse
+
 if TYPE_CHECKING:
+    from datetime import datetime, timedelta
+
     from homeassistant.core import HomeAssistant
+    from homeassistant.core_config import Config
+
+    from .xmltv.model import EpgData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,6 +29,8 @@ MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024  # 256 MiB on the wire (SRC-09)
 DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=300, sock_read=60)
 _CHUNK_SIZE = 1 << 16
 _HTTP_ERROR_MIN = 400
+PROBE_BYTES = 64 * 1024  # flow-time sniff of a source; the full read happens at setup
+_UTF8_BOM = b"\xef\xbb\xbf"
 
 
 class SourceError(Exception):
@@ -28,6 +43,67 @@ class SourceUnavailableError(SourceError):
 
 class SourceTooLargeError(SourceError):
     """The download exceeds `MAX_DOWNLOAD_BYTES`."""
+
+
+class PathNotAllowedError(SourceError):
+    """The path is relative or outside the directories Home Assistant allows (allowlist_external_dirs, media)."""
+
+
+class FileMissingError(SourceError):
+    """The path does not name a regular file."""
+
+
+class InvalidFeedError(SourceError):
+    """The first bytes of the source are neither gzip nor XML."""
+
+
+def looks_like_feed(head: bytes) -> bool:
+    """Return True when `head` starts with the gzip magic or, after a UTF-8 BOM and whitespace, with '<'."""
+    if head.startswith(GZIP_MAGIC):
+        return True
+    return head.removeprefix(_UTF8_BOM).lstrip().startswith(b"<")
+
+
+def check_file(config: Config, path: str) -> str:
+    """Return the real path of an allowed, existing file. Executor only (blocking IO)."""
+    candidate = Path(path)
+    if not candidate.is_absolute() or not config.is_allowed_path(path):
+        msg = "path is not in an allowed directory"
+        raise PathNotAllowedError(msg)
+    if not candidate.is_file():
+        msg = "path is not a file"
+        raise FileMissingError(msg)
+    return str(candidate.resolve())
+
+
+def probe_file(path: str) -> None:
+    """Raise `InvalidFeedError` unless the file starts like a feed. Executor only (blocking IO)."""
+    try:
+        with open(path, "rb") as file:  # noqa: PTH123 - builtin open keeps tests' forbid_loop_io guard effective
+            head = file.read(PROBE_BYTES)
+    except OSError as err:
+        msg = f"cannot read file: {type(err).__name__}"
+        raise SourceUnavailableError(msg) from None
+    if not looks_like_feed(head):
+        msg = "file is neither gzip nor XML"
+        raise InvalidFeedError(msg)
+
+
+def read_and_parse_file(
+    config: Config, path: str, *, keep_after: datetime | None, default_duration: timedelta
+) -> EpgData:
+    """
+    Check the path against the allowed directories, then parse the file. Executor only (blocking IO).
+
+    The allowed-path check runs on every read, not only in the flow: the allowlist or the file may have changed.
+    """
+    real_path = check_file(config, path)
+    try:
+        with open(real_path, "rb") as file:  # noqa: PTH123 - see probe_file
+            return parse(file, keep_after=keep_after, default_duration=default_duration)
+    except OSError as err:
+        msg = f"cannot read file: {type(err).__name__}"
+        raise SourceUnavailableError(msg) from None
 
 
 async def async_fetch_url(hass: HomeAssistant, url: str) -> bytes:

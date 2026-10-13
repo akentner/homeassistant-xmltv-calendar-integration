@@ -1,5 +1,6 @@
 """Config flow: source entries (menu -> source step -> name) and calendar subentries."""
 
+from pathlib import PurePath
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -27,6 +28,7 @@ from yarl import URL
 from .const import (
     CONF_CHANNELS,
     CONF_NAME,
+    CONF_PATH,
     CONF_REFRESH_HOURS,
     CONF_SOURCE_TYPE,
     CONF_URL,
@@ -34,6 +36,7 @@ from .const import (
     DOMAIN,
     MAX_REFRESH_HOURS,
     MIN_REFRESH_HOURS,
+    SOURCE_TYPE_FILE,
     SOURCE_TYPE_URL,
     SUBENTRY_TYPE_CALENDAR,
 )
@@ -44,6 +47,19 @@ if TYPE_CHECKING:
     from .data import XmltvConfigEntry
 
 _URL_SCHEMES = frozenset({"http", "https"})
+
+
+def _refresh_selector() -> NumberSelector:
+    """Return the refresh interval selector shared by every source step (D-13: 1 to 168 h)."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=MIN_REFRESH_HOURS,
+            max=MAX_REFRESH_HOURS,
+            step=1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement="h",
+        )
+    )
 
 
 def _host_of(url: str) -> str | None:
@@ -70,7 +86,7 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
         """Let the user choose the source type."""
-        return self.async_show_menu(step_id="user", menu_options=[SOURCE_TYPE_URL])
+        return self.async_show_menu(step_id="user", menu_options=[SOURCE_TYPE_URL, SOURCE_TYPE_FILE])
 
     async def async_step_url(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for the feed URL and the refresh interval."""
@@ -88,20 +104,29 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
-                vol.Required(CONF_REFRESH_HOURS, default=DEFAULT_REFRESH_HOURS): NumberSelector(
-                    NumberSelectorConfig(
-                        min=MIN_REFRESH_HOURS,
-                        max=MAX_REFRESH_HOURS,
-                        step=1,
-                        mode=NumberSelectorMode.BOX,
-                        unit_of_measurement="h",
-                    )
-                ),
+                vol.Required(CONF_REFRESH_HOURS, default=DEFAULT_REFRESH_HOURS): _refresh_selector(),
             }
         )
         if user_input is not None:
             schema = self.add_suggested_values_to_schema(schema, user_input)
         return self.async_show_form(step_id="url", data_schema=schema, errors=errors)
+
+    async def async_step_file(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Ask for the local file path and the refresh interval."""
+        if user_input is not None:
+            path = str(user_input[CONF_PATH]).strip()
+            self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_FILE, CONF_PATH: path}
+            self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
+            self._suggested_name = PurePath(path).name
+            return await self.async_step_name()
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_PATH): TextSelector(),
+                vol.Required(CONF_REFRESH_HOURS, default=DEFAULT_REFRESH_HOURS): _refresh_selector(),
+            }
+        )
+        return self.async_show_form(step_id="file", data_schema=schema)
 
     async def async_step_name(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for the entry name, pre-filled from the source (D-09); shared by every source type."""
