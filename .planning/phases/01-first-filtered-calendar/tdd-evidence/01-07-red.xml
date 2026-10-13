@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.230" timestamp="2026-10-14T01:43:48.504277+02:00" hostname="dev-host"><testcase classname="tests.test_config_flow" name="test_file_source_end_to_end" time="0.158"><failure message="AssertionError: assert ['url'] == ['url', 'file']&#10;  &#10;  Right contains one more item: 'file'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+allowed_dir = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-50/test_file_source_end_to_end0')
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f3419962f90&gt;
+forbid_loop_io = None
+
+    async def test_file_source_end_to_end(
+        hass: HomeAssistant,
+        allowed_dir: Path,
+        freezer: Any,
+        forbid_loop_io: None,
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T08:00:00+00:00")
+        allowed = allowed_dir
+        feed = allowed / "guide.xml"
+        feed.write_bytes(gzip.compress(BASIC_FEED))  # gzip data under a .xml name (SRC-03)
+        hass.config.allowlist_external_dirs = {str(allowed)}
+    
+        # 1. Menu offers url first, then file
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+        assert result["type"] is FlowResultType.MENU
+&gt;       assert list(result["menu_options"]) == ["url", "file"]
+E       AssertionError: assert ['url'] == ['url', 'file']
+E         
+E         Right contains one more item: 'file'
+E         Use -v to get more diff
+
+tests/test_config_flow.py:61: AssertionError</failure></testcase></testsuite></testsuites>

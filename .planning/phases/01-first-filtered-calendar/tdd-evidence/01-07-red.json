@@ -1,0 +1,14 @@
+{
+  "command": "uv run pytest tests/test_config_flow.py -q --junitxml=.planning/phases/01-first-filtered-calendar/tdd-evidence/01-07-red.xml",
+  "exitCode": 1,
+  "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"1\" skipped=\"0\" tests=\"1\" time=\"0.230\" timestamp=\"2026-10-14T01:43:48.504277+02:00\" hostname=\"dev-host\"><testcase classname=\"tests.test_config_flow\" name=\"test_file_source_end_to_end\" time=\"0.158\"><failure message=\"AssertionError: assert ['url'] == ['url', 'file']&#10;  &#10;  Right contains one more item: 'file'&#10;  Use -v to get more diff\">hass = &lt;HomeAssistant RUNNING&gt;\nallowed_dir = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-50/test_file_source_end_to_end0')\nfreezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f3419962f90&gt;\nforbid_loop_io = None\n\n    async def test_file_source_end_to_end(\n        hass: HomeAssistant,\n        allowed_dir: Path,\n        freezer: Any,\n        forbid_loop_io: None,\n    ) -&gt; None:\n        freezer.move_to(\"2026-10-13T08:00:00+00:00\")\n        allowed = allowed_dir\n        feed = allowed / \"guide.xml\"\n        feed.write_bytes(gzip.compress(BASIC_FEED))  # gzip data under a .xml name (SRC-03)\n        hass.config.allowlist_external_dirs = {str(allowed)}\n    \n        # 1. Menu offers url first, then file\n        result = await hass.config_entries.flow.async_init(DOMAIN, context={\"source\": SOURCE_USER})\n        assert result[\"type\"] is FlowResultType.MENU\n&gt;       assert list(result[\"menu_options\"]) == [\"url\", \"file\"]\nE       AssertionError: assert ['url'] == ['url', 'file']\nE         \nE         Right contains one more item: 'file'\nE         Use -v to get more diff\n\ntests/test_config_flow.py:61: AssertionError</failure></testcase></testsuite></testsuites>",
+  "targetTest": "test_file_source_end_to_end",
+  "targetFile": "tests/test_config_flow.py",
+  "expected": "source menu_options == ['url', 'file'] and the file step creates a LOADED entry whose calendar shows 4 events",
+  "actual": "menu_options is ['url']: the file source type does not exist yet",
+  "reportPath": ".planning/phases/01-first-filtered-calendar/tdd-evidence/01-07-red.xml",
+  "runStartedAt": "2026-10-13T23:43:46.829Z",
+  "reportModifiedAt": "2026-10-13T23:43:48.734Z",
+  "semanticAssessment": "The target was collected and ran with forbid_loop_io active; the flow started and returned a MENU. It failed on the planned menu assertion (['url'] != ['url', 'file']) because the file source type does not exist. No import, collection or fixture fault.",
+  "classifierVerdict": "RED_EVIDENCE_OK (target_test_failed)"
+}
