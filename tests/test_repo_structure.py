@@ -213,3 +213,45 @@ def test_runner_guard_flags_unpinned_and_mixed_runners() -> None:
     assert "a.yml:x runs on 'ubuntu-latest'" in problems
     assert any(problem.startswith("more than one runner version") for problem in problems)
     assert pinned_runner_problems({}) == ["no workflow job declares a runner"]
+
+
+def test_expected_workflows_exist() -> None:
+    missing = [name for name in WORKFLOW_FILES if not (WORKFLOWS / name).is_file()]
+    assert missing == [], f"missing workflow files: {missing}"
+
+
+def test_ci_runs_locked_sync_lint_format_and_pytest() -> None:
+    commands = [step["run"].strip() for step in _steps(_load_workflow("ci.yml")) if "run" in step]
+    expected = (
+        "uv sync --locked",
+        "uv run ruff check .",
+        "uv run ruff format --check .",
+        'uv run pytest -q -m "not benchmark"',
+    )
+    for command in expected:
+        assert command in commands, f"ci.yml never runs {command}"
+
+
+@workflow_files
+def test_workflows_have_no_path_filters(filename: str) -> None:
+    for name, trigger in _triggers(_load_workflow(filename)).items():
+        settings = trigger if isinstance(trigger, dict) else {}
+        assert "paths" not in settings, f"{filename}: {name} has a paths filter"
+        assert "paths-ignore" not in settings, f"{filename}: {name} has a paths-ignore filter"
+
+
+def test_ci_jobs_are_independent() -> None:
+    jobs = _load_workflow("ci.yml")["jobs"]
+    dependent = [name for name, job in jobs.items() if "needs" in job]
+    assert dependent == [], f"ci.yml jobs with needs: {dependent}"
+
+
+def test_renovate_requires_approval_for_phcc() -> None:
+    config = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
+    rules = [
+        rule
+        for rule in config.get("packageRules", [])
+        if "pytest-homeassistant-custom-component" in rule.get("matchPackageNames", [])
+    ]
+    assert len(rules) == 1
+    assert rules[0].get("dependencyDashboardApproval") is True
