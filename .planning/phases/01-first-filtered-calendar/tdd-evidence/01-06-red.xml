@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="4" tests="15" time="0.578" timestamp="2026-10-14T01:30:29.229775+02:00" hostname="dev-host"><testcase classname="tests.test_repo_structure" name="test_manifest_has_hacs_required_keys" time="0.134" /><testcase classname="tests.test_repo_structure" name="test_domain_matches_folder_name" time="0.014" /><testcase classname="tests.test_repo_structure" name="test_hacs_json_keys_allowed_and_floor" time="0.013"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/hacs.json'">def test_hacs_json_keys_allowed_and_floor() -&gt; None:
+&gt;       hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/hacs.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/hacs.json'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_brand_icon_is_valid_png[icon.png-256]" time="0.013"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/brand/icon.png'">filename = 'icon.png', size = 256
+
+    @pytest.mark.parametrize(("filename", "size"), [("icon.png", 256), ("icon@2x.png", 512)])
+    def test_brand_icon_is_valid_png(filename: str, size: int) -&gt; None:
+&gt;       assert _png_size(INTEGRATION / "brand" / filename) == (size, size)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_repo_structure.py:70: in _png_size
+    data = path.read_bytes()
+           ^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/pathlib/__init__.py:777: in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/brand/icon.png')
+mode = 'rb', buffering = 0, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/brand/icon.png'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_brand_icon_is_valid_png[icon@2x.png-512]" time="0.013"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/brand/icon@2x.png'">filename = 'icon@2x.png', size = 512
+
+    @pytest.mark.parametrize(("filename", "size"), [("icon.png", 256), ("icon@2x.png", 512)])
+    def test_brand_icon_is_valid_png(filename: str, size: int) -&gt; None:
+&gt;       assert _png_size(INTEGRATION / "brand" / filename) == (size, size)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_repo_structure.py:70: in _png_size
+    data = path.read_bytes()
+           ^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/pathlib/__init__.py:777: in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/brand/icon@2x.png')
+mode = 'rb', buffering = 0, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/brand/icon@2x.png'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_license_is_mit_with_holder" time="0.015"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/LICENSE'">def test_license_is_mit_with_holder() -&gt; None:
+&gt;       text = (ROOT / "LICENSE").read_text(encoding="utf-8")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/LICENSE')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/LICENSE'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_readme_documents_hacs_install_and_floor" time="0.013"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/README.md'">def test_readme_documents_hacs_install_and_floor() -&gt; None:
+&gt;       text = (ROOT / "README.md").read_text(encoding="utf-8")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:149: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/README.md')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/README.md'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_validate_workflow_has_hassfest_and_hacs_jobs" time="0.013"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/.github/workflows/validate.yml'">def test_validate_workflow_has_hassfest_and_hacs_jobs() -&gt; None:
+&gt;       document = _load_workflow("validate.yml")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:156: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_repo_structure.py:45: in _load_workflow
+    document = yaml.safe_load((WORKFLOWS / filename).read_text(encoding="utf-8"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/.github/workflows/validate.yml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/.github/workflows/validate.yml'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_hacs_action_has_category_and_no_ignore" time="0.014"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/.github/workflows/validate.yml'">def test_hacs_action_has_category_and_no_ignore() -&gt; None:
+&gt;       steps = [step for step in _steps(_load_workflow("validate.yml")) if step.get("uses", "").startswith("hacs/action@")]
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_repo_structure.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_repo_structure.py:45: in _load_workflow
+    document = yaml.safe_load((WORKFLOWS / filename).read_text(encoding="utf-8"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/.github/workflows/validate.yml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/akentner/Projects/homeassistant-xmltv-integration/.github/workflows/validate.yml'
+
+/usr/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_workflows_have_empty_permissions[NOTSET]" time="0.000"><skipped type="pytest.skip" message="got empty parameter set for (filename)">/home/akentner/Projects/homeassistant-xmltv-integration/tests/test_repo_structure.py:173: got empty parameter set for (filename)</skipped></testcase><testcase classname="tests.test_repo_structure" name="test_all_action_refs_are_pinned_by_sha[NOTSET]" time="0.000"><skipped type="pytest.skip" message="got empty parameter set for (filename)">/home/akentner/Projects/homeassistant-xmltv-integration/tests/test_repo_structure.py:178: got empty parameter set for (filename)</skipped></testcase><testcase classname="tests.test_repo_structure" name="test_checkout_does_not_persist_credentials[NOTSET]" time="0.000"><skipped type="pytest.skip" message="got empty parameter set for (filename)">/home/akentner/Projects/homeassistant-xmltv-integration/tests/test_repo_structure.py:190: got empty parameter set for (filename)</skipped></testcase><testcase classname="tests.test_repo_structure" name="test_push_trigger_has_no_branch_filter[NOTSET]" time="0.000"><skipped type="pytest.skip" message="got empty parameter set for (filename)">/home/akentner/Projects/homeassistant-xmltv-integration/tests/test_repo_structure.py:198: got empty parameter set for (filename)</skipped></testcase><testcase classname="tests.test_repo_structure" name="test_every_job_runs_on_one_pinned_runner" time="0.015"><failure message="AssertionError: assert ['no workflow...res a runner'] == []&#10;  &#10;  Left contains one more item: 'no workflow job declares a runner'&#10;  Use -v to get more diff">def test_every_job_runs_on_one_pinned_runner() -&gt; None:
+&gt;       assert pinned_runner_problems(workflow_runners(WORKFLOWS)) == []
+E       AssertionError: assert ['no workflow...res a runner'] == []
+E         
+E         Left contains one more item: 'no workflow job declares a runner'
+E         Use -v to get more diff
+
+tests/test_repo_structure.py:207: AssertionError</failure></testcase><testcase classname="tests.test_repo_structure" name="test_runner_guard_flags_unpinned_and_mixed_runners" time="0.013" /></testsuite></testsuites>
