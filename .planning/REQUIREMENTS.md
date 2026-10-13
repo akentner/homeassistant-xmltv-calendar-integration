@@ -23,13 +23,13 @@
 
 ### Filter
 
-- [ ] **FLT-01**: User can add multiple calendars to a source (one subentry each), each with its own filters
+- [x] **FLT-01**: User can add multiple calendars to a source (one subentry each), each with its own filters
 - [ ] **FLT-02**: User can select channels from a list built from the source's channels (empty = all channels)
-- [ ] **FLT-03**: User can define include regex patterns (OR-combined); a programme matches only if an include pattern matches
-- [ ] **FLT-04**: User can define exclude regex patterns; matching programmes are removed (match = channel AND include AND NOT exclude)
+- [x] **FLT-03**: User can define include regex patterns (OR-combined); a programme matches only if an include pattern matches
+- [x] **FLT-04**: User can define exclude regex patterns; matching programmes are removed (match = channel AND include AND NOT exclude)
 - [ ] **FLT-05**: User can choose which fields include and exclude patterns apply to (title, sub-title, description, category), separately
 - [ ] **FLT-06**: Matching is case-insensitive by default with a case-sensitive toggle; umlauts match regardless of Unicode normalization
-- [ ] **FLT-07**: Invalid regex patterns are rejected in the flow with the error shown; empty patterns are ignored
+- [x] **FLT-07**: Invalid regex patterns are rejected in the flow with the error shown; empty patterns are ignored
 - [ ] **FLT-08**: User can filter by minimum and maximum programme duration
 - [ ] **FLT-09**: User can filter by time window (time-of-day range, may cross midnight) and weekdays
 - [ ] **FLT-10**: User sees a filter preview in the flow (match count + next ~10 matches with channel and time) before saving
@@ -114,13 +114,13 @@
 | SRC-11 | Phase 3 | Pending |
 | SRC-12 | Phase 3 | Pending |
 | SRC-13 | Phase 1 | Complete |
-| FLT-01 | Phase 1 | Pending |
+| FLT-01 | Phase 1 | Complete |
 | FLT-02 | Phase 1 | Pending |
-| FLT-03 | Phase 1 | Pending |
-| FLT-04 | Phase 1 | Pending |
+| FLT-03 | Phase 1 | Complete |
+| FLT-04 | Phase 1 | Complete |
 | FLT-05 | Phase 2 | Pending |
 | FLT-06 | Phase 2 | Pending |
-| FLT-07 | Phase 1 | Pending |
+| FLT-07 | Phase 1 | Complete |
 | FLT-08 | Phase 2 | Pending |
 | FLT-09 | Phase 2 | Pending |
 | FLT-10 | Phase 2 | Pending |

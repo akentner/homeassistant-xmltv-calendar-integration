@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
 status: executing
-stopped_at: Completed 01-07-PLAN.md
-last_updated: "2026-10-13T23:50:21.753Z"
+stopped_at: Completed 01-08-PLAN.md
+last_updated: "2026-10-13T23:58:05.227Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: be891fb5bfadd3be077d645e2d69ca74a79248bb
+state_head: 93bb6fa7a21859deedb6e4a637d64ce277069f2d
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 01 (First Filtered Calendar) — EXECUTING
-Plan: 8 of 10
+Plan: 9 of 10
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 01 execution started
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P05 | 6 min | 3 tasks | 9 files |
 | Phase 01 P06 | 10 min | 3 tasks | 13 files |
 | Phase 01 P07 | 6 min | 3 tasks | 6 files |
+| Phase 01 P08 | 4 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-07 Task 2: sha256. Config entry unique_id = SHA-256 hex of <source_type>:<normalized locator> (url: / file: prefix); changing it needs async_migrate_entry + VERSION bump
 - [Phase 01]: 01-07: entry.data stores the normalized URL (fragment dropped, query kept) or the resolved real path; the duplicate check runs before the flow probe
 - [Phase 01]: 01-07: file read OSError shows file_not_found in the flow and unable_to_fetch at setup; file helpers keep builtin open() so forbid_loop_io sees loop calls
+- [Phase 01]: 01-08: pattern fields stored as raw text; FilterSpec strips and skips blank lines at filter time
+- [Phase 01]: 01-08: several invalid pattern fields each get invalid_regex; placeholders show the first bad line (channel_regex, include, exclude order)
+- [Phase 01]: 01-08: the 01-01 diffing listener already met FLT-01; tests/test_init.py is its regression suite, __init__.py unchanged
 
 ### Pending Todos
 
@@ -119,6 +123,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T23:50:15.646Z
-Stopped at: Completed 01-07-PLAN.md
+Last session: 2026-10-13T23:57:59.133Z
+Stopped at: Completed 01-08-PLAN.md
 Resume file: None
