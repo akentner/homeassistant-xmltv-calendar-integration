@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <!-- Calendar sheet with header band -->
+  <rect x="4" y="8" width="56" height="52" rx="7" fill="#1565C0"/>
+  <rect x="8" y="21" width="48" height="35" rx="4" fill="#FFFFFF"/>
+  <!-- Binding rings -->
+  <rect x="16" y="3" width="6" height="12" rx="3" fill="#0D47A1"/>
+  <rect x="42" y="3" width="6" height="12" rx="3" fill="#0D47A1"/>
+  <!-- TV set with antenna and play symbol -->
+  <path d="M26 25.5 32 31l6-5.5" fill="none" stroke="#F2B100" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="14" y="31" width="36" height="21" rx="3.5" fill="#F2B100"/>
+  <rect x="18" y="34.5" width="28" height="14" rx="1.5" fill="#1565C0"/>
+  <path d="M29 37.5v8l7-4z" fill="#FFFFFF"/>
+</svg>
