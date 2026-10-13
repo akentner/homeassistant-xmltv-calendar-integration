@@ -26,7 +26,10 @@ from homeassistant.helpers.selector import (
 from yarl import URL
 
 from .const import (
+    CONF_CHANNEL_REGEX,
     CONF_CHANNELS,
+    CONF_EXCLUDE,
+    CONF_INCLUDE,
     CONF_NAME,
     CONF_PATH,
     CONF_REFRESH_HOURS,
@@ -178,11 +181,15 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         return {SUBENTRY_TYPE_CALENDAR: CalendarSubentryFlow}
 
 
+# Free-text filter fields: one pattern per line, blank lines ignored (D-05)
+_PATTERN_FIELDS = (CONF_CHANNEL_REGEX, CONF_INCLUDE, CONF_EXCLUDE)
+
+
 class CalendarSubentryFlow(ConfigSubentryFlow):
     """Add a calendar to a loaded source."""
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        """Ask for the calendar name and the channels; the picker lists channel IDs (D-02, D-03)."""
+        """Ask for name, channels (sorted IDs, D-03), channel regex, include and exclude (D-02, D-05)."""
         entry: XmltvConfigEntry = self._get_entry()
         if entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="source_not_loaded")
@@ -191,9 +198,9 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             name = str(user_input[CONF_NAME]).strip()
             if name:
-                return self.async_create_entry(
-                    title=name, data={CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))}
-                )
+                data: dict[str, Any] = {CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))}
+                data.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
+                return self.async_create_entry(title=name, data=data)
             errors[CONF_NAME] = "name_required"
 
         channel_ids = sorted(entry.runtime_data.coordinator.data.channels)
@@ -208,6 +215,10 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                         sort=True,
                     )
                 ),
+                **{
+                    vol.Optional(field, default=""): TextSelector(TextSelectorConfig(multiline=True))
+                    for field in _PATTERN_FIELDS
+                },
             }
         )
         if user_input is not None:
