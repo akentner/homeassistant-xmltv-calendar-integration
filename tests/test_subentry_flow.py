@@ -3,14 +3,17 @@
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from homeassistant.config_entries import SOURCE_USER
+from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from .conftest import DOMAIN, FEED_URL
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from homeassistant.core import HomeAssistant
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 NOW = "2026-10-13T06:00:00+00:00"
 DAY_START = "2026-10-13T00:00:00+00:00"
@@ -133,3 +136,183 @@ async def test_form_filters_are_applied(
     await hass.async_block_till_done()
 
     assert await _summaries(hass, "calendar.motorsport") == expected
+
+
+# --- Validation (FLT-07), unloaded sources and the channel picker -----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("user_input", "field", "pattern"),
+    [
+        ({"include": "ok\n("}, "include", "("),
+        ({"exclude": "rennen\n[a-"}, "exclude", "[a-"),
+        ({"channel_regex": "^zdf\n*sky"}, "channel_regex", "*sky"),
+    ],
+    ids=["include", "exclude", "channel-regex"],
+)
+async def test_invalid_pattern_line_keeps_form_open(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    user_input: dict[str, str],
+    field: str,
+    pattern: str,
+) -> None:
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, {"name": "Broken", **user_input})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {field: "invalid_regex"}
+    assert result["description_placeholders"]["pattern"] == pattern
+    assert result["description_placeholders"]["error"]  # the regex message; its wording is not asserted
+    assert not entry.subentries
+
+
+@pytest.mark.parametrize(
+    ("field", "text"),
+    [
+        ("exclude", "x" * 301),
+        ("include", "ok\n" + "y" * 301),
+        ("channel_regex", "\n".join(f"channel{index}" for index in range(51))),
+        ("include", "\n\n".join(f"show{index}" for index in range(51))),
+    ],
+    ids=["exclude-301-chars", "include-301-chars", "channel-regex-51-lines", "include-51-lines-with-blanks"],
+)
+async def test_oversized_patterns_are_rejected(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    field: str,
+    text: str,
+) -> None:
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, {"name": "Too much", field: text})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {field: "invalid_regex"}
+    assert result["description_placeholders"]["error"]
+    assert not entry.subentries
+
+
+async def test_fifty_patterns_and_300_chars_are_accepted(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    include = "\n".join(["z" * 300, *(f"show{index}" for index in range(49))])
+
+    result = await _submit(hass, entry, {"name": "At the limit", "include": include})
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_blank_lines_only_are_ignored(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(
+        hass, entry, {"name": "Das Erste", "channels": ["daserste.de"], "include": "\n\n", "exclude": "  \n"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert await _summaries(hass, "calendar.das_erste") == ["Das Erste: Formel 1: Rennen", "Das Erste: Tagesschau"]
+
+
+async def test_input_is_kept_after_a_validation_error(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    user_input = {
+        "name": "Formel 1",
+        "channels": ["zdf.de"],
+        "channel_regex": "^daserste",
+        "include": "formel\\s*1\n(",
+        "exclude": "highlights",
+    }
+
+    result = await _submit(hass, entry, user_input)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"include": "invalid_regex"}
+    for name, value in user_input.items():
+        assert _schema_key(result, name).description["suggested_value"] == value
+
+    # The user fixes the line and submits again in the same flow
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**user_input, "include": "formel\\s*1"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["include"] == "formel\\s*1"
+
+
+async def test_blank_name_is_rejected(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, {"name": "   "})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"name": "name_required"}
+
+
+async def test_unloaded_source_aborts(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    aioclient_mock.get(FEED_URL, status=500)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Broken EPG",
+        data={"source_type": "url", "url": FEED_URL},
+        options={"refresh_hours": 24},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+    result = await _start_flow(hass, entry)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "source_not_loaded"
+
+
+async def test_channel_picker_lists_sorted_ids(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    channels = """
+      <channel id="zdf.de"><display-name>ZDF</display-name></channel>
+      <channel id="arte.de"><display-name>arte</display-name></channel>
+      <channel id="daserste.de"><display-name>Das Erste</display-name></channel>
+    """
+    entry = await setup_xmltv(_feed("", channels=channels), calendars=())
+
+    result = await _start_flow(hass, entry)
+
+    options = result["data_schema"].schema[_schema_key(result, "channels")].config["options"]
+    assert list(options) == ["arte.de", "daserste.de", "zdf.de"]
+    assert all(isinstance(option, str) for option in options)  # IDs only, no display-name labels (D-03)
+
+
+async def test_channel_selection_order_does_not_change_matches(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    for name, channels in (("Forward", ["daserste.de", "zdf.de"]), ("Reverse", ["zdf.de", "daserste.de"])):
+        result = await _submit(hass, entry, {"name": name, "channels": channels})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    forward = await _summaries(hass, "calendar.forward")
+    assert len(forward) == 4
+    assert await _summaries(hass, "calendar.reverse") == forward

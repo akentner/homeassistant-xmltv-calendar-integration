@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="18" time="0.951" timestamp="2026-10-14T01:54:36.503717+02:00" hostname="dev-host"><testcase classname="tests.test_subentry_flow" name="test_include_calendar_via_form_end_to_end" time="0.180" /><testcase classname="tests.test_subentry_flow" name="test_form_filters_are_applied[exclude]" time="0.045" /><testcase classname="tests.test_subentry_flow" name="test_form_filters_are_applied[channel-regex]" time="0.045" /><testcase classname="tests.test_subentry_flow" name="test_form_filters_are_applied[channels-or-regex]" time="0.045" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[include]" time="0.039"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dadb296f0&gt;
+user_input = {'include': 'ok\n('}, field = 'include', pattern = '('
+
+    @pytest.mark.parametrize(
+        ("user_input", "field", "pattern"),
+        [
+            ({"include": "ok\n("}, "include", "("),
+            ({"exclude": "rennen\n[a-"}, "exclude", "[a-"),
+            ({"channel_regex": "^zdf\n*sky"}, "channel_regex", "*sky"),
+        ],
+        ids=["include", "exclude", "channel-regex"],
+    )
+    async def test_invalid_pattern_line_keeps_form_open(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        user_input: dict[str, str],
+        field: str,
+        pattern: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Broken", **user_input})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:164: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[exclude]" time="0.033"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dacaa9590&gt;
+user_input = {'exclude': 'rennen\n[a-'}, field = 'exclude', pattern = '[a-'
+
+    @pytest.mark.parametrize(
+        ("user_input", "field", "pattern"),
+        [
+            ({"include": "ok\n("}, "include", "("),
+            ({"exclude": "rennen\n[a-"}, "exclude", "[a-"),
+            ({"channel_regex": "^zdf\n*sky"}, "channel_regex", "*sky"),
+        ],
+        ids=["include", "exclude", "channel-regex"],
+    )
+    async def test_invalid_pattern_line_keeps_form_open(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        user_input: dict[str, str],
+        field: str,
+        pattern: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Broken", **user_input})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:164: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[channel-regex]" time="0.033"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dadbb8930&gt;
+user_input = {'channel_regex': '^zdf\n*sky'}, field = 'channel_regex'
+pattern = '*sky'
+
+    @pytest.mark.parametrize(
+        ("user_input", "field", "pattern"),
+        [
+            ({"include": "ok\n("}, "include", "("),
+            ({"exclude": "rennen\n[a-"}, "exclude", "[a-"),
+            ({"channel_regex": "^zdf\n*sky"}, "channel_regex", "*sky"),
+        ],
+        ids=["include", "exclude", "channel-regex"],
+    )
+    async def test_invalid_pattern_line_keeps_form_open(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        user_input: dict[str, str],
+        field: str,
+        pattern: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Broken", **user_input})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:164: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[exclude-301-chars]" time="0.034"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dadbb8eb0&gt;
+field = 'exclude'
+text = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    @pytest.mark.parametrize(
+        ("field", "text"),
+        [
+            ("exclude", "x" * 301),
+            ("include", "ok\n" + "y" * 301),
+            ("channel_regex", "\n".join(f"channel{index}" for index in range(51))),
+            ("include", "\n\n".join(f"show{index}" for index in range(51))),
+        ],
+        ids=["exclude-301-chars", "include-301-chars", "channel-regex-51-lines", "include-51-lines-with-blanks"],
+    )
+    async def test_oversized_patterns_are_rejected(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        field: str,
+        text: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Too much", field: text})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:191: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[include-301-chars]" time="0.033"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dada35e80&gt;
+field = 'include'
+text = 'ok\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
+
+    @pytest.mark.parametrize(
+        ("field", "text"),
+        [
+            ("exclude", "x" * 301),
+            ("include", "ok\n" + "y" * 301),
+            ("channel_regex", "\n".join(f"channel{index}" for index in range(51))),
+            ("include", "\n\n".join(f"show{index}" for index in range(51))),
+        ],
+        ids=["exclude-301-chars", "include-301-chars", "channel-regex-51-lines", "include-51-lines-with-blanks"],
+    )
+    async def test_oversized_patterns_are_rejected(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        field: str,
+        text: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Too much", field: text})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:191: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[channel-regex-51-lines]" time="0.033"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dadae0b40&gt;
+field = 'channel_regex'
+text = 'channel0\nchannel1\nchannel2\nchannel3\nchannel4\nchannel5\nchannel6\nchannel7\nchannel8\nchannel9\nchannel10\nchanne...hannel40\nchannel41\nchannel42\nchannel43\nchannel44\nchannel45\nchannel46\nchannel47\nchannel48\nchannel49\nchannel50'
+
+    @pytest.mark.parametrize(
+        ("field", "text"),
+        [
+            ("exclude", "x" * 301),
+            ("include", "ok\n" + "y" * 301),
+            ("channel_regex", "\n".join(f"channel{index}" for index in range(51))),
+            ("include", "\n\n".join(f"show{index}" for index in range(51))),
+        ],
+        ids=["exclude-301-chars", "include-301-chars", "channel-regex-51-lines", "include-51-lines-with-blanks"],
+    )
+    async def test_oversized_patterns_are_rejected(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        field: str,
+        text: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Too much", field: text})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:191: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[include-51-lines-with-blanks]" time="0.036"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dadae35e0&gt;
+field = 'include'
+text = 'show0\n\nshow1\n\nshow2\n\nshow3\n\nshow4\n\nshow5\n\nshow6\n\nshow7\n\nshow8\n\nshow9\n\nshow10\n\nshow11\n\nshow12\...\nshow39\n\nshow40\n\nshow41\n\nshow42\n\nshow43\n\nshow44\n\nshow45\n\nshow46\n\nshow47\n\nshow48\n\nshow49\n\nshow50'
+
+    @pytest.mark.parametrize(
+        ("field", "text"),
+        [
+            ("exclude", "x" * 301),
+            ("include", "ok\n" + "y" * 301),
+            ("channel_regex", "\n".join(f"channel{index}" for index in range(51))),
+            ("include", "\n\n".join(f"show{index}" for index in range(51))),
+        ],
+        ids=["exclude-301-chars", "include-301-chars", "channel-regex-51-lines", "include-51-lines-with-blanks"],
+    )
+    async def test_oversized_patterns_are_rejected(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        field: str,
+        text: str,
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    
+        result = await _submit(hass, entry, {"name": "Too much", field: text})
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:191: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_fifty_patterns_and_300_chars_are_accepted" time="0.032" /><testcase classname="tests.test_subentry_flow" name="test_blank_lines_only_are_ignored" time="0.043" /><testcase classname="tests.test_subentry_flow" name="test_input_is_kept_after_a_validation_error" time="0.034"><failure message="AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3dad9426c0&gt;
+
+    async def test_input_is_kept_after_a_validation_error(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+        user_input = {
+            "name": "Formel 1",
+            "channels": ["zdf.de"],
+            "channel_regex": "^daserste",
+            "include": "formel\\s*1\n(",
+            "exclude": "highlights",
+        }
+    
+        result = await _submit(hass, entry, user_input)
+    
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.CREATE_ENTRY: 'create_entry'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_subentry_flow.py:241: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_blank_name_is_rejected" time="0.029" /><testcase classname="tests.test_subentry_flow" name="test_unloaded_source_aborts" time="0.018" /><testcase classname="tests.test_subentry_flow" name="test_channel_picker_lists_sorted_ids" time="0.029" /><testcase classname="tests.test_subentry_flow" name="test_channel_selection_order_does_not_change_matches" time="0.055" /></testsuite></testsuites>
