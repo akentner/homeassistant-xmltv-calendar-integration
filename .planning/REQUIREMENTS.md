@@ -9,8 +9,8 @@
 
 - [ ] **SRC-01**: User can add an XMLTV source by HTTP(S) URL as its own config entry
 - [ ] **SRC-02**: User can add an XMLTV source by local file path (validated against HA allowed paths)
-- [ ] **SRC-03**: Gzip-compressed sources are read transparently (detected by content, not file extension)
-- [ ] **SRC-04**: User can set a refresh interval per source
+- [x] **SRC-03**: Gzip-compressed sources are read transparently (detected by content, not file extension)
+- [x] **SRC-04**: User can set a refresh interval per source
 - [ ] **SRC-05**: User can alternatively schedule a source to refresh once daily at a fixed time (e.g. 18:15 for a feed generated at 18:00)
 - [ ] **SRC-06**: Downloaded source data is cached on disk; an HA restart or entry reload uses the cache and does not re-fetch while the cache is still fresh for the configured schedule
 - [ ] **SRC-07**: Remote sources are re-downloaded only when changed (ETag / If-Modified-Since)
@@ -19,7 +19,7 @@
 - [ ] **SRC-10**: User can configure per source that timestamps without offset are local time, and/or apply a time offset correction
 - [ ] **SRC-11**: User sees a Repairs issue when a source fails persistently; it clears on success
 - [ ] **SRC-12**: User can download diagnostics for a source (URL/credentials redacted; programme/channel/match counts, last success/failure)
-- [ ] **SRC-13**: Duplicate sources (same normalized URL/path) are rejected during setup
+- [x] **SRC-13**: Duplicate sources (same normalized URL/path) are rejected during setup
 
 ### Filter
 
@@ -103,8 +103,8 @@
 |-------------|-------|--------|
 | SRC-01 | Phase 1 | Pending |
 | SRC-02 | Phase 1 | Pending |
-| SRC-03 | Phase 1 | Pending |
-| SRC-04 | Phase 1 | Pending |
+| SRC-03 | Phase 1 | Complete |
+| SRC-04 | Phase 1 | Complete |
 | SRC-05 | Phase 3 | Pending |
 | SRC-06 | Phase 3 | Pending |
 | SRC-07 | Phase 3 | Pending |
@@ -113,7 +113,7 @@
 | SRC-10 | Phase 3 | Pending |
 | SRC-11 | Phase 3 | Pending |
 | SRC-12 | Phase 3 | Pending |
-| SRC-13 | Phase 1 | Pending |
+| SRC-13 | Phase 1 | Complete |
 | FLT-01 | Phase 1 | Pending |
 | FLT-02 | Phase 1 | Pending |
 | FLT-03 | Phase 1 | Pending |
