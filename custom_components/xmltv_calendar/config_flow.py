@@ -55,6 +55,7 @@ from .source import (
     probe_file,
     source_unique_id,
 )
+from .xmltv.filter import first_invalid_pattern
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -195,13 +196,21 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
             return self.async_abort(reason="source_not_loaded")
 
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
             name = str(user_input[CONF_NAME]).strip()
-            if name:
+            if not name:
+                errors[CONF_NAME] = "name_required"
+            # Nothing that fails to compile or exceeds the caps is ever stored (FLT-07, T-01-23)
+            for field in _PATTERN_FIELDS:
+                if (bad := first_invalid_pattern(str(user_input.get(field, "")))) is not None:
+                    errors[field] = "invalid_regex"
+                    placeholders.setdefault("pattern", bad.pattern)
+                    placeholders.setdefault("error", bad.message)
+            if not errors:
                 data: dict[str, Any] = {CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))}
                 data.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
                 return self.async_create_entry(title=name, data=data)
-            errors[CONF_NAME] = "name_required"
 
         channel_ids = sorted(entry.runtime_data.coordinator.data.channels)
         schema = vol.Schema(
@@ -223,4 +232,6 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
         )
         if user_input is not None:
             schema = self.add_suggested_values_to_schema(schema, user_input)
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="user", data_schema=schema, errors=errors, description_placeholders=placeholders
+        )

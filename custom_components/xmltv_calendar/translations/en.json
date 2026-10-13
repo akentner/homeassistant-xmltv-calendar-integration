@@ -80,7 +80,8 @@
         }
       },
       "error": {
-        "name_required": "Enter a name."
+        "name_required": "Enter a name.",
+        "invalid_regex": "Invalid pattern {pattern}: {error}. Each line must be a valid regular expression of at most 300 characters, and at most 50 lines per field."
       },
       "abort": {
         "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again."
