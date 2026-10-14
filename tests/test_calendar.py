@@ -11,8 +11,10 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed, async_mock_service
 
+from custom_components.xmltv_calendar import calendar as calendar_module
 from custom_components.xmltv_calendar.calendar import build_events
 from custom_components.xmltv_calendar.xmltv.model import Channel, Programme
+from custom_components.xmltv_calendar.xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -99,6 +101,55 @@ def test_build_events_skips_invalid(caplog: pytest.LogCaptureFixture) -> None:
 
     assert [event.summary for event in events] == ["Das Erste: Good"]
     assert "daserste.de" in caplog.text
+
+
+FAR_START = datetime(9999, 12, 31, 23, tzinfo=UTC)
+CHANNELS = {"daserste.de": Channel(id="daserste.de", display_name="Das Erste")}
+
+
+async def test_build_events_skips_out_of_range_programme(
+    hass: HomeAssistant, berlin_tz: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    good = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Good")
+    # Under Europe/Berlin, dt_util.as_local of this instant overflows datetime's range (CR-01)
+    far = _programme(FAR_START, FAR_START + timedelta(minutes=30), "Far future")
+
+    with caplog.at_level(logging.DEBUG, logger="custom_components.xmltv_calendar"):
+        events = build_events([good, far], CHANNELS)
+
+    assert [event.summary for event in events] == ["Das Erste: Good"]
+    assert "daserste.de" in caplog.text
+
+
+def test_build_events_skips_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    good = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Good")
+    bad = _programme(BUSY_DAY + timedelta(hours=2), BUSY_DAY + timedelta(hours=3), "Bad")
+    real = calendar_module._to_event
+
+    def flaky(programme: Programme, channels: Any) -> Any:
+        if programme.title == "Bad":
+            msg = "boom"
+            raise ValueError(msg)
+        return real(programme, channels)
+
+    monkeypatch.setattr(calendar_module, "_to_event", flaky)
+
+    assert [event.summary for event in build_events([good, bad], CHANNELS)] == ["Das Erste: Good"]
+
+
+async def test_event_property_skips_out_of_range_match(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    setup_xmltv: Callable[..., Awaitable[Any]],
+) -> None:
+    freezer.move_to("2026-10-13T00:00:00+00:00")
+    entry = await setup_xmltv(BASIC_FEED)
+    entity = next(iter(entry.runtime_data.calendars.values()))
+    far = _programme(FAR_START, FAR_START + timedelta(minutes=30), "Far future")
+    entity._index = MatchIndex((far,))
+
+    assert entity.event is None
 
 
 async def _step_to(hass: HomeAssistant, freezer: Any, iso: str) -> None:

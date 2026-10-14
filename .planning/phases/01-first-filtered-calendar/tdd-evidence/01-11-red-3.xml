@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="9" time="1.274" timestamp="2026-10-14T16:18:22.760503+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_calendar" name="test_busy_calendar_get_events_is_capped" time="0.779" /><testcase classname="tests.test_calendar" name="test_build_events_skips_invalid" time="0.016" /><testcase classname="tests.test_calendar" name="test_build_events_skips_out_of_range_programme" time="0.016"><failure message="OverflowError: date value out of range">hass = &lt;HomeAssistant RUNNING&gt;, berlin_tz = None
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7f282227b890&gt;
+
+    async def test_build_events_skips_out_of_range_programme(
+        hass: HomeAssistant, berlin_tz: None, caplog: pytest.LogCaptureFixture
+    ) -&gt; None:
+        good = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Good")
+        # Under Europe/Berlin, dt_util.as_local of this instant overflows datetime's range (CR-01)
+        far = _programme(FAR_START, FAR_START + timedelta(minutes=30), "Far future")
+    
+        with caplog.at_level(logging.DEBUG, logger="custom_components.xmltv_calendar"):
+&gt;           events = build_events([good, far], CHANNELS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_calendar.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/calendar.py:54: in build_events
+    events.append(_to_event(programme, channels))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/calendar.py:42: in _to_event
+    start=dt_util.as_local(programme.start),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+dattim = datetime.datetime(9999, 12, 31, 23, 0, tzinfo=datetime.timezone.utc)
+
+    def as_local(dattim: dt.datetime) -&gt; dt.datetime:
+        """Convert a UTC datetime object to local time zone."""
+        if dattim.tzinfo == DEFAULT_TIME_ZONE:
+            return dattim
+        if dattim.tzinfo is None:
+            dattim = dattim.replace(tzinfo=DEFAULT_TIME_ZONE)
+    
+&gt;       return dattim.astimezone(DEFAULT_TIME_ZONE)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OverflowError: date value out of range
+
+.venv/lib/python3.14/site-packages/homeassistant/util/dt.py:182: OverflowError</failure></testcase><testcase classname="tests.test_calendar" name="test_build_events_skips_value_error" time="0.013"><failure message="ValueError: boom">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f2816ed9e10&gt;
+
+    def test_build_events_skips_value_error(monkeypatch: pytest.MonkeyPatch) -&gt; None:
+        good = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Good")
+        bad = _programme(BUSY_DAY + timedelta(hours=2), BUSY_DAY + timedelta(hours=3), "Bad")
+        real = calendar_module._to_event
+    
+        def flaky(programme: Programme, channels: Any) -&gt; Any:
+            if programme.title == "Bad":
+                msg = "boom"
+                raise ValueError(msg)
+            return real(programme, channels)
+    
+        monkeypatch.setattr(calendar_module, "_to_event", flaky)
+    
+&gt;       assert [event.summary for event in build_events([good, bad], CHANNELS)] == ["Das Erste: Good"]
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_calendar.py:137: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/calendar.py:54: in build_events
+    events.append(_to_event(programme, channels))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 2, 0, tzinfo=datetime.timezone.utc), stop=da...13, 3, 0, tzinfo=datetime.timezone.utc), titles=('Bad',), sub_titles=(), description=None, categories=(), episode=None)
+channels = {'daserste.de': Channel(id='daserste.de', display_name='Das Erste')}
+
+    def flaky(programme: Programme, channels: Any) -&gt; Any:
+        if programme.title == "Bad":
+            msg = "boom"
+&gt;           raise ValueError(msg)
+E           ValueError: boom
+
+tests/test_calendar.py:132: ValueError</failure></testcase><testcase classname="tests.test_calendar" name="test_event_property_skips_out_of_range_match" time="0.045"><failure message="OverflowError: date value out of range">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f2814b8e0d0&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f28149bd0c0&gt;
+
+    async def test_event_property_skips_out_of_range_match(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T00:00:00+00:00")
+        entry = await setup_xmltv(BASIC_FEED)
+        entity = next(iter(entry.runtime_data.calendars.values()))
+        far = _programme(FAR_START, FAR_START + timedelta(minutes=30), "Far future")
+        entity._index = MatchIndex((far,))
+    
+&gt;       assert entity.event is None
+               ^^^^^^^^^^^^
+
+tests/test_calendar.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/calendar.py:140: in event
+    return _to_event(programme, self._epg.channels if self._epg is not None else {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/calendar.py:42: in _to_event
+    start=dt_util.as_local(programme.start),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+dattim = datetime.datetime(9999, 12, 31, 23, 0, tzinfo=datetime.timezone.utc)
+
+    def as_local(dattim: dt.datetime) -&gt; dt.datetime:
+        """Convert a UTC datetime object to local time zone."""
+        if dattim.tzinfo == DEFAULT_TIME_ZONE:
+            return dattim
+        if dattim.tzinfo is None:
+            dattim = dattim.replace(tzinfo=DEFAULT_TIME_ZONE)
+    
+&gt;       return dattim.astimezone(DEFAULT_TIME_ZONE)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OverflowError: date value out of range
+
+.venv/lib/python3.14/site-packages/homeassistant/util/dt.py:182: OverflowError</failure></testcase><testcase classname="tests.test_calendar" name="test_state_turns_on_and_off_without_refresh" time="0.047" /><testcase classname="tests.test_calendar" name="test_start_offset_and_end_triggers_fire" time="0.123" /><testcase classname="tests.test_calendar" name="test_calendar_with_no_matches[channel-not-in-feed]" time="0.044" /><testcase classname="tests.test_calendar" name="test_calendar_with_no_matches[feed-without-programmes]" time="0.044" /></testsuite></testsuites>
