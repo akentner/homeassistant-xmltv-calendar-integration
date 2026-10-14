@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="18" skipped="0" tests="67" time="0.862" timestamp="2026-10-14T16:15:53.127818+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_timing" name="test_short_timestamp_and_missing_stop_end_to_end" time="0.191" /><testcase classname="tests.test_timing" name="test_malformed_timestamps_never_break_the_calendar" time="0.036"><failure message="AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;&#10; +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M4T7TXM048AJSF6FZF48Y21G version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.SETUP_RETRY unique_id=None&gt;.state&#10; +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f3ec87dd1d0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3ec42109e0&gt;
+
+    async def test_malformed_timestamps_never_break_the_calendar(
+        hass: HomeAssistant,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T09:00:00+00:00")
+        entry = await setup_xmltv(MALFORMED_FEED)
+    
+&gt;       assert entry.state is ConfigEntryState.LOADED
+E       AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;
+E        +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M4T7TXM048AJSF6FZF48Y21G version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.SETUP_RETRY unique_id=None&gt;.state
+E        +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED
+
+tests/test_timing.py:74: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 +0200-expected0]" time="0.009" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[202610122030 +0200-expected1]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 +02:00-expected2]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000+0200-expected3]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 -0130-expected4]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000-expected5]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 Z-expected6]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 UTC-expected7]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 GMT-expected8]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 BST-expected9]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 CET-expected10]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 CEST-expected11]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 EET-expected12]" time="0.006" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 EEST-expected13]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261025023000 +0200-expected14]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261025023000 +0100-expected15]" time="0.006" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20260329030000 +0200-expected16]" time="0.006" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 +1800-expected17]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[20261012203000 -1800-expected18]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[19000101000000 +0000-expected19]" time="0.006" /><testcase classname="tests.xmltv.test_timeparse" name="test_valid_timestamps[22001231235959 +0000-expected20]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 XYZ]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[garbage]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[None]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261332000000 +0000]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012253000 +0000]" time="0.005" /><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 +2500]" time="0.005"><failure message="ValueError: offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24), not datetime.timedelta(days=1, seconds=3600)">value = '20261012203000 +2500'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+               ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_timeparse.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/xmltv/timeparse.py:31: in parse_xmltv_time
+    tz = _tz(-offset if sign == "-" else offset)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+minutes = 1500
+
+    def _tz(minutes: int) -&gt; timezone:
+        """Return a cached fixed-offset timezone."""
+        if (tz := _TZ_CACHE.get(minutes)) is None:
+&gt;           tz = _TZ_CACHE[minutes] = timezone(timedelta(minutes=minutes))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24), not datetime.timedelta(days=1, seconds=3600)
+
+custom_components/xmltv_calendar/xmltv/timeparse.py:20: ValueError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 -2500]" time="0.007"><failure message="ValueError: offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24), not datetime.timedelta(days=-2, seconds=82800)">value = '20261012203000 -2500'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+               ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_timeparse.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/xmltv/timeparse.py:31: in parse_xmltv_time
+    tz = _tz(-offset if sign == "-" else offset)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+minutes = -1500
+
+    def _tz(minutes: int) -&gt; timezone:
+        """Return a cached fixed-offset timezone."""
+        if (tz := _TZ_CACHE.get(minutes)) is None:
+&gt;           tz = _TZ_CACHE[minutes] = timezone(timedelta(minutes=minutes))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24), not datetime.timedelta(days=-2, seconds=82800)
+
+custom_components/xmltv_calendar/xmltv/timeparse.py:20: ValueError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 +1801]" time="0.006"><failure message="AssertionError: assert datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=64860))) is None&#10; +  where datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=64860))) = parse_xmltv_time('20261012203000 +1801')">value = '20261012203000 +1801'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=64860))) is None
+E        +  where datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=64860))) = parse_xmltv_time('20261012203000 +1801')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 +0099]" time="0.007"><failure message="AssertionError: assert datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=5940))) is None&#10; +  where datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=5940))) = parse_xmltv_time('20261012203000 +0099')">value = '20261012203000 +0099'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=5940))) is None
+E        +  where datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=5940))) = parse_xmltv_time('20261012203000 +0099')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[20261012203000 +01:60]" time="0.008"><failure message="AssertionError: assert datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=7200))) is None&#10; +  where datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=7200))) = parse_xmltv_time('20261012203000 +01:60')">value = '20261012203000 +01:60'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=7200))) is None
+E        +  where datetime.datetime(2026, 10, 12, 20, 30, tzinfo=datetime.timezone(datetime.timedelta(seconds=7200))) = parse_xmltv_time('20261012203000 +01:60')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[00010101000000 +0100]" time="0.006"><failure message="AssertionError: assert datetime.datetime(1, 1, 1, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) is None&#10; +  where datetime.datetime(1, 1, 1, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) = parse_xmltv_time('00010101000000 +0100')">value = '00010101000000 +0100'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(1, 1, 1, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) is None
+E        +  where datetime.datetime(1, 1, 1, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) = parse_xmltv_time('00010101000000 +0100')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[99991231233000 -0100]" time="0.006"><failure message="AssertionError: assert datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=82800))) is None&#10; +  where datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=82800))) = parse_xmltv_time('99991231233000 -0100')">value = '99991231233000 -0100'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=82800))) is None
+E        +  where datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=82800))) = parse_xmltv_time('99991231233000 -0100')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[99991231233000 +0000]" time="0.005"><failure message="AssertionError: assert datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone.utc) is None&#10; +  where datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone.utc) = parse_xmltv_time('99991231233000 +0000')">value = '99991231233000 +0000'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone.utc) is None
+E        +  where datetime.datetime(9999, 12, 31, 23, 30, tzinfo=datetime.timezone.utc) = parse_xmltv_time('99991231233000 +0000')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[18991231235959 +0000]" time="0.005"><failure message="AssertionError: assert datetime.datetime(1899, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc) is None&#10; +  where datetime.datetime(1899, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc) = parse_xmltv_time('18991231235959 +0000')">value = '18991231235959 +0000'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(1899, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc) is None
+E        +  where datetime.datetime(1899, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc) = parse_xmltv_time('18991231235959 +0000')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_timeparse" name="test_invalid_timestamps_return_none[22010101000000 +0000]" time="0.005"><failure message="AssertionError: assert datetime.datetime(2201, 1, 1, 0, 0, tzinfo=datetime.timezone.utc) is None&#10; +  where datetime.datetime(2201, 1, 1, 0, 0, tzinfo=datetime.timezone.utc) = parse_xmltv_time('22010101000000 +0000')">value = '22010101000000 +0000'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "20261012203000 XYZ",  # unknown alpha zone
+            "garbage",
+            "",
+            None,
+            "20261332000000 +0000",  # month 13
+            "20261012253000 +0000",  # hour 25
+            # CR-01: out-of-range offsets and years
+            "20261012203000 +2500",
+            "20261012203000 -2500",
+            "20261012203000 +1801",
+            "20261012203000 +0099",
+            "20261012203000 +01:60",
+            "00010101000000 +0100",
+            "99991231233000 -0100",
+            "99991231233000 +0000",
+            "18991231235959 +0000",
+            "22010101000000 +0000",
+        ],
+    )
+    def test_invalid_timestamps_return_none(value: str | None) -&gt; None:
+&gt;       assert parse_xmltv_time(value) is None
+E       AssertionError: assert datetime.datetime(2201, 1, 1, 0, 0, tzinfo=datetime.timezone.utc) is None
+E        +  where datetime.datetime(2201, 1, 1, 0, 0, tzinfo=datetime.timezone.utc) = parse_xmltv_time('22010101000000 +0000')
+
+tests/xmltv/test_timeparse.py:73: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_gzip_parses_like_plain" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_plain_bytes_named_gz_parse" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_gzip_decompressed_cap" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_plain_input_is_capped_too" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_input_within_cap_parses" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_truncated_gzip_raises_feed_error" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_corrupt_gzip_raises_feed_error" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[empty]" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[not-xml]" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[truncated-xml]" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[unknown-encoding]" time="0.009" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[undefined-entity]" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[truncated]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[truncated-gzip]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_display_name_fallback" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_programme_only_channel_is_listed" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_skips_malformed_programmes" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_umlaut_title_preserved" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_latin1_declared_encoding" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_yield_every_calls_sleep[250-4]" time="0.023" /><testcase classname="tests.xmltv.test_parser" name="test_yield_every_calls_sleep[0-0]" time="0.021" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[offset-plus-2500]" time="0.005"><failure message="custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 305 bytes">bad = 'start="20261013140000 +2500"'
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+            pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+            pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+            pytest.param('start="00010101000000 +0100"', id="year-0001"),
+            pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+            pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+        ],
+    )
+    def test_malformed_timestamp_skips_only_that_programme(bad: str) -&gt; None:
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" {bad}&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fileobj = &lt;_io.BytesIO object at 0x7f3ec6632e30&gt;
+
+    def parse(
+        fileobj: BinaryIO,
+        *,
+        keep_after: datetime | None = None,
+        yield_every: int = 250,
+        default_duration: timedelta = timedelta(minutes=60),
+        max_bytes: int = MAX_DECOMPRESSED_BYTES,
+    ) -&gt; EpgData:
+        """
+        Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
+    
+        Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
+        `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
+        Raises `FeedTooLargeError` past `max_bytes` of XML and `FeedError` for anything else that cannot be read.
+        """
+        stats = ParseStats()
+        # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
+        head = fileobj.read(2)
+        fileobj.seek(0)
+        reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
+        try:
+            channels, programmes = _collect(reader, stats, yield_every)
+        except ET.ParseError as err:
+            line, column = err.position
+            msg = f"invalid XML at line {line}, column {column}"
+            raise FeedError(msg) from None
+        except StopIteration:
+            msg = "empty document"
+            raise FeedError(msg) from None
+        except _STREAM_ERRORS as err:
+            msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
+&gt;           raise FeedError(msg) from None
+E           custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 305 bytes
+
+custom_components/xmltv_calendar/xmltv/parser.py:148: FeedError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[offset-minus-2500]" time="0.005"><failure message="custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 305 bytes">bad = 'start="20261013140000 -2500"'
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+            pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+            pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+            pytest.param('start="00010101000000 +0100"', id="year-0001"),
+            pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+            pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+        ],
+    )
+    def test_malformed_timestamp_skips_only_that_programme(bad: str) -&gt; None:
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" {bad}&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fileobj = &lt;_io.BytesIO object at 0x7f3ec6664180&gt;
+
+    def parse(
+        fileobj: BinaryIO,
+        *,
+        keep_after: datetime | None = None,
+        yield_every: int = 250,
+        default_duration: timedelta = timedelta(minutes=60),
+        max_bytes: int = MAX_DECOMPRESSED_BYTES,
+    ) -&gt; EpgData:
+        """
+        Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
+    
+        Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
+        `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
+        Raises `FeedTooLargeError` past `max_bytes` of XML and `FeedError` for anything else that cannot be read.
+        """
+        stats = ParseStats()
+        # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
+        head = fileobj.read(2)
+        fileobj.seek(0)
+        reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
+        try:
+            channels, programmes = _collect(reader, stats, yield_every)
+        except ET.ParseError as err:
+            line, column = err.position
+            msg = f"invalid XML at line {line}, column {column}"
+            raise FeedError(msg) from None
+        except StopIteration:
+            msg = "empty document"
+            raise FeedError(msg) from None
+        except _STREAM_ERRORS as err:
+            msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
+&gt;           raise FeedError(msg) from None
+E           custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 305 bytes
+
+custom_components/xmltv_calendar/xmltv/parser.py:148: FeedError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[offset-minutes-99]" time="0.007"><failure message="AssertionError: assert ['Good', 'Bad'] == ['Good']&#10;  &#10;  Left contains one more item: 'Bad'&#10;  Use -v to get more diff">bad = 'start="20261013140000 +0099"'
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+            pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+            pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+            pytest.param('start="00010101000000 +0100"', id="year-0001"),
+            pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+            pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+        ],
+    )
+    def test_malformed_timestamp_skips_only_that_programme(bad: str) -&gt; None:
+        data = _parse(_good_plus(f'&lt;programme channel="a.de" {bad}&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+    
+&gt;       assert [p.title for p in data.programmes] == ["Good"]
+E       AssertionError: assert ['Good', 'Bad'] == ['Good']
+E         
+E         Left contains one more item: 'Bad'
+E         Use -v to get more diff
+
+tests/xmltv/test_parser.py:194: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[year-0001]" time="0.005"><failure message="OverflowError: date value out of range">bad = 'start="00010101000000 +0100"'
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+            pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+            pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+            pytest.param('start="00010101000000 +0100"', id="year-0001"),
+            pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+            pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+        ],
+    )
+    def test_malformed_timestamp_skips_only_that_programme(bad: str) -&gt; None:
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" {bad}&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:155: in parse
+    normalized = normalize_programmes(programmes, default_duration=default_duration, stats=stats)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+programmes = [Programme(channel_id='a.de', start=datetime.datetime(2026, 10, 13, 12, 0, tzinfo=datetime.timezone.utc), stop=datetim...one(datetime.timedelta(seconds=3600))), titles=('Bad',), sub_titles=(), description=None, categories=(), episode=None)]
+
+    def normalize_programmes(
+        programmes: Iterable[Programme], *, default_duration: timedelta, stats: ParseStats
+    ) -&gt; tuple[Programme, ...]:
+        """
+        Return the programmes sorted by (start, channel_id, title), without exact duplicates and with a valid stop.
+    
+        Exact duplicates (same channel_id, start instant and title) collapse to the first in input order and are counted
+        in `stats.duplicates` (EVT-01). The parser passes a missing or unparsable stop as `stop == start`. Any stop not
+        after the start is inferred from the next strictly later start on the same channel, else
+        `start + default_duration`, and counted in `stats.inferred_stops` (D-12).
+        """
+        seen: set[tuple[str, datetime, str]] = set()
+        by_channel: dict[str, list[Programme]] = {}
+        for programme in programmes:
+&gt;           key = (programme.channel_id, programme.start.astimezone(UTC), programme.title)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           OverflowError: date value out of range
+
+custom_components/xmltv_calendar/xmltv/normalize.py:53: OverflowError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[year-9999-with-stop]" time="0.005"><failure message="OverflowError: date value out of range">bad = 'start="99991231233000 -0100" stop="99991231235959 -0100"'
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+            pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+            pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+            pytest.param('start="00010101000000 +0100"', id="year-0001"),
+            pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+            pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+        ],
+    )
+    def test_malformed_timestamp_skips_only_that_programme(bad: str) -&gt; None:
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" {bad}&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:155: in parse
+    normalized = normalize_programmes(programmes, default_duration=default_duration, stats=stats)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+programmes = [Programme(channel_id='a.de', start=datetime.datetime(2026, 10, 13, 12, 0, tzinfo=datetime.timezone.utc), stop=datetim...me.timedelta(days=-1, seconds=82800))), titles=('Bad',), sub_titles=(), description=None, categories=(), episode=None)]
+
+    def normalize_programmes(
+        programmes: Iterable[Programme], *, default_duration: timedelta, stats: ParseStats
+    ) -&gt; tuple[Programme, ...]:
+        """
+        Return the programmes sorted by (start, channel_id, title), without exact duplicates and with a valid stop.
+    
+        Exact duplicates (same channel_id, start instant and title) collapse to the first in input order and are counted
+        in `stats.duplicates` (EVT-01). The parser passes a missing or unparsable stop as `stop == start`. Any stop not
+        after the start is inferred from the next strictly later start on the same channel, else
+        `start + default_duration`, and counted in `stats.inferred_stops` (D-12).
+        """
+        seen: set[tuple[str, datetime, str]] = set()
+        by_channel: dict[str, list[Programme]] = {}
+        for programme in programmes:
+&gt;           key = (programme.channel_id, programme.start.astimezone(UTC), programme.title)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           OverflowError: date value out of range
+
+custom_components/xmltv_calendar/xmltv/normalize.py:53: OverflowError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[year-9999-without-stop]" time="0.005"><failure message="OverflowError: date value out of range">bad = 'start="99991231233000 +0000"'
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+            pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+            pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+            pytest.param('start="00010101000000 +0100"', id="year-0001"),
+            pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+            pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+        ],
+    )
+    def test_malformed_timestamp_skips_only_that_programme(bad: str) -&gt; None:
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" {bad}&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:155: in parse
+    normalized = normalize_programmes(programmes, default_duration=default_duration, stats=stats)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/normalize.py:62: in normalize_programmes
+    result.extend(_infer_stops(group, default_duration, stats))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+group = [Programme(channel_id='a.de', start=datetime.datetime(2026, 10, 13, 12, 0, tzinfo=datetime.timezone.utc), stop=datetim... 23, 30, tzinfo=datetime.timezone.utc), titles=('Bad',), sub_titles=(), description=None, categories=(), episode=None)]
+default_duration = datetime.timedelta(seconds=3600)
+stats = ParseStats(programmes=0, channels=0, skipped_malformed=0, duplicates=0, inferred_stops=1, dropped_past=0)
+
+    def _infer_stops(group: list[Programme], default_duration: timedelta, stats: ParseStats) -&gt; list[Programme]:
+        """
+        Give every programme of one channel (sorted by start) a stop later than its start (D-12).
+    
+        A stop that is missing (passed as `stop == start`) or not after the start becomes the next strictly later start
+        on the channel, else `start + default_duration`.
+        """
+        result: list[Programme] = []
+        block_start: datetime | None = None
+        following: datetime | None = None  # start of the next strictly later block
+        for programme in reversed(group):
+            if programme.start != block_start:
+                following, block_start = block_start, programme.start
+            if programme.stop &lt;= programme.start:
+                stats.inferred_stops += 1
+&gt;               programme = replace(programme, stop=following or programme.start + default_duration)  # noqa: PLW2901
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               OverflowError: date value out of range
+
+custom_components/xmltv_calendar/xmltv/normalize.py:33: OverflowError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_unparsable_stop_offset_infers_stop" time="0.007"><failure message="custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 341 bytes">def test_unparsable_stop_offset_infers_stop() -&gt; None:
+&gt;       data = _parse(
+            _good_plus(
+                '&lt;programme channel="a.de" start="20261013140000 +0000" stop="20261013150000 +2500"&gt;'
+                "&lt;title&gt;Broken stop&lt;/title&gt;&lt;/programme&gt;"
+            )
+        )
+
+tests/xmltv/test_parser.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fileobj = &lt;_io.BytesIO object at 0x7f3ec54162f0&gt;
+
+    def parse(
+        fileobj: BinaryIO,
+        *,
+        keep_after: datetime | None = None,
+        yield_every: int = 250,
+        default_duration: timedelta = timedelta(minutes=60),
+        max_bytes: int = MAX_DECOMPRESSED_BYTES,
+    ) -&gt; EpgData:
+        """
+        Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
+    
+        Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
+        `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
+        Raises `FeedTooLargeError` past `max_bytes` of XML and `FeedError` for anything else that cannot be read.
+        """
+        stats = ParseStats()
+        # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
+        head = fileobj.read(2)
+        fileobj.seek(0)
+        reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
+        try:
+            channels, programmes = _collect(reader, stats, yield_every)
+        except ET.ParseError as err:
+            line, column = err.position
+            msg = f"invalid XML at line {line}, column {column}"
+            raise FeedError(msg) from None
+        except StopIteration:
+            msg = "empty document"
+            raise FeedError(msg) from None
+        except _STREAM_ERRORS as err:
+            msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
+&gt;           raise FeedError(msg) from None
+E           custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 341 bytes
+
+custom_components/xmltv_calendar/xmltv/parser.py:148: FeedError</failure></testcase></testsuite></testsuites>

@@ -2,6 +2,7 @@
 
 import gzip
 import io
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -33,6 +34,16 @@ def _feed(programmes: int) -> bytes:
     )
     parts.append("</tv>")
     return "\n".join(parts).encode()
+
+
+def _good_plus(bad: str) -> bytes:
+    """Return a feed with a valid "Good" programme on a.de followed by the given programme element."""
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<tv><channel id="a.de"><display-name>A</display-name></channel>'
+        '<programme channel="a.de" start="20261013120000 +0000" stop="20261013130000 +0000"><title>Good</title>'
+        f"</programme>{bad}</tv>"
+    ).encode()
 
 
 def test_gzip_parses_like_plain() -> None:
@@ -164,3 +175,35 @@ def test_yield_every_calls_sleep(monkeypatch: pytest.MonkeyPatch, yield_every: i
 
     assert len(data.programmes) == 1000
     assert len(calls) == sleeps
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        pytest.param('start="20261013140000 +2500"', id="offset-plus-2500"),
+        pytest.param('start="20261013140000 -2500"', id="offset-minus-2500"),
+        pytest.param('start="20261013140000 +0099"', id="offset-minutes-99"),
+        pytest.param('start="00010101000000 +0100"', id="year-0001"),
+        pytest.param('start="99991231233000 -0100" stop="99991231235959 -0100"', id="year-9999-with-stop"),
+        pytest.param('start="99991231233000 +0000"', id="year-9999-without-stop"),
+    ],
+)
+def test_malformed_timestamp_skips_only_that_programme(bad: str) -> None:
+    data = _parse(_good_plus(f'<programme channel="a.de" {bad}><title>Bad</title></programme>'))
+
+    assert [p.title for p in data.programmes] == ["Good"]
+    assert data.stats.skipped_malformed == 1
+
+
+def test_unparsable_stop_offset_infers_stop() -> None:
+    data = _parse(
+        _good_plus(
+            '<programme channel="a.de" start="20261013140000 +0000" stop="20261013150000 +2500">'
+            "<title>Broken stop</title></programme>"
+        )
+    )
+
+    assert [p.title for p in data.programmes] == ["Good", "Broken stop"]
+    assert data.programmes[1].stop == datetime(2026, 10, 13, 15, tzinfo=UTC)  # start + 60 min default (D-12)
+    assert data.stats.inferred_stops == 1
+    assert data.stats.skipped_malformed == 0
