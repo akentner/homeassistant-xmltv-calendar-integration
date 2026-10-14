@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="32" time="0.503" timestamp="2026-10-14T16:17:14.957547+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.xmltv.test_parser" name="test_gzip_parses_like_plain" time="0.112" /><testcase classname="tests.xmltv.test_parser" name="test_plain_bytes_named_gz_parse" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_gzip_decompressed_cap" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_plain_input_is_capped_too" time="0.007" /><testcase classname="tests.xmltv.test_parser" name="test_input_within_cap_parses" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_truncated_gzip_raises_feed_error" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_corrupt_gzip_raises_feed_error" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[empty]" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[not-xml]" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_broken_input_raises_feed_error[truncated-xml]" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[unknown-encoding]" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[undefined-entity]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[truncated]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_error_message_has_no_feed_content[truncated-gzip]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_display_name_fallback" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_programme_only_channel_is_listed" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_skips_malformed_programmes" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_umlaut_title_preserved" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_latin1_declared_encoding" time="0.006" /><testcase classname="tests.xmltv.test_parser" name="test_yield_every_calls_sleep[250-4]" time="0.026" /><testcase classname="tests.xmltv.test_parser" name="test_yield_every_calls_sleep[0-0]" time="0.023" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[offset-plus-2500]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[offset-minus-2500]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[offset-minutes-99]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[year-0001]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[year-9999-with-stop]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_malformed_timestamp_skips_only_that_programme[year-9999-without-stop]" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_unparsable_stop_offset_infers_stop" time="0.005" /><testcase classname="tests.xmltv.test_parser" name="test_conversion_error_skips_only_that_programme[ValueError]" time="0.005"><failure message="custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 305 bytes">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fec9bd7a740&gt;
+error = &lt;class 'ValueError'&gt;
+
+    @pytest.mark.parametrize("error", [ValueError, OverflowError])
+    def test_conversion_error_skips_only_that_programme(monkeypatch: pytest.MonkeyPatch, error: type[Exception]) -&gt; None:
+        real = parser.parse_xmltv_time
+    
+        def flaky(value: str | None):
+            if value == BAD_START:
+                msg = "boom"
+                raise error(msg)
+            return real(value)
+    
+        monkeypatch.setattr(parser, "parse_xmltv_time", flaky)
+    
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" start="{BAD_START}"&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:227: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fileobj = &lt;_io.BytesIO object at 0x7fec989e8a90&gt;
+
+    def parse(
+        fileobj: BinaryIO,
+        *,
+        keep_after: datetime | None = None,
+        yield_every: int = 250,
+        default_duration: timedelta = timedelta(minutes=60),
+        max_bytes: int = MAX_DECOMPRESSED_BYTES,
+    ) -&gt; EpgData:
+        """
+        Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
+    
+        Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
+        `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
+        Raises `FeedTooLargeError` past `max_bytes` of XML and `FeedError` for anything else that cannot be read.
+        """
+        stats = ParseStats()
+        # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
+        head = fileobj.read(2)
+        fileobj.seek(0)
+        reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
+        try:
+            channels, programmes = _collect(reader, stats, yield_every)
+        except ET.ParseError as err:
+            line, column = err.position
+            msg = f"invalid XML at line {line}, column {column}"
+            raise FeedError(msg) from None
+        except StopIteration:
+            msg = "empty document"
+            raise FeedError(msg) from None
+        except _STREAM_ERRORS as err:
+            msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
+&gt;           raise FeedError(msg) from None
+E           custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: ValueError after 305 bytes
+
+custom_components/xmltv_calendar/xmltv/parser.py:148: FeedError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_conversion_error_skips_only_that_programme[OverflowError]" time="0.006"><failure message="OverflowError: boom">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fec9bb81240&gt;
+error = &lt;class 'OverflowError'&gt;
+
+    @pytest.mark.parametrize("error", [ValueError, OverflowError])
+    def test_conversion_error_skips_only_that_programme(monkeypatch: pytest.MonkeyPatch, error: type[Exception]) -&gt; None:
+        real = parser.parse_xmltv_time
+    
+        def flaky(value: str | None):
+            if value == BAD_START:
+                msg = "boom"
+                raise error(msg)
+            return real(value)
+    
+        monkeypatch.setattr(parser, "parse_xmltv_time", flaky)
+    
+&gt;       data = _parse(_good_plus(f'&lt;programme channel="a.de" start="{BAD_START}"&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_parser.py:227: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:138: in parse
+    channels, programmes = _collect(reader, stats, yield_every)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:102: in _collect
+    if (programme := _programme(elem)) is None:
+                     ^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/parser.py:72: in _programme
+    start = parse_xmltv_time(elem.get("start"))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = '20261013140000 +0000'
+
+    def flaky(value: str | None):
+        if value == BAD_START:
+            msg = "boom"
+&gt;           raise error(msg)
+E           OverflowError: boom
+
+tests/xmltv/test_parser.py:222: OverflowError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_programming_error_is_not_reported_as_feed_error" time="0.009"><failure message="custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: KeyError after 305 bytes">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fec9bb81cc0&gt;
+
+    def test_programming_error_is_not_reported_as_feed_error(monkeypatch: pytest.MonkeyPatch) -&gt; None:
+        def broken(elem):
+            msg = "bug"
+            raise KeyError(msg)
+    
+        monkeypatch.setattr(parser, "_programme", broken)
+    
+        with pytest.raises(KeyError):
+&gt;           _parse(_good_plus(f'&lt;programme channel="a.de" start="{BAD_START}"&gt;&lt;title&gt;Bad&lt;/title&gt;&lt;/programme&gt;'))
+
+tests/xmltv/test_parser.py:241: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_parser.py:22: in _parse
+    return parse(io.BytesIO(payload), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fileobj = &lt;_io.BytesIO object at 0x7fec98a4b010&gt;
+
+    def parse(
+        fileobj: BinaryIO,
+        *,
+        keep_after: datetime | None = None,
+        yield_every: int = 250,
+        default_duration: timedelta = timedelta(minutes=60),
+        max_bytes: int = MAX_DECOMPRESSED_BYTES,
+    ) -&gt; EpgData:
+        """
+        Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
+    
+        Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
+        `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
+        Raises `FeedTooLargeError` past `max_bytes` of XML and `FeedError` for anything else that cannot be read.
+        """
+        stats = ParseStats()
+        # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
+        head = fileobj.read(2)
+        fileobj.seek(0)
+        reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
+        try:
+            channels, programmes = _collect(reader, stats, yield_every)
+        except ET.ParseError as err:
+            line, column = err.position
+            msg = f"invalid XML at line {line}, column {column}"
+            raise FeedError(msg) from None
+        except StopIteration:
+            msg = "empty document"
+            raise FeedError(msg) from None
+        except _STREAM_ERRORS as err:
+            msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
+&gt;           raise FeedError(msg) from None
+E           custom_components.xmltv_calendar.xmltv.parser.FeedError: unreadable feed: KeyError after 305 bytes
+
+custom_components/xmltv_calendar/xmltv/parser.py:148: FeedError</failure></testcase><testcase classname="tests.xmltv.test_parser" name="test_multibyte_encoding_declaration_raises_feed_error" time="0.012" /></testsuite></testsuites>

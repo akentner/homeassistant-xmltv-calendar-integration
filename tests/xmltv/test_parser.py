@@ -207,3 +207,42 @@ def test_unparsable_stop_offset_infers_stop() -> None:
     assert data.programmes[1].stop == datetime(2026, 10, 13, 15, tzinfo=UTC)  # start + 60 min default (D-12)
     assert data.stats.inferred_stops == 1
     assert data.stats.skipped_malformed == 0
+
+
+BAD_START = "20261013140000 +0000"
+
+
+@pytest.mark.parametrize("error", [ValueError, OverflowError])
+def test_conversion_error_skips_only_that_programme(monkeypatch: pytest.MonkeyPatch, error: type[Exception]) -> None:
+    real = parser.parse_xmltv_time
+
+    def flaky(value: str | None):
+        if value == BAD_START:
+            msg = "boom"
+            raise error(msg)
+        return real(value)
+
+    monkeypatch.setattr(parser, "parse_xmltv_time", flaky)
+
+    data = _parse(_good_plus(f'<programme channel="a.de" start="{BAD_START}"><title>Bad</title></programme>'))
+
+    assert [p.title for p in data.programmes] == ["Good"]
+    assert data.stats.skipped_malformed == 1
+
+
+def test_programming_error_is_not_reported_as_feed_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(elem):
+        msg = "bug"
+        raise KeyError(msg)
+
+    monkeypatch.setattr(parser, "_programme", broken)
+
+    with pytest.raises(KeyError):
+        _parse(_good_plus(f'<programme channel="a.de" start="{BAD_START}"><title>Bad</title></programme>'))
+
+
+def test_multibyte_encoding_declaration_raises_feed_error() -> None:
+    with pytest.raises(FeedError) as excinfo:
+        _parse(b'<?xml version="1.0" encoding="Shift_JIS"?><tv></tv>')
+
+    assert excinfo.value.__cause__ is None
