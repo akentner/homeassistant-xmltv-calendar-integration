@@ -12,6 +12,12 @@ _TS_RE = re.compile(
 # Alpha zones seen in real feeds, as minutes east of UTC; anything else is rejected
 _ALPHA = {"Z": 0, "UTC": 0, "GMT": 0, "BST": 60, "CET": 60, "CEST": 120, "EET": 120, "EEST": 180}
 _TZ_CACHE: dict[int, timezone] = {0: UTC}
+# Real-world offsets lie within -12..+14 h; anything beyond 18 h is broken data (CR-01)
+_MAX_OFFSET_MINUTES = 18 * 60
+# Year window keeping start + default_duration (D-12), astimezone(UTC) in normalize and
+# dt_util.as_local in the calendar inside datetime's range (CR-01)
+_MIN_YEAR = 1900
+_MAX_YEAR = 2200
 
 
 def _tz(minutes: int) -> timezone:
@@ -22,12 +28,21 @@ def _tz(minutes: int) -> timezone:
 
 
 def parse_xmltv_time(value: str | None) -> datetime | None:
-    """Return an aware datetime, or None if the value is not a valid XMLTV timestamp."""
+    """
+    Return an aware datetime, or None if the value is not a valid XMLTV timestamp.
+
+    None is returned for unmatched input, unknown alpha zones, offset minutes >= 60, offsets beyond 18 hours,
+    written years outside 1900..2200, and any invalid date or time field. This function never raises.
+    """
     if not value or (match := _TS_RE.match(value)) is None:
         return None
     year, month, day, hour, minute, second, sign, off_h, off_m, alpha = match.groups()
+    if not _MIN_YEAR <= int(year) <= _MAX_YEAR:
+        return None
     if sign:
         offset = int(off_h) * 60 + int(off_m)
+        if int(off_m) >= 60 or offset > _MAX_OFFSET_MINUTES:  # noqa: PLR2004
+            return None
         tz = _tz(-offset if sign == "-" else offset)
     elif alpha:
         if alpha not in _ALPHA:
@@ -37,5 +52,5 @@ def parse_xmltv_time(value: str | None) -> datetime | None:
         tz = UTC  # D-14: no offset means UTC
     try:
         return datetime(int(year), int(month), int(day), int(hour or 0), int(minute or 0), int(second or 0), tzinfo=tz)
-    except ValueError:
+    except ValueError, OverflowError:
         return None
