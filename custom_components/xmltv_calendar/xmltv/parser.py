@@ -6,16 +6,22 @@ import time
 import xml.etree.ElementTree as ET
 import zlib
 from datetime import datetime, timedelta
-from typing import BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
 
 from .model import Channel, EpgData, ParseStats, Programme
 from .normalize import normalize_programmes
 from .timeparse import parse_xmltv_time
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 GZIP_MAGIC = b"\x1f\x8b"
 MAX_DECOMPRESSED_BYTES = 1 << 30  # 1 GiB of (decompressed) XML, gzip-bomb guard (SRC-09)
 
-# Read and decode failures of a hostile or broken feed. Their text may quote feed content, so it is never kept.
+# Read and decode failures of a hostile or broken feed, translated only around iterparse reads in `_read_events`
+# (WR-06). EOFError, BadGzipFile and zlib.error come from truncated or corrupt gzip; Expat raises LookupError for an
+# unknown declared encoding and ValueError for multi-byte encoding declarations and decode errors. Their text may
+# quote feed content, so it is never kept.
 _STREAM_ERRORS = (EOFError, gzip.BadGzipFile, zlib.error, LookupError, ValueError)
 
 
@@ -87,19 +93,41 @@ def _programme(elem: ET.Element) -> Programme | None:
     )
 
 
+def _read_events(reader: _CappedReader) -> Iterator[tuple[str, ET.Element]]:
+    """Yield iterparse events, turning read and decode failures (and only those) into content-free `FeedError`."""
+    # Stdlib ElementTree never resolves external entities or DTDs; Expat guards entity amplification
+    events = ET.iterparse(reader, events=("start", "end"))  # noqa: S314
+    while True:
+        try:
+            event, elem = next(events)
+        except StopIteration:
+            return
+        except ET.ParseError as err:
+            line, column = err.position
+            msg = f"invalid XML at line {line}, column {column}"
+            raise FeedError(msg) from None
+        except _STREAM_ERRORS as err:
+            msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
+            raise FeedError(msg) from None
+        yield event, elem
+
+
 def _collect(source: _CappedReader, stats: ParseStats, yield_every: int) -> tuple[dict[str, Channel], list[Programme]]:
     """Stream channels and programmes out of the document, skipping and counting malformed programmes."""
     channels: dict[str, Channel] = {}
     programmes: list[Programme] = []
     seen = 0
-    # Stdlib ElementTree never resolves external entities or DTDs; Expat guards entity amplification
-    events = ET.iterparse(source, events=("start", "end"))  # noqa: S314
+    events = _read_events(source)
     _, root = next(events)
     for event, elem in events:
         if event != "end":
             continue
         if elem.tag == "programme":
-            if (programme := _programme(elem)) is None:
+            try:
+                programme = _programme(elem)
+            except ValueError, OverflowError:
+                programme = None  # CR-01: one unconvertible programme is skipped and counted, never fatal
+            if programme is None:
                 stats.skipped_malformed += 1
             else:
                 programmes.append(programme)
@@ -125,9 +153,10 @@ def parse(
     """
     Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
 
-    Programmes without channel, parsable start or title are skipped and counted. Programmes whose stop is before
-    `keep_after` are dropped. Every `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL.
-    Raises `FeedTooLargeError` past `max_bytes` of XML and `FeedError` for anything else that cannot be read.
+    Programmes without channel, parsable start or title, and programmes whose conversion raises ValueError or
+    OverflowError, are skipped and counted. Programmes whose stop is before `keep_after` are dropped. Every
+    `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL. Raises `FeedTooLargeError` past
+    `max_bytes` of XML and `FeedError` only for read and decode failures; other exceptions propagate unchanged.
     """
     stats = ParseStats()
     # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
@@ -136,15 +165,8 @@ def parse(
     reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
     try:
         channels, programmes = _collect(reader, stats, yield_every)
-    except ET.ParseError as err:
-        line, column = err.position
-        msg = f"invalid XML at line {line}, column {column}"
-        raise FeedError(msg) from None
     except StopIteration:
         msg = "empty document"
-        raise FeedError(msg) from None
-    except _STREAM_ERRORS as err:
-        msg = f"unreadable feed: {type(err).__name__} after {reader.total} bytes"
         raise FeedError(msg) from None
 
     # Programmes may reference channels without a <channel> element; list them under their ID (EVT-02)
