@@ -3,10 +3,6 @@ phase: 01
 review: 01-REVIEW.md
 titles: json
 findings:
-  - id: CR-01
-    severity: critical
-    disposition: open
-    title: "One malformed programme timestamp kills the whole feed (and far-future dates crash event building)"
   - id: WR-01
     severity: warning
     disposition: open
@@ -27,10 +23,14 @@ findings:
     severity: warning
     disposition: open
     title: "The README describes filter semantics the code does not implement"
-  - id: WR-06
+  - id: WR-07
     severity: warning
     disposition: open
-    title: "`_STREAM_ERRORS` catches `ValueError` and `LookupError`, which turns programming bugs into \"invalid feed\""
+    title: "The year window does not bound duration; one programme with an absurd stop takes over the calendar state"
+  - id: WR-08
+    severity: warning
+    disposition: open
+    title: "Skipped malformed programmes are never reported, so the CR-01 fix makes broken feeds fail silently"
   - id: IN-01
     severity: info
     disposition: open
@@ -71,22 +71,46 @@ findings:
     severity: info
     disposition: open
     title: "`monkeypatch.setattr(..., raising=False)` hides a renamed constant"
-open: 17
-total: 17
-recorded: 2026-10-14T11:09:26.455Z
+  - id: IN-11
+    severity: info
+    disposition: open
+    title: "The encoding-error test cannot detect a lost `from None`, and the original error is still attached"
+  - id: IN-12
+    severity: info
+    disposition: open
+    title: "The \"empty document\" branch in `parse` is dead code"
+  - id: IN-13
+    severity: info
+    disposition: open
+    title: "`event` returns None when the current match cannot be built, hiding later valid matches"
+  - id: IN-14
+    severity: info
+    disposition: open
+    title: "`async_get_events` raises `OverflowError` for queries starting near `datetime.min`"
+  - id: CR-01
+    severity: critical
+    disposition: open
+    title: "One malformed programme timestamp kills the whole feed (and far-future dates crash event building)"
+  - id: WR-06
+    severity: warning
+    disposition: open
+    title: "`_STREAM_ERRORS` catches `ValueError` and `LookupError`, which turns programming bugs into \"invalid feed\""
+open: 23
+total: 23
+recorded: 2026-10-14T14:27:50.530Z
 ---
 
 # Phase 01: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| CR-01 | critical | open | - |
 | WR-01 | warning | open | - |
 | WR-02 | warning | open | - |
 | WR-03 | warning | open | - |
 | WR-04 | warning | open | - |
 | WR-05 | warning | open | - |
-| WR-06 | warning | open | - |
+| WR-07 | warning | open | - |
+| WR-08 | warning | open | - |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
@@ -97,6 +121,12 @@ recorded: 2026-10-14T11:09:26.455Z
 | IN-08 | info | open | - |
 | IN-09 | info | open | - |
 | IN-10 | info | open | - |
+| IN-11 | info | open | - |
+| IN-12 | info | open | - |
+| IN-13 | info | open | - |
+| IN-14 | info | open | - |
+| CR-01 | critical | open | - (not in the current review) |
+| WR-06 | warning | open | - (not in the current review) |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
