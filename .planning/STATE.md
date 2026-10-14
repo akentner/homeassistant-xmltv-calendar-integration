@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
 status: executing
-stopped_at: Completed 01-08-PLAN.md
-last_updated: "2026-10-13T23:58:05.227Z"
+stopped_at: Completed 01-09-PLAN.md
+last_updated: "2026-10-14T00:21:08.978Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: 93bb6fa7a21859deedb6e4a637d64ce277069f2d
+state_head: 9ba70fabca0511daaca33c70c5e2aed49d800de1
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 01 (First Filtered Calendar) — EXECUTING
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 01 execution started
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P06 | 10 min | 3 tasks | 13 files |
 | Phase 01 P07 | 6 min | 3 tasks | 6 files |
 | Phase 01 P08 | 4 min | 3 tasks | 4 files |
+| Phase 01 P09 | 5 min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-08: pattern fields stored as raw text; FilterSpec strips and skips blank lines at filter time
 - [Phase 01]: 01-08: several invalid pattern fields each get invalid_regex; placeholders show the first bad line (channel_regex, include, exclude order)
 - [Phase 01]: 01-08: the 01-01 diffing listener already met FLT-01; tests/test_init.py is its regression suite, __init__.py unchanged
+- [Phase 01]: 01-09 Task 2: none. No real German feed excerpt committed in Phase 1; D-15 real-feed excerpt and scripts/trim_feed.py deferred
+- [Phase 01]: 01-09: ha-dev published on host port 18123 via a transient compose override (ha-a holds 8123); compose.yml keeps 8123:8123
+- [Phase 01]: 01-09: test_real_feed.py holds the full checks behind a module skip; XMLTV_REAL_FEED runs them on any local feed
 
 ### Pending Todos
 
@@ -111,7 +115,7 @@ None yet.
 - `SelectSelector` with thousands of channels is unverified (Phase 1 research flag)
 - `iot_class` (`cloud_polling` vs `local_polling`) still open; decide in Phase 1
 - Research suggested deferring FLT-09, EVT-07 and EVT-08 to v2, but REQUIREMENTS.md keeps them in v1 (mapped to Phases 2 and 4)
-- Event-loop gap under the 60 MB benchmark is 86-164 ms on the dev box (limit 250 ms): CI benchmark job may be flaky on slower runners; check on ha-host in 01-09
+- Event-loop gap under the 60 MB benchmark is 86-164 ms on the dev box (limit 250 ms): CI benchmark job may be flaky on slower runners; 01-09 ran on the dev-laptop ha-dev only (60 MB parse 2.8 s in-container), ha-host still unmeasured (RESEARCH A2)
 
 ## Deferred Items
 
@@ -119,10 +123,10 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
-| *(none)* | | | | |
+| fixture | D-15 real German feed excerpt (`tests/fixtures/real_de_excerpt.xml`) plus `scripts/trim_feed.py`; `tests/xmltv/test_real_feed.py` skips until it exists | deferred (user decision "none", 01-09 Task 2: licensing risk in a public repo) | 2026-10-14 (01-09) | v1 |
 
 ## Session Continuity
 
-Last session: 2026-10-13T23:57:59.133Z
-Stopped at: Completed 01-08-PLAN.md
+Last session: 2026-10-14T00:21:08.930Z
+Stopped at: Completed 01-09-PLAN.md
 Resume file: None
