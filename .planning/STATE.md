@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: first-filtered-calendar
-status: executing
-stopped_at: Completed 01-10-PLAN.md
-last_updated: "2026-10-14T11:43:15.550Z"
+status: verifying
+stopped_at: Completed 01-11-PLAN.md
+last_updated: "2026-10-14T14:21:31.699Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: cfd43aa5ac8d4ef5172f3046b994d6a6a5d81f34
+state_head: 05fe9fe301ff13db011253b0920cee2f7262dfe2
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 
 Phase: 01 (first-filtered-calendar) — READY TO EXECUTE
 Plan: 10 of 10
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-13 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P08 | 4 min | 3 tasks | 4 files |
 | Phase 01 P09 | 5 min | 3 tasks | 1 files |
 | Phase 01 P10 | 5 min | 3 tasks | 0 files |
+| Phase 01 P11 | 6min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-10 Task 2: before the first push, at the user's request, host names were rewritten across the full local history of main (git filter-repo --replace-text: dev laptop -> dev-host, HA host -> ha-host, 78 hits). All SHAs changed (HEAD dcebd6f -> ffd5363); SHAs cited in 01-01..01-09 SUMMARYs are pre-rewrite (find commits by subject); local backup/pre-anonymize keeps the old history, unpushed. New text uses ha-host / dev-host only
 - [Phase 01]: 01-10 Task 3: the initial push of main emitted no push event, so CI and Validate for ffd5363 were started via workflow_dispatch (both success: runs 38553243429, 38553246496); the next push is the first push-triggered run
 - [Phase 01]: 01-10: Renovate is active on the public repo (PR #1 home-assistant/actions digest, PR #2 setup-uv v10.3.0, both green); merging is left to the user
+- [Phase 01]: 01-11: parse_xmltv_time accepts offsets up to +-18:00 and written years 1900..2200; everything else returns None (CR-01)
+- [Phase 01]: 01-11 (WR-06): _STREAM_ERRORS keeps LookupError/ValueError (Expat raises them at read time); scope narrowed to iterparse next() in _read_events
+- [Phase 01]: 01-11: multi-exception clauses use PEP 758 unparenthesized form because ruff format 0.17 (py314) rewrites the parenthesized form
 
 ### Pending Todos
 
@@ -131,6 +135,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-14T11:01:11.802Z
-Stopped at: Completed 01-10-PLAN.md
+Last session: 2026-10-14T14:21:31.644Z
+Stopped at: Completed 01-11-PLAN.md
 Resume file: None
