@@ -47,12 +47,13 @@ def _to_event(programme: Programme, channels: Mapping[str, Channel]) -> Calendar
 
 def build_events(programmes: Sequence[Programme], channels: Mapping[str, Channel]) -> list[CalendarEvent]:
     """Build calendar events for one requested slice of matches; safe to run in the executor."""
-    # A match that fails CalendarEvent validation is skipped, so it cannot break a read or trigger poll (T-01-09)
+    # A match whose CalendarEvent cannot be built, whether it fails validation or is out of datetime range after the
+    # local-time conversion, is skipped, so it cannot break a read or trigger poll (T-01-09, CR-01)
     events: list[CalendarEvent] = []
     for programme in programmes:
         try:
             events.append(_to_event(programme, channels))
-        except HomeAssistantError:
+        except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s at %s", programme.channel_id, programme.start)
     return events
 
@@ -138,7 +139,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             return None
         try:
             return _to_event(programme, self._epg.channels if self._epg is not None else {})
-        except HomeAssistantError:
+        except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s", programme.channel_id)
             return None
 
