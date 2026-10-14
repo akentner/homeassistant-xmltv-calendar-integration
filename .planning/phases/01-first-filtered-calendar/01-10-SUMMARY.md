@@ -215,3 +215,10 @@ None beyond the missing push event above.
 ---
 *Phase: 01-first-filtered-calendar*
 *Completed: 2026-10-14*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/01-first-filtered-calendar/01-10-SUMMARY.md
+- FOUND: ffd5363 (plan_head_before = plan_head_after; 0 code commits in this plan)
+- FOUND: CI run 38553243429 success, Validate run 38553246496 success for ffd5363
+- DST-01 stays Pending in REQUIREMENTS.md until the HACS UAT check passes; DST-02 marked complete

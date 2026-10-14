@@ -64,7 +64,7 @@
 ### Distribution
 
 - [ ] **DST-01**: Integration installs via HACS (custom repository) with valid `hacs.json` / `manifest.json` and brand icon
-- [ ] **DST-02**: CI runs hassfest, HACS validation, Ruff and pytest on every push
+- [x] **DST-02**: CI runs hassfest, HACS validation, Ruff and pytest on every push
 - [ ] **DST-03**: Tagged releases are published with version matching `manifest.json`
 - [ ] **DST-04**: README documents setup, filter examples (regex), automation examples and calendar limitations (15-min trigger window, overlapping events)
 
@@ -143,7 +143,7 @@
 | CFG-03 | Phase 3 | Pending |
 | CFG-04 | Phase 4 | Pending |
 | DST-01 | Phase 1 | Pending |
-| DST-02 | Phase 1 | Pending |
+| DST-02 | Phase 1 | Complete |
 | DST-03 | Phase 4 | Pending |
 | DST-04 | Phase 4 | Pending |
 

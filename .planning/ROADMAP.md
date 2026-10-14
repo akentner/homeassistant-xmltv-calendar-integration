@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A calendar trigger automation (start and end, with offset) fires for a matching programme. `calendar.get_events` returns all events overlapping the queried range. The calendar is `on` while a match airs, and its attributes show the current/next match.
   5. A 50+ MB fixture feed refreshes without blocking the HA event loop and stays within a bounded memory budget (benchmark). Every push runs hassfest, HACS validation, Ruff and pytest green, and HACS accepts the repo as a custom repository (valid `hacs.json`, `manifest.json`, brand icon).
 
-**Plans**: 9/10 plans executed
+**Plans**: 10/10 plans executed
 
 Plans:
 **Wave 1**
@@ -55,7 +55,7 @@ Plans:
 - [x] 01-09-PLAN.md — ha-dev deployment, real German feed excerpt (decision gate), UAT walkthrough (wave 5)
 
 **Wave 6** *(blocked on Wave 5 completion)*
-- [ ] 01-10-PLAN.md — Publish to GitHub (user push), CI/Validate green, HACS custom-repo check (wave 6)
+- [x] 01-10-PLAN.md — Publish to GitHub (user push), CI/Validate green, HACS custom-repo check (wave 6)
 
 **UI hint**: yes
 **Notes**: Build the pure `xmltv/` library (parser, models, filter, render; no `homeassistant` imports) test-first, before the HA layer. The subentry flow reads channels from the loaded coordinator (abort `source_not_loaded` otherwise) and must handle subentries added before the platform has loaded. Register exactly one update listener on the source entry; reload-on-change is acceptable here, and Phase 2 makes it diffing. Set `unique_id` from the normalized source now so it never needs a migration. Decide `iot_class`. Research flags: `cache_path`/coordinator APIs (light check), `SelectSelector` with thousands of channels (may need a fallback).
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First Filtered Calendar | 9/10 | In Progress | - |
+| 1. First Filtered Calendar | 10/10 | In Progress | - |
 | 2. Precise Filters & Preview | 0/TBD | Not started | - |
 | 3. Resilient Sources | 0/TBD | Not started | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |

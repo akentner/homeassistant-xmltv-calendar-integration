@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Filtered Calendar
-status: executing
-stopped_at: Completed 01-09-PLAN.md
-last_updated: "2026-10-14T00:21:08.978Z"
+status: verifying
+stopped_at: Completed 01-10-PLAN.md
+last_updated: "2026-10-14T11:01:11.853Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 01 execution started
-state_head: 9ba70fabca0511daaca33c70c5e2aed49d800de1
+state_head: 5dcdf247b75e9f7f5375fd05ecdd2716d99abb41
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 
 Phase: 01 (First Filtered Calendar) — EXECUTING
 Plan: 10 of 10
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-13 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P07 | 6 min | 3 tasks | 6 files |
 | Phase 01 P08 | 4 min | 3 tasks | 4 files |
 | Phase 01 P09 | 5 min | 3 tasks | 1 files |
+| Phase 01 P10 | 5 min | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-09 Task 2: none. No real German feed excerpt committed in Phase 1; D-15 real-feed excerpt and scripts/trim_feed.py deferred
 - [Phase 01]: 01-09: ha-dev published on host port 18123 via a transient compose override (ha-a holds 8123); compose.yml keeps 8123:8123
 - [Phase 01]: 01-09: test_real_feed.py holds the full checks behind a module skip; XMLTV_REAL_FEED runs them on any local feed
+- [Phase 01]: 01-10 Task 2: before the first push, at the user's request, host names were rewritten across the full local history of main (git filter-repo --replace-text: dev laptop -> dev-host, HA host -> ha-host, 78 hits). All SHAs changed (HEAD dcebd6f -> ffd5363); SHAs cited in 01-01..01-09 SUMMARYs are pre-rewrite (find commits by subject); local backup/pre-anonymize keeps the old history, unpushed. New text uses ha-host / dev-host only
+- [Phase 01]: 01-10 Task 3: the initial push of main emitted no push event, so CI and Validate for ffd5363 were started via workflow_dispatch (both success: runs 38553243429, 38553246496); the next push is the first push-triggered run
+- [Phase 01]: 01-10: Renovate is active on the public repo (PR #1 home-assistant/actions digest, PR #2 setup-uv v10.3.0, both green); merging is left to the user
 
 ### Pending Todos
 
@@ -127,6 +131,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-14T00:21:08.930Z
-Stopped at: Completed 01-09-PLAN.md
+Last session: 2026-10-14T11:01:11.802Z
+Stopped at: Completed 01-10-PLAN.md
 Resume file: None
