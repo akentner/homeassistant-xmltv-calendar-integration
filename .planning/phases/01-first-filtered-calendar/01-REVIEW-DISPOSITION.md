@@ -125,8 +125,8 @@ recorded: 2026-10-14T14:27:50.530Z
 | IN-12 | info | open | - |
 | IN-13 | info | open | - |
 | IN-14 | info | open | - |
-| CR-01 | critical | open | - (not in the current review) |
-| WR-06 | warning | open | - (not in the current review) |
+| CR-01 | critical | fixed | plan 01-11 (23ea4d7, 6a4c1f3, 05fe9fe); confirmed resolved by re-review 6a98480 |
+| WR-06 | warning | fixed | plan 01-11 (6a4c1f3); confirmed resolved by re-review 6a98480 |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
