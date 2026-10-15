@@ -1,5 +1,6 @@
 """Filter engine truth table: channel AND (include empty OR any include) AND NOT any exclude (D-02 to D-08)."""
 
+import unicodedata
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -8,6 +9,18 @@ import pytest
 
 from custom_components.xmltv_calendar.xmltv.filter import FilterSpec, first_invalid_pattern
 from custom_components.xmltv_calendar.xmltv.model import Channel, EpgData, ParseStats, Programme
+from custom_components.xmltv_calendar.xmltv.settings import (
+    FIELD_CATEGORY,
+    FIELD_DESCRIPTION,
+    FIELD_SUBTITLE,
+    FIELD_TITLE,
+    KEY_CASE_SENSITIVE,
+    KEY_CHANNEL_REGEX,
+    KEY_EXCLUDE,
+    KEY_EXCLUDE_FIELDS,
+    KEY_INCLUDE,
+    KEY_INCLUDE_FIELDS,
+)
 
 BASE = datetime(2026, 10, 13, 8, tzinfo=UTC)
 # Caps from the plan (T-01-06); literals so this module still collects before the constants exist
@@ -121,3 +134,124 @@ def test_first_invalid_pattern_reports_compile_error() -> None:
 @pytest.mark.parametrize("text", ["", "a\n\nb", "\n".join(f"p{i}" for i in range(MAX_PATTERN_LINES)), "a" * 300])
 def test_first_invalid_pattern_accepts_valid_input(text: str) -> None:
     assert first_invalid_pattern(text) is None
+
+
+# Phase 2 field selection and case table (D-05, D-07, D-08)
+def _q(
+    index: int,
+    channel: str,
+    title: str,
+    *,
+    sub_titles: tuple[str, ...] = (),
+    description: str | None = None,
+    categories: tuple[str, ...] = (),
+) -> Programme:
+    start = BASE + timedelta(hours=index)
+    return Programme(
+        channel_id=channel,
+        start=start,
+        stop=start + timedelta(minutes=30),
+        titles=(title,),
+        sub_titles=sub_titles,
+        description=description,
+        categories=categories,
+        episode=None,
+    )
+
+
+Q1 = _q(1, "daserste.de", "Sportschau", categories=("Sport",))
+Q2 = _q(2, "daserste.de", "Tagesschau", categories=("News", "Sport"), description="Mit Wiederholung")
+Q3 = _q(3, "zdf.de", "Sport extra", categories=("Sportnachrichten",))
+Q4 = _q(4, "zdf.de", "Tatort", sub_titles=("Der Fall", "Teil 2"))
+Q_ALL = (Q1, Q2, Q3, Q4)
+Q_EPG = EpgData(
+    channels={cid: Channel(id=cid, display_name=cid) for cid in ("daserste.de", "zdf.de")},
+    programmes=Q_ALL,
+    stats=ParseStats(),
+)
+
+
+def _q_apply(data: dict[str, Any]) -> tuple[Programme, ...]:
+    return FilterSpec.from_mapping(data).apply(Q_EPG).matches
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        pytest.param({KEY_INCLUDE: "^Sport$", KEY_INCLUDE_FIELDS: [FIELD_CATEGORY]}, (Q1, Q2), id="category-element"),
+        pytest.param({KEY_INCLUDE: "^Sport", KEY_INCLUDE_FIELDS: [FIELD_TITLE]}, (Q1, Q3), id="title-only"),
+        pytest.param({KEY_INCLUDE: "^Teil 2$", KEY_INCLUDE_FIELDS: [FIELD_SUBTITLE]}, (Q4,), id="second-sub-title"),
+        pytest.param(
+            {
+                KEY_INCLUDE: "schau",
+                KEY_INCLUDE_FIELDS: [FIELD_TITLE],
+                KEY_EXCLUDE: "Wiederholung",
+                KEY_EXCLUDE_FIELDS: [FIELD_DESCRIPTION],
+            },
+            (Q1,),
+            id="independent-include-exclude-fields",
+        ),
+        pytest.param({KEY_INCLUDE: "wiederholung"}, (), id="default-fields-skip-description"),
+        pytest.param(
+            {KEY_INCLUDE: "wiederholung", KEY_INCLUDE_FIELDS: [FIELD_DESCRIPTION]}, (Q2,), id="description-only"
+        ),
+        pytest.param({KEY_INCLUDE: "x", KEY_INCLUDE_FIELDS: [FIELD_DESCRIPTION]}, (), id="missing-description"),
+        pytest.param({KEY_INCLUDE: ".", KEY_INCLUDE_FIELDS: [FIELD_SUBTITLE]}, (Q4,), id="missing-sub-titles"),
+        pytest.param({KEY_INCLUDE: "tagesschau", KEY_CASE_SENSITIVE: True}, (), id="case-sensitive-lowercase-misses"),
+        pytest.param({KEY_INCLUDE: "Tagesschau", KEY_CASE_SENSITIVE: True}, (Q2,), id="case-sensitive-exact"),
+        pytest.param({KEY_EXCLUDE: "tatort", KEY_CASE_SENSITIVE: True}, Q_ALL, id="case-sensitive-exclude"),
+        pytest.param({KEY_INCLUDE: "\n \n", KEY_CASE_SENSITIVE: True}, Q_ALL, id="case-sensitive-blank-lines"),
+        pytest.param(
+            {KEY_CHANNEL_REGEX: "^DASERSTE", KEY_CASE_SENSITIVE: True}, (Q1, Q2), id="channel-regex-stays-insensitive"
+        ),
+    ],
+)
+def test_field_and_case_table(data: dict[str, Any], expected: tuple[Programme, ...]) -> None:
+    assert _q_apply(data) == expected
+
+
+def test_field_selection_does_not_leak_between_specs() -> None:
+    by_title = FilterSpec.from_mapping({KEY_INCLUDE: "sport", KEY_INCLUDE_FIELDS: [FIELD_TITLE]})
+    by_category = FilterSpec.from_mapping({KEY_INCLUDE: "sport", KEY_INCLUDE_FIELDS: [FIELD_CATEGORY]})
+    sensitive = FilterSpec.from_mapping({KEY_INCLUDE: "sport", KEY_CASE_SENSITIVE: True})
+
+    assert by_title.apply(Q_EPG).matches == (Q1, Q3)
+    assert by_category.apply(Q_EPG).matches == (Q1, Q2, Q3)
+    assert sensitive.apply(Q_EPG).matches == ()
+    assert by_title.apply(Q_EPG).matches == (Q1, Q3)
+
+
+def test_filter_apply_is_deterministic() -> None:
+    spec = FilterSpec.from_mapping(
+        {KEY_INCLUDE: "sport|teil", KEY_INCLUDE_FIELDS: [FIELD_CATEGORY, FIELD_SUBTITLE], KEY_CASE_SENSITIVE: False}
+    )
+
+    first = spec.apply(Q_EPG)
+    second = spec.apply(Q_EPG)
+
+    assert first == second
+    assert first.matches == (Q1, Q2, Q3, Q4)
+
+
+# Unicode: NFC code-point equality, never case-folded (D-08, Pitfall 4)
+U1 = _q(1, "a.de", "Strasse")
+U2 = _q(2, "a.de", "Straße")
+U3 = _q(3, "a.de", "Tatort Köln")
+U4 = _q(4, "a.de", "Ab 12")
+U_EPG = EpgData(
+    channels={"a.de": Channel(id="a.de", display_name="A")}, programmes=(U1, U2, U3, U4), stats=ParseStats()
+)
+
+
+@pytest.mark.parametrize(
+    ("include", "expected"),
+    [
+        pytest.param("stra(ß|ss)e", (U1, U2), id="sharp-s-alternation"),
+        pytest.param("straße", (U2,), id="sharp-s-is-not-ss"),
+        pytest.param(unicodedata.normalize("NFD", "köln"), (U3,), id="nfd-pattern"),
+        pytest.param(unicodedata.normalize("NFD", "[äöü]ln"), (U3,), id="nfd-character-class"),
+        pytest.param(r"^\S+ \d+$", (U4,), id="escapes-keep-meaning"),
+    ],
+)
+def test_unicode_matching(include: str, expected: tuple[Programme, ...]) -> None:
+    assert FilterSpec.from_mapping({KEY_INCLUDE: include}).apply(U_EPG).matches == expected
