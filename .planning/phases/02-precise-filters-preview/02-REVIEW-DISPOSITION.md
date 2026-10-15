@@ -21,7 +21,7 @@ findings:
     title: "Several invalid fields share one error placeholder (carried forward, still open)"
   - id: WR-05
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`escape_markdown` lets line breaks through, so feed text can break the preview list (new)"
   - id: IN-01
     severity: info
@@ -67,7 +67,7 @@ findings:
     severity: critical
     disposition: fixed
     title: "`OverflowError` from `re.compile` escapes pattern validation and crashes the flow (and entity setup)"
-open: 14
+open: 13
 total: 16
 recorded: 2026-10-15T19:34:50.076Z
 ---
@@ -80,7 +80,7 @@ recorded: 2026-10-15T19:34:50.076Z
 | WR-02 | warning | open | - |
 | WR-03 | warning | open | - |
 | WR-04 | warning | open | - |
-| WR-05 | warning | open | - |
+| WR-05 | warning | fixed | quick 261015-u6j (9b87e7f) |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
