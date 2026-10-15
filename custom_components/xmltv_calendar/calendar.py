@@ -1,7 +1,6 @@
 """Calendar platform: one entity (and one device) per calendar subentry."""
 
 import logging
-import re
 from functools import partial
 from typing import TYPE_CHECKING, override
 
@@ -16,7 +15,7 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
 from .xmltv import render
-from .xmltv.filter import FilterSpec
+from .xmltv.filter import PATTERN_ERRORS, FilterSpec
 from .xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
@@ -49,10 +48,15 @@ def _to_event(programme: Programme, channels: Mapping[str, Channel], templates: 
 
 
 def _build_spec(data: Mapping[str, object], name: str) -> FilterSpec | None:
-    """Build the filter from stored subentry data; None when a hand-edited stored pattern does not compile (T-02-01)."""
+    """
+    Build the filter from stored subentry data; None when a hand-edited stored pattern does not compile (T-02-01).
+
+    That covers every way re.compile rejects a pattern: a syntax error, a repeat count that overflows, or nesting
+    deep enough to exceed the recursion limit (CR-01).
+    """
     try:
         return FilterSpec.from_mapping(data)
-    except re.error:
+    except PATTERN_ERRORS:
         _LOGGER.warning("Calendar %s: stored filter pattern is invalid", name)
         return None
 

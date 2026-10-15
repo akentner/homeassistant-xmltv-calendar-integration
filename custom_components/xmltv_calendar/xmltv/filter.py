@@ -50,6 +50,10 @@ MAX_PATTERN_LINES = 50
 
 NESTED_REPETITION_MESSAGE = "nested repetition can be very slow"
 
+# Besides re.error, re.compile raises OverflowError for a repeat count of 2**32 - 1 or more (e.g. a{99999999999}) and
+# RecursionError for very deep nesting (CR-01)
+PATTERN_ERRORS: tuple[type[Exception], ...] = (re.error, OverflowError, RecursionError)
+
 # with_defaults keeps any non-negative int; larger stored minutes would overflow timedelta (clamped, never raised)
 _MAX_MINUTES = timedelta.max // timedelta(minutes=1)
 
@@ -127,7 +131,11 @@ def _flags(*, case_sensitive: bool) -> int:
 
 
 def compile_patterns(text: str, *, case_sensitive: bool = False) -> tuple[re.Pattern[str], ...]:
-    """Compile each stripped non-blank NFC line, ignoring case unless `case_sensitive` (D-08). Raises `re.error`."""
+    """
+    Compile each stripped non-blank NFC line, ignoring case unless `case_sensitive` (D-08).
+
+    Raises one of PATTERN_ERRORS when a line does not compile.
+    """
     flags = _flags(case_sensitive=case_sensitive)
     return tuple(re.compile(line, flags) for line in _lines(text))
 
@@ -226,7 +234,11 @@ class FilterSpec:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> FilterSpec:
-        """Build the spec from stored subentry data; missing or invalid values mean their defaults (D-06)."""
+        """
+        Build the spec from stored subentry data; missing or invalid values mean their defaults (D-06).
+
+        A stored pattern that does not compile raises one of PATTERN_ERRORS (only the flow validates patterns).
+        """
         settings = with_defaults(data)
         case_sensitive = settings[KEY_CASE_SENSITIVE]
         return cls(
