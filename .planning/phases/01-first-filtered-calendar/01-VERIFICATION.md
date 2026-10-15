@@ -1,7 +1,7 @@
 ---
 phase: 01-first-filtered-calendar
 verified: 2026-10-14T14:31:56Z
-status: human_needed
+status: passed
 score: 90/96 must-haves verified
 covered_files: [".github/workflows/ci.yml", ".github/workflows/validate.yml", ".planning/phases/01-first-filtered-calendar/01-01-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-01-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-02-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-02-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-03-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-03-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-04-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-04-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-05-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-05-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-06-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-06-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-07-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-07-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-08-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-08-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-09-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-09-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-10-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-10-SUMMARY.md", ".planning/phases/01-first-filtered-calendar/01-11-PLAN.md", ".planning/phases/01-first-filtered-calendar/01-11-SUMMARY.md", ".ruff.toml", "LICENSE", "README.md", "custom_components/xmltv_calendar/__init__.py", "custom_components/xmltv_calendar/calendar.py", "custom_components/xmltv_calendar/config_flow.py", "custom_components/xmltv_calendar/const.py", "custom_components/xmltv_calendar/coordinator.py", "custom_components/xmltv_calendar/data.py", "custom_components/xmltv_calendar/manifest.json", "custom_components/xmltv_calendar/source.py", "custom_components/xmltv_calendar/translations/en.json", "custom_components/xmltv_calendar/xmltv/__init__.py", "custom_components/xmltv_calendar/xmltv/filter.py", "custom_components/xmltv_calendar/xmltv/model.py", "custom_components/xmltv_calendar/xmltv/normalize.py", "custom_components/xmltv_calendar/xmltv/parser.py", "custom_components/xmltv_calendar/xmltv/render.py", "custom_components/xmltv_calendar/xmltv/timeparse.py", "custom_components/xmltv_calendar/xmltv/window.py", "docs/assets/icon.svg", "hacs.json", "pyproject.toml", "renovate.json", "scripts/generate_benchmark_feed.py", "tests/__init__.py", "tests/conftest.py", "tests/fixtures/basic.xml", "tests/fixtures/edge_cases.xml", "tests/fixtures/latin1.xml", "tests/test_calendar.py", "tests/test_config_flow.py", "tests/test_filtering.py", "tests/test_identity.py", "tests/test_ingestion.py", "tests/test_init.py", "tests/test_repo_structure.py", "tests/test_source.py", "tests/test_subentry_flow.py", "tests/test_timing.py", "tests/test_tracer.py", "tests/xmltv/__init__.py", "tests/xmltv/conftest.py", "tests/xmltv/test_benchmark.py", "tests/xmltv/test_filter.py", "tests/xmltv/test_normalize.py", "tests/xmltv/test_parser.py", "tests/xmltv/test_purity.py", "tests/xmltv/test_real_feed.py", "tests/xmltv/test_render.py", "tests/xmltv/test_timeparse.py", "tests/xmltv/test_window.py"]
 covered_digest: "v3:sha256:0d6c95f0287a3d1f431ccda7c9da79315256c8d61935583c910abb6c35448265"
@@ -247,46 +247,55 @@ Benchmark note (ℹ️): max loop gap rose from 66.9 ms (planning prototype) / 1
 Items 1-5 are the 01-09 ha-dev walkthrough on http://localhost:18123 (not :8123). Redeploy ha-dev first so it runs the 01-11 code. The small feeds cover 2026-10-14 00:00–12:01 only; regenerate with `--start-date $(date +%F)`.
 
 ### 1. ha-dev walkthrough: file source, calendar, validation errors (01-07 D7, 01-08 D6)
+
 **Test:** Add `/media/xmltv/small-gzip.xml`, add a calendar with an include pattern, try include `(`, try `/config/secrets.yaml`, re-add the same file.
 **Expected:** Pre-filled name, loads; texts correct; multiline fields with examples; only matches shown as `<channel>: <title>`; inline invalid_regex; path not allowed; already configured.
 **Why human:** No frontend in the harness.
 
 ### 2. Large feed, picker and URL source
+
 **Test:** Add `/media/xmltv/large.xml` and a reachable URL source; open Add calendar.
 **Expected:** UI responsive; picker (120 channels) searches/selects quickly; channel regex fallback works; URL source loads.
 **Why human:** UX judgment.
 
 ### 3. Live calendar trigger
+
 **Test:** Calendar-trigger automation (start, offset -0:05:00) on a match ~20 min ahead.
 **Expected:** Trace shows firing 5 minutes before start.
 **Why human:** Wall-clock behaviour in running HA.
 
 ### 4. No blocking-call warnings during the walkthrough
+
 **Test:** `podman logs ha-dev` after steps 1-3.
 **Expected:** No "Detected blocking call" / xmltv_calendar errors.
 **Why human:** Load path only exercised by the walkthrough.
 
 ### 5. Delete-and-re-add workflow
+
 **Test:** Delete the step-1 calendar, re-add under the same name with another include.
 **Expected:** No Reconfigure action; entity/device removed; same entity_id with new matches. Record acceptability until Phase 2.
 **Why human:** User decision.
 
 ### 6. HACS custom repository and push CI (DST-01, DST-02, SC5)
+
 **Test:** HACS → Custom repositories → add the GitHub URL as Integration; push the 01-11 commits.
 **Expected:** Accepted, "XMLTV Calendar" listed with brand icon; CI (Ruff, Unit tests, Benchmark) and Validate (hassfest, HACS) green for the push.
 **Why human:** Live HACS UI; pushing is the user's job.
 
 ### 7. Backstop: independent refresh of sources (01-07)
+
 **Test:** Two sources with equal interval; refresh one.
 **Expected:** No download/parse of the other.
 **Why human:** No test; structural evidence only (insufficient_spec).
 
 ### 8. Judgment-tier prohibitions
+
 **Test:** Confirm the three LLM verdicts in the Prohibitions table.
 **Expected:** All hold.
 **Why human:** unverified-prohibition — human review recommended.
 
 ### 9. Decision on WR-07 / IN-14 / WR-08
+
 **Test:** Read WR-07, WR-08 and IN-14 in 01-REVIEW.md and the Anti-Patterns rows above.
 **Expected:** Accept as non-blocking for Phase 1 and route them (recommended: WR-07 duration cap in `_programme`, ~3 lines plus one test, either as a quick task now or with Phase 2 FLT-08; WR-08 with Phase 3 SRC-12; IN-14 clamp in `window.py`), or request a second gap-closure plan.
 **Why human:** WR-07 is close to the wording of SC3 ("never breaks the calendar"); the verifier judges it non-blocking because the input is well-formed and other events and triggers keep working, but the call belongs to the user.
