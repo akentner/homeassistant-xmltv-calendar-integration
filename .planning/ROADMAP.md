@@ -76,7 +76,7 @@ Plans:
   4. User sets the event title via a placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`) and can optionally set a description template. Unknown placeholders are rejected in the flow. Without a description template, events show sub-title, episode, categories and description.
   5. User reconfigures all filters and templates of an existing calendar and sees the updated events without a re-download or re-parse, and without reloading the source's other calendars.
 
-**Plans**: 4/8 plans executed
+**Plans**: 5/8 plans executed
 
 Plans:
 **Wave 1**
@@ -86,7 +86,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [x] 02-04-PLAN.md — TDD: duration, midnight-crossing time window, weekdays in HA time zone; nested-repetition guard (wave 2)
-- [ ] 02-05-PLAN.md — Edit a calendar from the UI (reconfigure + async_update_and_abort), full-key saves (wave 2)
+- [x] 02-05-PLAN.md — Edit a calendar from the UI (reconfigure + async_update_and_abort), full-key saves (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 02-06-PLAN.md — TDD: title/description templates, default description, preview titles via templates (wave 3)
@@ -140,6 +140,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
-| 2. Precise Filters & Preview | 4/8 | In Progress | - |
+| 2. Precise Filters & Preview | 5/8 | In Progress | - |
 | 3. Resilient Sources | 0/TBD | Not started | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |

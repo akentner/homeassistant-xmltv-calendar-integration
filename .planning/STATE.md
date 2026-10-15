@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Precise Filters & Preview
 status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-10-15T11:11:04.669Z"
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-10-15T11:16:46.896Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: 20d42830dea5e739d4fb4c23bd0f964f2fa030e6
+state_head: 493f95a71a869a58a34580a777a3d28f93f5cba5
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 19
-  completed_plans: 15
+  completed_plans: 16
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 02 (Precise Filters & Preview) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 02 execution started
 
@@ -71,6 +71,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P02 | 7 min | 3 tasks | 8 files |
 | Phase 02 P03 | 7 min | 3 tasks | 14 files |
 | Phase 02 P04 | 6 min | 3 tasks | 6 files |
+| Phase 02 P05 | 4 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-04: stored durations above timedelta.max minutes are clamped (huge min hides everything, huge max is unbounded); FilterSpec.from_mapping never raises OverflowError
 - [Phase 02]: 02-04: nested-repetition check treats max > 1 as unbounded (so (a{2,3})* is rejected), also walks GROUPREF_EXISTS, and is fail-open (incl. RecursionError) when re._parser changes
 - [Phase 02]: 02-04: weekdays without a window use the local start date; with a window the weekday is the day the window opened (D-11); apply(epg) without tz evaluates in UTC
+- [Phase 02]: 02-05: Calendar edits save via async_update_and_abort only; the update listener applies them in place (no reload, no re-download)
+- [Phase 02]: 02-05: The basic form submit merges into pending values instead of replacing them, so stored keys outside the form survive an edit
+- [Phase 02]: 02-05: Channel selector options are sorted(feed IDs | stored IDs) so calendars with channels missing from the feed can be saved unchanged
 
 ### Pending Todos
 
@@ -152,6 +156,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T11:11:04.592Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-10-15T11:16:46.817Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None
