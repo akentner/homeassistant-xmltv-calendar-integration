@@ -14,11 +14,26 @@ if TYPE_CHECKING:
 
 PREVIEW_LIMIT = 10
 
-# Fixed tables instead of locale: setlocale is process-global and not thread-safe (A3)
+# Fixed tables instead of the process locale, which is global and not thread-safe (A3)
 WEEKDAY_NAMES: dict[str, tuple[str, ...]] = {
     "en": ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
     "de": ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"),
 }
+
+
+# The menu description is rendered as Markdown with HTML: neutralise entities first, then Markdown syntax.
+# Backslash comes first so the added escapes are not escaped again; parentheses stay readable (no [ ] -> no link).
+_HTML_ESCAPES = (("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"))
+_MARKDOWN_CHARS = ("\\", "`", "*", "_", "[", "]", "#", "|")
+
+
+def escape_markdown(text: str) -> str:
+    """Return feed text that renders literally in a Markdown/HTML description (T-02-05, Pitfall 8)."""
+    for char, entity in _HTML_ESCAPES:
+        text = text.replace(char, entity)
+    for char in _MARKDOWN_CHARS:
+        text = text.replace(char, f"\\{char}")
+    return text
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,8 +47,11 @@ class PreviewResult:
 def format_line(programme: Programme, channel_name: str, title: str, tz: tzinfo, language: str) -> str:
     """Return `<weekday> <dd.mm.> <HH:MM> · <channel> · <title>` in local time, truncated to the minute (D-17)."""
     local = programme.start.astimezone(tz)
+    # Primary language subtag ("de-CH" -> "de"); unknown languages fall back to English
     names = WEEKDAY_NAMES.get(language.split("-", maxsplit=1)[0].lower(), WEEKDAY_NAMES["en"])
-    return f"{names[local.weekday()]} {local:%d.%m.} {local:%H:%M} · {channel_name} · {title}"
+    # strftime truncates the seconds, never rounds; only feed text is escaped, the date and time parts are generated
+    stamp = f"{names[local.weekday()]} {local:%d.%m.} {local:%H:%M}"
+    return f"{stamp} · {escape_markdown(channel_name)} · {escape_markdown(title)}"
 
 
 def build_preview(  # noqa: PLR0913, PLR0917 - positional for async_add_executor_job
