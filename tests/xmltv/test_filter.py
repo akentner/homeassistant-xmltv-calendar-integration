@@ -1,5 +1,6 @@
 """Filter engine truth table: channel AND (include empty OR any include) AND NOT any exclude (D-02 to D-08)."""
 
+import re
 import unicodedata
 from collections import Counter
 from datetime import UTC, datetime, timedelta, timezone
@@ -144,7 +145,28 @@ def test_first_invalid_pattern_reports_compile_error() -> None:
     assert result.message
 
 
-@pytest.mark.parametrize("text", ["", "a\n\nb", "\n".join(f"p{i}" for i in range(MAX_PATTERN_LINES)), "a" * 300])
+@pytest.mark.parametrize(
+    "line",
+    [pytest.param("a{99999999999}", id="repeat-count"), pytest.param("a{1,99999999999}", id="repeat-range")],
+)
+def test_first_invalid_pattern_reports_compile_overflow(line: str) -> None:
+    """re.compile rejects a repeat count of 2**32 - 1 or more with OverflowError, not re.error (CR-01)."""
+    with pytest.raises(OverflowError) as captured:
+        re.compile(line)
+
+    assert first_invalid_pattern("ok\n" + line) == InvalidPattern(pattern=line, message=str(captured.value))
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "a\n\nb",
+        "\n".join(f"p{i}" for i in range(MAX_PATTERN_LINES)),
+        "a" * 300,
+        "a{4294967294}",  # the largest repeat count re.compile accepts
+    ],
+)
 def test_first_invalid_pattern_accepts_valid_input(text: str) -> None:
     assert first_invalid_pattern(text) is None
 

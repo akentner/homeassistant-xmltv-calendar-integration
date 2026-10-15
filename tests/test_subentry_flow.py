@@ -148,8 +148,18 @@ async def test_form_filters_are_applied(
         ({"include": "ok\n("}, "include", "("),
         ({"exclude": "rennen\n[a-"}, "exclude", "[a-"),
         ({"channel_regex": "^zdf\n*sky"}, "channel_regex", "*sky"),
+        ({"include": "ok\na{99999999999}"}, "include", "a{99999999999}"),
+        ({"exclude": "a{1,99999999999}"}, "exclude", "a{1,99999999999}"),
+        ({"channel_regex": "zdf{99999999999}"}, "channel_regex", "zdf{99999999999}"),
     ],
-    ids=["include", "exclude", "channel-regex"],
+    ids=[
+        "include",
+        "exclude",
+        "channel-regex",
+        "include-repeat-overflow",
+        "exclude-repeat-overflow",
+        "channel-regex-repeat-overflow",
+    ],
 )
 async def test_invalid_pattern_line_keeps_form_open(
     hass: HomeAssistant,

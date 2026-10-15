@@ -311,6 +311,49 @@ async def test_reconfigure_flow_end_to_end(
     assert await _summaries(hass, "calendar.b") == b_events
 
 
+async def test_edit_repairs_overflowing_stored_pattern(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    """The edit form refuses a stored repeat-overflow pattern and saving a valid one repairs it in place (CR-01)."""
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "a{99999999999}"}),))
+    a_id = _subentry_id(entry, "A")
+    calls = aioclient_mock.call_count
+    runtime = entry.runtime_data
+    assert await _summaries(hass, "calendar.a") == []
+
+    result = await entry.start_subentry_reconfigure_flow(hass, a_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    assert _suggested(result, "include") == "a{99999999999}"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "A", "include": "a{99999999999}"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    assert result["errors"] == {"include": "invalid_regex"}
+    assert result["description_placeholders"]["pattern"] == "a{99999999999}"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "A", "include": "tagesschau"}
+    )
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert await _summaries(hass, "calendar.a") == ["Das Erste: Tagesschau"]
+    assert aioclient_mock.call_count == calls
+    assert entry.runtime_data is runtime
+
+
 PHASE1_DATA = {"channels": ["daserste.de"], "channel_regex": "", "include": "", "exclude": ""}
 
 
