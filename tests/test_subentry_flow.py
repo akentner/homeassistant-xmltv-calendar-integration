@@ -169,6 +169,22 @@ async def test_invalid_pattern_line_keeps_form_open(
     assert not entry.subentries
 
 
+async def test_nested_repetition_rejected_in_form(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, {"name": "Slow", "include": "^(\\w+\\s?)+$"})
+
+    # T-02-16: refused before it is stored, so it never runs over the feed
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"include": "invalid_regex"}
+    assert result["description_placeholders"]["pattern"] == "^(\\w+\\s?)+$"
+    assert "nested repetition" in result["description_placeholders"]["error"]
+    assert not entry.subentries
+
+
 @pytest.mark.parametrize(
     ("field", "text"),
     [

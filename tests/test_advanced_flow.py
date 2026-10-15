@@ -1,5 +1,7 @@
 """Calendar subentry flow: the "Advanced options" step, its storage form and its validation (D-01, D-02)."""
 
+import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -7,7 +9,9 @@ import pytest
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.data_entry_flow import FlowResultType
 
+import custom_components.xmltv_calendar as integration
 from custom_components.xmltv_calendar.const import (
+    CONF_ADVANCED,
     CONF_CASE_SENSITIVE,
     CONF_CHANNEL_REGEX,
     CONF_CHANNELS,
@@ -317,3 +321,117 @@ async def test_cleared_time_window_is_stored_as_none_on_edit(
     assert data[CONF_TIME_FROM] is None
     assert data[CONF_TIME_TO] is None
     assert "advanced" not in data
+
+
+def _default(result: Any, name: str) -> Any:
+    """Return the default of a form field (vol.Optional exposes it through key.default())."""
+    for key in result["data_schema"].schema:
+        if key == name:
+            return key.default()
+    msg = f"{name} not in form"
+    raise AssertionError(msg)
+
+
+async def test_back_keeps_advanced_values(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], _without(**{CONF_WEEKDAYS: ["fri"], CONF_TITLE_TEMPLATE: "{title}"})
+    )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "back"})
+
+    # D-15: the checkbox keeps its state
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    assert _default(result, CONF_ADVANCED) is True
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {**BASIC, CONF_ADVANCED: True})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "advanced"
+    assert _suggested(result, CONF_WEEKDAYS) == ["fri"]
+    assert _suggested(result, CONF_TITLE_TEMPLATE) == "{title}"
+    assert not entry.subentries
+
+
+@pytest.mark.parametrize(
+    ("include", "step_id", "count"),
+    [
+        pytest.param("tagesschau", "preview_empty", "0", id="lower_case_misses"),
+        pytest.param("Tagesschau", "preview", "1", id="exact_case_matches"),
+    ],
+)
+async def test_case_sensitive_in_flow(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    include: str,
+    step_id: str,
+    count: str,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**BASIC, CONF_INCLUDE: include, CONF_ADVANCED: True}
+    )
+    assert result["step_id"] == "advanced"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_INCLUDE_FIELDS: ["title", "subtitle"],
+            CONF_EXCLUDE_FIELDS: ["title", "subtitle"],
+            CONF_CASE_SENSITIVE: True,
+        },
+    )
+
+    # D-08: the case-sensitive toggle applies to include in the preview
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == step_id
+    assert result["description_placeholders"]["count"] == count
+
+
+PHASE2_ERRORS = (
+    "fields_required",
+    "time_incomplete",
+    "time_equal",
+    "duration_order",
+    "invalid_template",
+    "unknown_placeholder",
+)
+# Filled per error: template errors in the advanced step, regex errors in the basic step
+ERROR_PLACEHOLDERS = {"template_error", "pattern", "error"}
+
+
+def _texts(node: Any) -> list[str]:
+    if isinstance(node, dict):
+        return [text for value in node.values() for text in _texts(value)]
+    return [node] if isinstance(node, str) else []
+
+
+async def test_translation_placeholders_are_provided(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+    provided = set(result["description_placeholders"]) | ERROR_PLACEHOLDERS
+
+    translations = json.loads((Path(integration.__file__).parent / "translations" / "en.json").read_text())
+    calendar = translations["config_subentries"]["calendar"]
+    texts = _texts(calendar["step"]["advanced"]) + [calendar["error"][key] for key in PHASE2_ERRORS]
+    used = {name for text in texts for name in re.findall(r"\{(\w+)\}", text)}
+
+    assert used  # the audit really sees the placeholders
+    assert used - provided == set()
