@@ -76,11 +76,11 @@ Plans:
   4. User sets the event title via a placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`) and can optionally set a description template. Unknown placeholders are rejected in the flow. Without a description template, events show sub-title, episode, categories and description.
   5. User reconfigures all filters and templates of an existing calendar and sees the updated events without a re-download or re-parse, and without reloading the source's other calendars.
 
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — In-place calendar updates via the diffing listener (no refetch/reparse/reload), device rename, IN-14 clamp (wave 1)
+- [x] 02-01-PLAN.md — In-place calendar updates via the diffing listener (no refetch/reparse/reload), device rename, IN-14 clamp (wave 1)
 - [ ] 02-02-PLAN.md — TDD: NFC-safe, field-scoped, case-aware matching; stored-settings contract (key-name decision gate) (wave 1)
 - [ ] 02-03-PLAN.md — Preview step (count + next 10 matches), basic -> preview -> save/back flow, test migration (wave 1)
 
@@ -140,6 +140,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
-| 2. Precise Filters & Preview | 0/8 | Planned | - |
+| 2. Precise Filters & Preview | 1/8 | In Progress | - |
 | 3. Resilient Sources | 0/TBD | Not started | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |
