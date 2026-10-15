@@ -20,6 +20,8 @@ from .settings import (
     KEY_EXCLUDE_FIELDS,
     KEY_INCLUDE,
     KEY_INCLUDE_FIELDS,
+    KEY_MAX_DURATION,
+    KEY_MIN_DURATION,
     KEY_TIME_FROM,
     KEY_TIME_TO,
     KEY_WEEKDAYS,
@@ -39,6 +41,9 @@ _DEFAULT_FIELDS = frozenset(DEFAULT_MATCH_FIELDS)
 MAX_PATTERN_LENGTH = 300
 MAX_PATTERN_LINES = 50
 
+# with_defaults keeps any non-negative int; larger stored minutes would overflow timedelta (clamped, never raised)
+_MAX_MINUTES = timedelta.max // timedelta(minutes=1)
+
 
 @dataclass(frozen=True, slots=True)
 class InvalidPattern:
@@ -54,6 +59,11 @@ class FilterResult:
 
     matches: tuple[Programme, ...]
     missing_channels: frozenset[str] = frozenset()
+
+
+def _duration(minutes: int | None) -> timedelta | None:
+    """Return stored whole minutes as a timedelta, clamped to the largest one; None means unbounded (D-13)."""
+    return None if minutes is None else timedelta(minutes=min(minutes, _MAX_MINUTES))
 
 
 def _minute_of_day(value: str) -> int:
@@ -159,6 +169,8 @@ class FilterSpec:
     exclude: tuple[re.Pattern[str], ...] = ()
     include_fields: frozenset[str] = _DEFAULT_FIELDS
     exclude_fields: frozenset[str] = _DEFAULT_FIELDS
+    min_duration: timedelta | None = None
+    max_duration: timedelta | None = None
     window: TimeWindow | None = None
     weekdays: frozenset[int] = frozenset()  # datetime.weekday() values; empty = every day
 
@@ -175,6 +187,8 @@ class FilterSpec:
             exclude=compile_patterns(settings[KEY_EXCLUDE], case_sensitive=case_sensitive),
             include_fields=frozenset(settings[KEY_INCLUDE_FIELDS]),
             exclude_fields=frozenset(settings[KEY_EXCLUDE_FIELDS]),
+            min_duration=_duration(settings[KEY_MIN_DURATION]),
+            max_duration=_duration(settings[KEY_MAX_DURATION]),
             window=TimeWindow.from_times(settings[KEY_TIME_FROM], settings[KEY_TIME_TO]),
             weekdays=frozenset(WEEKDAYS.index(name) for name in settings[KEY_WEEKDAYS]),
         )
@@ -184,6 +198,18 @@ class FilterSpec:
         if not self.channels and not self.channel_patterns:
             return True
         return channel_id in self.channels or any(pattern.search(channel_id) for pattern in self.channel_patterns)
+
+    def _duration_matches(self, programme: Programme) -> bool:
+        """
+        Check stop - start against the inclusive bounds as exact timedeltas, no rounding (D-13).
+
+        The parser's datetimes carry fixed offsets, so the difference is the real duration even across a DST change;
+        never compute it on local-time conversions (Pitfall 6).
+        """
+        duration = programme.stop - programme.start
+        if self.min_duration is not None and duration < self.min_duration:
+            return False
+        return self.max_duration is None or duration <= self.max_duration
 
     def _time_matches(self, programme: Programme, tz: tzinfo) -> bool:
         """Check the start time against the window and the weekdays in `tz`; the window's opening day is the weekday."""
@@ -205,12 +231,17 @@ class FilterSpec:
         """
         selected: dict[str, bool] = {}
         matches: list[Programme] = []
+        bounded = self.min_duration is not None or self.max_duration is not None
         timed = self.window is not None or bool(self.weekdays)
         for programme in epg.programmes:
             channel_ok = selected.get(programme.channel_id)
             if channel_ok is None:
                 channel_ok = selected[programme.channel_id] = self._channel_selected(programme.channel_id)
-            if not channel_ok or (timed and not self._time_matches(programme, tz)):
+            if not channel_ok:
+                continue
+            if bounded and not self._duration_matches(programme):
+                continue
+            if timed and not self._time_matches(programme, tz):
                 continue
             if self._text_matches(programme):
                 matches.append(programme)
