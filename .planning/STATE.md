@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Precise Filters & Preview
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-10-15T10:31:34.253Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-10-15T10:51:57.716Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: 9e5c105fa785e898b7729821ccae4982caaacc88
+state_head: c885a68decedd0fa9a8ccf6e6340fe63233b7a97
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 19
-  completed_plans: 12
+  completed_plans: 13
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 02 (Precise Filters & Preview) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 02 execution started
 
@@ -68,6 +68,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 01 P10 | 5 min | 3 tasks | 0 files |
 | Phase 01 P11 | 6min | 3 tasks | 7 files |
 | Phase 02 P01 | 4 min | 2 tasks | 5 files |
+| Phase 02 P02 | 7 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-01: device rename uses async_get_device_by_identifier((DOMAIN, subentry_id), entry_id); async_get_device raises in HA 2026.10
 - [Phase 02]: 02-01: listener applies edited calendars in place over a copy of runtime.calendars (update listener calls run as concurrent tasks); the entity stores its (title, data) diff base before any await
 - [Phase 02]: 02-01: uncompilable stored pattern gives an empty index at entity creation; on an edit the previous spec and matches are kept and the bad data still becomes the diff base, so it is logged once
+- [Phase 02]: 02-02 Task 2: flat. Stored calendar keys sit beside the Phase 1 keys: include_fields, exclude_fields, case_sensitive, time_from, time_to, weekdays, min_duration, max_duration, title_template, description_template; field values title/subtitle/description/category; weekdays mon..sun (== homeassistant.const.WEEKDAYS); times "HH:MM", durations int minutes, templates plain strings; Advanced checkbox never stored (has_advanced derives it)
+- [Phase 02]: 02-02: normalize_time checks HH:MM[:SS] by ASCII pattern, not time.fromisoformat (Python 3.14 accepts 24:00 as 00:00, bare hours and offsets)
+- [Phase 02]: 02-02: with_defaults returns exactly the 14 contract keys (unknown keys dropped); whitespace-only templates read as defaults; NaN/inf durations read as None; large int durations are kept (clamp in 02-04)
 
 ### Pending Todos
 
@@ -139,6 +143,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T10:31:13.367Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-10-15T10:51:57.640Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
