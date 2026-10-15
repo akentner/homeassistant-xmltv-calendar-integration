@@ -80,7 +80,7 @@ recorded: 2026-10-15T19:34:50.076Z
 | WR-02 | warning | open | - |
 | WR-03 | warning | open | - |
 | WR-04 | warning | open | - |
-| WR-05 | warning | fixed | quick 261015-u6j (9b87e7f) |
+| WR-05 | warning | fixed | quick 261015-u6j (9b87e7f); not in the current review |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
