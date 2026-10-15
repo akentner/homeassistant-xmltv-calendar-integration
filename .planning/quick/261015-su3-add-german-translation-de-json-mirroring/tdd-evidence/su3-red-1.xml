@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.226" timestamp="2026-10-15T20:56:11.819546+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_translations" name="test_home_assistant_serves_german_strings" time="0.129"><failure message="AssertionError: assert {'fri': 'Frid...'Sunday', ...} == {'fri': 'Frei...Sonntag', ...}&#10;  &#10;  Differing items:&#10;  {'sat': 'Saturday'} != {'sat': 'Samstag'}&#10;  {'fri': 'Friday'} != {'fri': 'Freitag'}&#10;  {'wed': 'Wednesday'} != {'wed': 'Mittwoch'}&#10;  {'tue': 'Tuesday'} != {'tue': 'Dienstag'}&#10;  {'mon': 'Monday'} != {'mon': 'Montag'}...&#10;  &#10;  ...Full output truncated (3 lines hidden), use '-vv' to show">hass = &lt;HomeAssistant RUNNING&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fc5f438c440&gt;
+
+    async def test_home_assistant_serves_german_strings(hass: HomeAssistant, caplog: Any) -&gt; None:
+        served = await async_get_translations(hass, "de", "selector", [DOMAIN])
+        weekdays = {day: served.get(f"component.{DOMAIN}.selector.weekday.options.{day}") for day in GERMAN_WEEKDAYS}
+&gt;       assert weekdays == GERMAN_WEEKDAYS
+E       AssertionError: assert {'fri': 'Frid...'Sunday', ...} == {'fri': 'Frei...Sonntag', ...}
+E         
+E         Differing items:
+E         {'sat': 'Saturday'} != {'sat': 'Samstag'}
+E         {'fri': 'Friday'} != {'fri': 'Freitag'}
+E         {'wed': 'Wednesday'} != {'wed': 'Mittwoch'}
+E         {'tue': 'Tuesday'} != {'tue': 'Dienstag'}
+E         {'mon': 'Monday'} != {'mon': 'Montag'}...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests/test_translations.py:58: AssertionError</failure></testcase><testcase classname="tests.test_translations" name="test_de_values_follow_hassfest_rules" time="0.014"><failure message="AssertionError: assert False&#10; +  where False = is_file()&#10; +    where is_file = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/translations/de.json').is_file">def test_de_values_follow_hassfest_rules() -&gt; None:
+&gt;       assert DE_JSON.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/akentner/Projects/homeassistant-xmltv-integration/custom_components/xmltv_calendar/translations/de.json').is_file
+
+tests/test_translations.py:75: AssertionError</failure></testcase></testsuite></testsuites>
