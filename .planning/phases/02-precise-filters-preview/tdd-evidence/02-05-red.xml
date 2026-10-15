@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="8" time="0.615" timestamp="2026-10-15T13:12:43.340631+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_reconfigure" name="test_data_change_applies_in_place" time="0.188" /><testcase classname="tests.test_reconfigure" name="test_title_change_renames_device" time="0.044" /><testcase classname="tests.test_reconfigure" name="test_unchanged_update_is_a_no_op" time="0.043" /><testcase classname="tests.test_reconfigure" name="test_two_calendars_changed_together" time="0.054" /><testcase classname="tests.test_reconfigure" name="test_last_of_two_updates_wins" time="0.047" /><testcase classname="tests.test_reconfigure" name="test_apply_before_added_stores_settings" time="0.032" /><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches" time="0.053" /><testcase classname="tests.test_reconfigure" name="test_reconfigure_flow_end_to_end" time="0.046"><failure message="assert False is True">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f7a36b0d370&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f7a3415da60&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f7a3413f9b0&gt;
+
+    async def test_reconfigure_flow_end_to_end(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}), ("B", {"channels": ["zdf.de"]})))
+        a_id = _subentry_id(entry, "A")
+        b_id = _subentry_id(entry, "B")
+        calls = aioclient_mock.call_count
+        runtime = entry.runtime_data
+        epg = runtime.coordinator.data
+        entity_b = runtime.calendars[b_id]
+        b_events = await _summaries(hass, "calendar.b")
+    
+        # The frontend offers "Edit calendar" only when the flow class has a reconfigure step
+&gt;       assert entry.supported_subentry_types["calendar"]["supports_reconfigure"] is True
+E       assert False is True
+
+tests/test_reconfigure.py:227: AssertionError</failure></testcase></testsuite></testsuites>

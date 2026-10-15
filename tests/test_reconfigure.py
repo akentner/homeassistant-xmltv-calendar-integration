@@ -5,6 +5,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 
 from custom_components.xmltv_calendar.calendar import XmltvCalendarEntity
@@ -26,6 +27,15 @@ NOW = "2026-10-13T06:00:00+00:00"
 def _subentry_id(entry: MockConfigEntry, title: str) -> str:
     (subentry_id,) = [sid for sid, sub in entry.subentries.items() if sub.title == title]
     return subentry_id
+
+
+def _suggested(result: Any, name: str) -> Any:
+    """Return the suggested value of a form field, or None when the field has none."""
+    for key in result["data_schema"].schema:
+        if key == name:
+            return (key.description or {}).get("suggested_value")
+    msg = f"{name} not in form"
+    raise AssertionError(msg)
 
 
 async def _summaries(hass: HomeAssistant, entity_id: str) -> list[str]:
@@ -195,3 +205,46 @@ async def test_corrupt_pattern_keeps_previous_matches(
         "Das Erste: Formel 1: Großer Preis von Mexiko",
         "Das Erste: Tagesschau",
     ]
+
+
+async def test_reconfigure_flow_end_to_end(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}), ("B", {"channels": ["zdf.de"]})))
+    a_id = _subentry_id(entry, "A")
+    b_id = _subentry_id(entry, "B")
+    calls = aioclient_mock.call_count
+    runtime = entry.runtime_data
+    epg = runtime.coordinator.data
+    entity_b = runtime.calendars[b_id]
+    b_events = await _summaries(hass, "calendar.b")
+
+    # The frontend offers "Edit calendar" only when the flow class has a reconfigure step
+    assert entry.supported_subentry_types["calendar"]["supports_reconfigure"] is True
+
+    result = await entry.start_subentry_reconfigure_flow(hass, a_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    assert _suggested(result, "name") == "A"
+    assert _suggested(result, "include") == "tagesschau"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"name": "A", "include": "formel"})
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+    assert result["description_placeholders"]["count"] == "1"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert await _summaries(hass, "calendar.a") == ["Das Erste: Formel 1: Großer Preis von Mexiko"]
+    assert aioclient_mock.call_count == calls
+    assert entry.runtime_data is runtime
+    assert runtime.coordinator.data is epg
+    assert runtime.calendars[b_id] is entity_b
+    assert await _summaries(hass, "calendar.b") == b_events
