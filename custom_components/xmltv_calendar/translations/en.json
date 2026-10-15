@@ -69,14 +69,43 @@
             "channels": "Channels",
             "channel_regex": "Channel regex",
             "include": "Include",
-            "exclude": "Exclude"
+            "exclude": "Exclude",
+            "advanced": "Advanced options"
           },
           "data_description": {
             "name": "The calendar entity is named after it, for example calendar.formel_1.",
             "channels": "Channel IDs to include. Combined with the channel regex: a channel matching either is included. Leave both empty to include all channels.",
             "channel_regex": "Regular expressions matched against the channel ID, one per line, for example ^sky or \\.de$. Combined with the picked channels (either one is enough). Leave both empty to include all channels.",
             "include": "Regular expressions, one per line. A programme is shown if any of them matches its title or sub-title (case-insensitive), for example formel\\s*1|formula\\s*1 or ^Tatort$. Leave empty to show every programme of the selected channels.",
-            "exclude": "Regular expressions, one per line. A programme is hidden if any of them matches its title or sub-title (case-insensitive), for example Wiederholung. Blank lines are ignored."
+            "exclude": "Regular expressions, one per line. A programme is hidden if any of them matches its title or sub-title (case-insensitive), for example Wiederholung. Blank lines are ignored.",
+            "advanced": "Show a second form with the fields to search, case sensitivity, a time window, weekdays, a duration range and templates for event titles and descriptions."
+          }
+        },
+        "advanced": {
+          "title": "Advanced options",
+          "data": {
+            "include_fields": "Include searches",
+            "exclude_fields": "Exclude searches",
+            "case_sensitive": "Case-sensitive",
+            "time_from": "From",
+            "time_to": "To",
+            "weekdays": "Weekdays",
+            "min_duration": "Minimum duration",
+            "max_duration": "Maximum duration",
+            "title_template": "Title template",
+            "description_template": "Description template"
+          },
+          "data_description": {
+            "include_fields": "Fields the include patterns are matched against. Each sub-title and each category is tested on its own. Searching descriptions is slower on big feeds.",
+            "exclude_fields": "Fields the exclude patterns are matched against. Each sub-title and each category is tested on its own. Searching descriptions is slower on big feeds.",
+            "case_sensitive": "Match upper and lower case exactly. Umlauts match in any Unicode form either way; ß does not match ss.",
+            "time_from": "Only programmes whose start time is between From and before To, in the Home Assistant time zone. A window crossing midnight, for example 22:00 to 02:00, counts for the day it starts. Set both or neither.",
+            "time_to": "End of the start-time window (exclusive). Set both From and To, or leave both empty.",
+            "weekdays": "Only programmes on these days. Leave empty for every day.",
+            "min_duration": "In minutes, inclusive. Leave empty for no lower limit.",
+            "max_duration": "In minutes, inclusive. Leave empty for no upper limit.",
+            "title_template": "Placeholders: {title_fields}. Default: {default_title}",
+            "description_template": "Placeholders: {description_fields}. Leave empty for the default description (sub-title, episode, categories, description)."
           }
         },
         "preview": {
@@ -120,6 +149,27 @@
     },
     "file_not_found": {
       "message": "The XMLTV file does not exist or is not a regular file."
+    }
+  },
+  "selector": {
+    "match_field": {
+      "options": {
+        "title": "Title",
+        "subtitle": "Sub-title",
+        "description": "Description",
+        "category": "Category"
+      }
+    },
+    "weekday": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
     }
   }
 }

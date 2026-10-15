@@ -14,6 +14,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -23,22 +24,35 @@ from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
+    TimeSelector,
 )
 from homeassistant.util import dt as dt_util
 from yarl import URL
 
 from .const import (
+    CONF_ADVANCED,
+    CONF_CASE_SENSITIVE,
     CONF_CHANNEL_REGEX,
     CONF_CHANNELS,
+    CONF_DESCRIPTION_TEMPLATE,
     CONF_EXCLUDE,
+    CONF_EXCLUDE_FIELDS,
     CONF_INCLUDE,
+    CONF_INCLUDE_FIELDS,
+    CONF_MAX_DURATION,
+    CONF_MIN_DURATION,
     CONF_NAME,
     CONF_PATH,
     CONF_REFRESH_HOURS,
     CONF_SOURCE_TYPE,
+    CONF_TIME_FROM,
+    CONF_TIME_TO,
+    CONF_TITLE_TEMPLATE,
     CONF_URL,
+    CONF_WEEKDAYS,
     DEFAULT_REFRESH_HOURS,
     DOMAIN,
+    MAX_DURATION_MINUTES,
     MAX_REFRESH_HOURS,
     MIN_REFRESH_HOURS,
     SOURCE_TYPE_FILE,
@@ -59,7 +73,14 @@ from .source import (
 )
 from .xmltv.filter import first_invalid_pattern
 from .xmltv.preview import build_preview
-from .xmltv.settings import with_defaults
+from .xmltv.settings import (
+    ADVANCED_DEFAULTS,
+    DEFAULT_TITLE_TEMPLATE,
+    MATCH_FIELDS,
+    WEEKDAYS,
+    normalize_time,
+    with_defaults,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -189,6 +210,84 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
 # Free-text filter fields: one pattern per line, blank lines ignored (D-05)
 _PATTERN_FIELDS = (CONF_CHANNEL_REGEX, CONF_INCLUDE, CONF_EXCLUDE)
 
+# Placeholder names shown in the advanced step help texts; a literal {channel} in a translation is an ICU placeholder
+_TITLE_FIELD_NAMES = "{channel}, {title}, {subtitle}, {episode}, {category}, {channel_id}"
+_ADVANCED_PLACEHOLDERS = {
+    "title_fields": _TITLE_FIELD_NAMES,
+    "description_fields": _TITLE_FIELD_NAMES + ", {description}",
+    "default_title": DEFAULT_TITLE_TEMPLATE,
+}
+
+
+def _duration_selector() -> NumberSelector:
+    """Return the minutes selector of the duration range (0 to one week)."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=0, max=MAX_DURATION_MINUTES, step=1, mode=NumberSelectorMode.BOX, unit_of_measurement="min"
+        )
+    )
+
+
+def _list_selector(options: tuple[str, ...], *, translation_key: str) -> SelectSelector:
+    """Return a multi-select over a fixed vocabulary with translated option labels."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=list(options), multiple=True, mode=SelectSelectorMode.LIST, translation_key=translation_key
+        )
+    )
+
+
+def _advanced_schema() -> vol.Schema:
+    """Return the advanced step schema; no default=, so every field stays clearable (Pattern 6)."""
+    return vol.Schema(
+        {
+            vol.Optional(CONF_INCLUDE_FIELDS): _list_selector(MATCH_FIELDS, translation_key="match_field"),
+            vol.Optional(CONF_EXCLUDE_FIELDS): _list_selector(MATCH_FIELDS, translation_key="match_field"),
+            vol.Optional(CONF_CASE_SENSITIVE): BooleanSelector(),
+            vol.Optional(CONF_TIME_FROM): TimeSelector(),
+            vol.Optional(CONF_TIME_TO): TimeSelector(),
+            vol.Optional(CONF_WEEKDAYS): _list_selector(WEEKDAYS, translation_key="weekday"),
+            vol.Optional(CONF_MIN_DURATION): _duration_selector(),
+            vol.Optional(CONF_MAX_DURATION): _duration_selector(),
+            vol.Optional(CONF_TITLE_TEMPLATE): TextSelector(),
+            vol.Optional(CONF_DESCRIPTION_TEMPLATE): TextSelector(TextSelectorConfig(multiline=True)),
+        }
+    )
+
+
+def _advanced_values(user_input: dict[str, Any]) -> dict[str, Any]:
+    """
+    Build the advanced settings fresh from a submitted form; a missing key means the field was cleared (D-20).
+
+    Never merged over the previous values, or a cleared optional field would come back (Pattern 6).
+    """
+    minimum = user_input.get(CONF_MIN_DURATION)
+    maximum = user_input.get(CONF_MAX_DURATION)
+    title_template = str(user_input.get(CONF_TITLE_TEMPLATE, "")).strip()
+    return {
+        CONF_INCLUDE_FIELDS: list(user_input.get(CONF_INCLUDE_FIELDS, [])),
+        CONF_EXCLUDE_FIELDS: list(user_input.get(CONF_EXCLUDE_FIELDS, [])),
+        CONF_CASE_SENSITIVE: bool(user_input.get(CONF_CASE_SENSITIVE, False)),
+        # The TimeSelector sends "HH:MM:SS"; stored and compared as "HH:MM" (Pitfall 11)
+        CONF_TIME_FROM: normalize_time(user_input.get(CONF_TIME_FROM)),
+        CONF_TIME_TO: normalize_time(user_input.get(CONF_TIME_TO)),
+        CONF_WEEKDAYS: list(user_input.get(CONF_WEEKDAYS, [])),
+        # The NumberSelector sends float; stored as whole minutes
+        CONF_MIN_DURATION: int(minimum) if minimum is not None else None,
+        CONF_MAX_DURATION: int(maximum) if maximum is not None else None,
+        CONF_TITLE_TEMPLATE: title_template or DEFAULT_TITLE_TEMPLATE,
+        CONF_DESCRIPTION_TEMPLATE: str(user_input.get(CONF_DESCRIPTION_TEMPLATE, "")),
+    }
+
+
+def _advanced_suggestions(pending: dict[str, Any]) -> dict[str, Any]:
+    """Return the pending advanced values as form suggestions; times in the TimeSelector's "HH:MM:SS" form."""
+    suggestions = {key: pending[key] for key in ADVANCED_DEFAULTS if pending.get(key) is not None}
+    for key in (CONF_TIME_FROM, CONF_TIME_TO):
+        if key in suggestions:
+            suggestions[key] = f"{suggestions[key]}:00"
+    return suggestions
+
 
 class CalendarSubentryFlow(ConfigSubentryFlow):
     """Add or edit a calendar of a loaded source: basic form -> preview -> save | back (D-01, D-19)."""
@@ -196,6 +295,8 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
     def __init__(self) -> None:
         """Initialize the pending calendar values; loaded on first use, they survive Back (D-15)."""
         self._pending: dict[str, Any] | None = None
+        # Last submitted state of the "Advanced options" checkbox within this flow; never stored (D-01, D-03)
+        self._show_advanced = False
 
     def _load_pending(self) -> dict[str, Any]:
         """Return the pending values: defaults for a new calendar, the stored calendar for an edit (D-06)."""
@@ -206,6 +307,7 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 subentry = self._get_reconfigure_subentry()
                 self._pending = with_defaults(dict(subentry.data))
                 self._pending[CONF_NAME] = subentry.title
+            self._show_advanced = False
         return self._pending
 
     def _calendar_data(self) -> dict[str, Any]:
@@ -235,6 +337,9 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 # A missing key means the field was cleared; keys outside this form keep their pending values
                 pending.update({CONF_NAME: name, CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))})
                 pending.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
+                self._show_advanced = bool(user_input.get(CONF_ADVANCED, False))
+                if self._show_advanced:
+                    return await self.async_step_advanced()
                 return await self.async_step_preview()
 
         # Stored IDs missing from the feed stay selectable, so an edit can be saved unchanged (Phase 1 D-04)
@@ -252,6 +357,7 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                     )
                 ),
                 **{vol.Optional(field): TextSelector(TextSelectorConfig(multiline=True)) for field in _PATTERN_FIELDS},
+                vol.Optional(CONF_ADVANCED, default=self._show_advanced): BooleanSelector(),
             }
         )
         schema = self.add_suggested_values_to_schema(schema, pending | (user_input or {}))
@@ -262,6 +368,22 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
     async_step_user = async_step_basic
     # Same form for edits; self.source tells add and edit apart (FLT-11)
     async_step_reconfigure = async_step_basic
+
+    async def async_step_advanced(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Ask for field scope, case, time window, weekdays, duration range and templates (D-02)."""
+        entry: XmltvConfigEntry = self._get_entry()
+        if entry.state is not ConfigEntryState.LOADED:
+            return self.async_abort(reason="source_not_loaded")
+        pending = self._load_pending()
+
+        if user_input is not None:
+            pending.update(_advanced_values(user_input))
+            return await self.async_step_preview()
+
+        schema = self.add_suggested_values_to_schema(_advanced_schema(), _advanced_suggestions(pending))
+        return self.async_show_form(
+            step_id="advanced", data_schema=schema, description_placeholders=dict(_ADVANCED_PLACEHOLDERS)
+        )
 
     async def async_step_preview(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
         """Show the match count from now on and the next matches, then offer Save or Back (FLT-10, D-15..D-17)."""
