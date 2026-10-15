@@ -1,43 +1,43 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 01
-current_phase_name: first-filtered-calendar
-status: verifying
-stopped_at: Completed 01-11-PLAN.md
-last_updated: "2026-10-14T14:21:31.699Z"
-last_activity: 2026-10-13
-last_activity_desc: Phase 01 execution started
-state_head: 05fe9fe301ff13db011253b0920cee2f7262dfe2
+current_phase: 2
+current_phase_name: Precise Filters & Preview
+status: planning
+stopped_at: Phase 01 complete, ready to plan Phase 2
+last_updated: "2026-10-15T08:58:46.152Z"
+last_activity: 2026-10-15
+last_activity_desc: Phase 01 complete, transitioned to Phase 2
+state_head: a5cd8674855e0555ec40c5eb408be27915f6a82b
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 11
   completed_plans: 11
-  percent: 0
+  percent: 25
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-12)
+See: .planning/PROJECT.md (updated 2026-10-15)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 01 — First Filtered Calendar
+**Current focus:** Phase 2 — Precise Filters & Preview
 
 ## Current Position
 
-Phase: 01 (first-filtered-calendar) — READY TO EXECUTE
-Plan: 11 of 11
-Status: Phase complete — ready for verification
-Last activity: 2026-10-13 — Phase 01 execution started
+Phase: 2 — Precise Filters & Preview
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-15 — Phase 01 complete, transitioned to Phase 2
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+- Total plans completed: 11
 - Average duration: -
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 11 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -118,10 +118,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- No real XMLTV source yet: fixtures only; real feeds are needed to validate Phase 3 behaviour
-- Parse time on `ha-host` hardware is unmeasured; the Phase 1 benchmark decides whether reload-on-change is an acceptable interim listener
-- `SelectSelector` with thousands of channels is unverified (Phase 1 research flag)
-- `iot_class` (`cloud_polling` vs `local_polling`) still open; decide in Phase 1
+- [Phase 1] UAT test 3 (calendar trigger with −5 min offset in a live automation) deferred; automated trigger tests cover it — see 01-UAT.md Deferred Follow-Ups
+- [Phase 2] Review warnings accepted as non-blocking in Phase 1 UAT: WR-07 (absurd in-window stop → duration cap / FLT-08), IN-14 (get_events OverflowError near year 0001 → clamp in window.py); WR-08 (skipped_malformed not logged) → Phase 3 SRC-12
+- [Phase 3] Only fixtures and the generated 60 MB feed are tracked; one reachable real URL source was exercised in Phase 1 UAT, but Phase 3 behaviour (caching, conditional requests) still needs real feeds
+- [Phase 3] Parse time on `ha-host` hardware is unmeasured (dev-box ha-dev: 60 MB in 2.8 s, UI stayed responsive in Phase 1 UAT)
 - Research suggested deferring FLT-09, EVT-07 and EVT-08 to v2, but REQUIREMENTS.md keeps them in v1 (mapped to Phases 2 and 4)
 - Event-loop gap under the 60 MB benchmark is 86-164 ms on the dev box (limit 250 ms): CI benchmark job may be flaky on slower runners; 01-09 ran on the dev-laptop ha-dev only (60 MB parse 2.8 s in-container), ha-host still unmeasured (RESEARCH A2)
 
@@ -135,6 +135,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-14T14:21:31.644Z
-Stopped at: Completed 01-11-PLAN.md
+Last session: 2026-10-15T08:59:30Z
+Stopped at: Phase 01 complete, ready to plan Phase 2
 Resume file: None

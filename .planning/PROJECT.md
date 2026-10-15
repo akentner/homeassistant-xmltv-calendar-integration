@@ -12,24 +12,23 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Multiple XMLTV sources can be configured (one config entry per source) — Phase 1
+- ✓ Each source can have multiple calendars (one config subentry per calendar), each with its own filters and one calendar entity — Phase 1
+- ✓ XMLTV source can be an HTTP(S) URL or a local file; gzip-compressed (`.xml.gz`) sources are supported — Phase 1
+- ✓ All calendars of a source share one download/parse (XMLTV files can be 50+ MB) — Phase 1
+- ✓ Filter by channel (channel list selectable from channels found in the XMLTV data) — Phase 1
+- ✓ Every matching XMLTV programme becomes one calendar event (no merging) — Phase 1
+- ✓ Event location = channel name — Phase 1
+- ✓ Calendar works with HA calendar triggers (automations) and the calendar dashboard/card — Phase 1
 
 ### Active
 
-- [ ] Multiple XMLTV sources can be configured (one config entry per source)
-- [ ] Each source can have multiple calendars (one config subentry per calendar), each with its own filters and one calendar entity
-- [ ] XMLTV source can be an HTTP(S) URL or a local file; gzip-compressed (`.xml.gz`) sources are supported
-- [ ] All calendars of a source share one download/parse (XMLTV files can be 50+ MB)
-- [ ] Refresh interval is configurable per source
-- [ ] Filter by channel (channel list selectable from channels found in the XMLTV data)
+- [ ] Refresh interval is configurable per source (set at creation since Phase 1; later editing in Phase 3)
 - [ ] Filter by include regex and exclude regex on title and description (flexible enough to precisely identify specific shows)
-- [ ] Every matching XMLTV programme becomes one calendar event (no merging)
-- [ ] Event location = channel name
 - [ ] Event title is configurable via template (e.g. `{channel}: {title}`); default includes the channel
 - [ ] Event description carries programme details (subtitle, description, category, episode where available)
 - [ ] Complete setup and later editing of all settings via Config Flow + Options Flow (no YAML)
-- [ ] Calendar works with HA calendar triggers (automations) and the calendar dashboard/card
-- [ ] Distributed as HACS repository (hacs.json, releases, CI with hassfest + HACS validation)
+- [ ] Distributed as HACS repository (hacs.json, releases, CI with hassfest + HACS validation) — custom-repo install + green CI since Phase 1; tagged releases in Phase 4
 
 ### Out of Scope
 
@@ -59,12 +58,12 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Source = config entry, calendar = config subentry | HA-native sharing of one download/parse per source (coordinator in runtime_data), no custom ref-counting; chosen after research (2026-10-12) | — Pending |
-| One calendar entity per subentry | Simple mental model: one filter set = one calendar | — Pending |
-| 1 programme = 1 event, no merging | Predictable; exclude regex handles noise | — Pending |
-| Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | — Pending |
+| Source = config entry, calendar = config subentry | HA-native sharing of one download/parse per source (coordinator in runtime_data), no custom ref-counting; chosen after research (2026-10-12) | ✓ Good — Phase 1 (UAT: independent per-source refresh, multiple calendars per source) |
+| One calendar entity per subentry | Simple mental model: one filter set = one calendar | ✓ Good — Phase 1 (entity_id stable across delete/re-add) |
+| 1 programme = 1 event, no merging | Predictable; exclude regex handles noise | ✓ Good — Phase 1 (exact duplicates collapsed, stable UIDs) |
+| Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | Partial — channel location + fixed `{channel}: {title}` in Phase 1; user templates in Phase 2 |
 | UI-only configuration | User preference, editable via Options Flow | — Pending |
-| HACS distribution | Standard install/update path | — Pending |
+| HACS distribution | Standard install/update path | ✓ Good — Phase 1 (HACS accepts custom repo, hassfest/HACS CI green) |
 
 ## Evolution
 
@@ -84,4 +83,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-12 after initialization (topology updated after research)*
+*Last updated: 2026-10-15 after Phase 1*
