@@ -4,10 +4,10 @@ current_phase: 02
 current_phase_name: Precise Filters & Preview
 status: executing
 stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-10-15T10:31:13.446Z"
+last_updated: "2026-10-15T10:31:34.253Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: 79c21e31ef03c0fbb65c621367633cdbd6e75e10
+state_head: 9e5c105fa785e898b7729821ccae4982caaacc88
 progress:
   total_phases: 4
   completed_phases: 1
@@ -112,6 +112,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-11: parse_xmltv_time accepts offsets up to +-18:00 and written years 1900..2200; everything else returns None (CR-01)
 - [Phase 01]: 01-11 (WR-06): _STREAM_ERRORS keeps LookupError/ValueError (Expat raises them at read time); scope narrowed to iterparse next() in _read_events
 - [Phase 01]: 01-11: multi-exception clauses use PEP 758 unparenthesized form because ruff format 0.17 (py314) rewrites the parenthesized form
+- [Phase 02]: 02-01: device rename uses async_get_device_by_identifier((DOMAIN, subentry_id), entry_id); async_get_device raises in HA 2026.10
+- [Phase 02]: 02-01: listener applies edited calendars in place over a copy of runtime.calendars (update listener calls run as concurrent tasks); the entity stores its (title, data) diff base before any await
+- [Phase 02]: 02-01: uncompilable stored pattern gives an empty index at entity creation; on an edit the previous spec and matches are kept and the bad data still becomes the diff base, so it is logged once
 
 ### Pending Todos
 
