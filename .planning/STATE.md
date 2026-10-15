@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Precise Filters & Preview
 status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-10-15T11:26:46.862Z"
+stopped_at: Completed 02-07-PLAN.md
+last_updated: "2026-10-15T11:35:41.904Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: a3895a90adac9ed6660289dc064af51bc3163c49
+state_head: 6afc3362fd7388f6ac1ca7e48244d1d966aa8d71
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 02 (Precise Filters & Preview) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 02 execution started
 
@@ -73,6 +73,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P04 | 6 min | 3 tasks | 6 files |
 | Phase 02 P05 | 4 min | 2 tasks | 8 files |
 | Phase 02 P06 | 6 min | 3 tasks | 8 files |
+| Phase 02 P07 | 6 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,10 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-06: Description edge cleanup keeps a leading dash/middle-dot bullet; strips whitespace and : , ; | / at the start and all separators at the end
 - [Phase 02]: 02-06: Template-only calendar edits rebuild EventTemplates and write state without a refilter
 - [Phase 02]: 02-06: TemplateError reasons exported as INVALID_TEMPLATE and UNKNOWN_PLACEHOLDER constants for the flow (02-07)
+- [Phase 02]: 02-07: the title template is stored stripped; blank title stores DEFAULT_TITLE_TEMPLATE, blank description stores '' (default description)
+- [Phase 02]: 02-07: a missing include_fields/exclude_fields key counts as an empty selection and is rejected with fields_required
+- [Phase 02]: 02-07: time_incomplete goes on the missing side; time_equal on To, duration_order on Maximum; after an error the advanced form suggests exactly the submitted input
+- [Phase 02]: 02-07: _load_pending sets self._show_advanced = False; 02-08 replaces that single assignment with has_advanced (D-03)
 
 ### Pending Todos
 
@@ -160,6 +165,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T11:26:31.353Z
-Stopped at: Completed 02-06-PLAN.md
+Last session: 2026-10-15T11:35:41.824Z
+Stopped at: Completed 02-07-PLAN.md
 Resume file: None

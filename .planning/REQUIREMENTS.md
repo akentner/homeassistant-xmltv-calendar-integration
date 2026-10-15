@@ -27,20 +27,20 @@
 - [x] **FLT-02**: User can select channels from a list built from the source's channels (empty = all channels)
 - [x] **FLT-03**: User can define include regex patterns (OR-combined); a programme matches only if an include pattern matches
 - [x] **FLT-04**: User can define exclude regex patterns; matching programmes are removed (match = channel AND include AND NOT exclude)
-- [ ] **FLT-05**: User can choose which fields include and exclude patterns apply to (title, sub-title, description, category), separately
-- [ ] **FLT-06**: Matching is case-insensitive by default with a case-sensitive toggle; umlauts match regardless of Unicode normalization
+- [x] **FLT-05**: User can choose which fields include and exclude patterns apply to (title, sub-title, description, category), separately
+- [x] **FLT-06**: Matching is case-insensitive by default with a case-sensitive toggle; umlauts match regardless of Unicode normalization
 - [x] **FLT-07**: Invalid regex patterns are rejected in the flow with the error shown; empty patterns are ignored
-- [ ] **FLT-08**: User can filter by minimum and maximum programme duration
-- [ ] **FLT-09**: User can filter by time window (time-of-day range, may cross midnight) and weekdays
-- [ ] **FLT-10**: User sees a filter preview in the flow (match count + next ~10 matches with channel and time) before saving
+- [x] **FLT-08**: User can filter by minimum and maximum programme duration
+- [x] **FLT-09**: User can filter by time window (time-of-day range, may cross midnight) and weekdays
+- [x] **FLT-10**: User sees a filter preview in the flow (match count + next ~10 matches with channel and time) before saving
 - [ ] **FLT-11**: User can edit all filters of an existing calendar (reconfigure) without re-downloading or re-parsing the source
 
 ### Events
 
 - [x] **EVT-01**: Each matching programme becomes exactly one calendar event (no merging); exact duplicates (same channel+start+title) are collapsed
 - [x] **EVT-02**: Event location is the channel display name
-- [ ] **EVT-03**: User can configure the event title via placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`); default `{channel}: {title}`; unknown placeholders rejected in flow
-- [ ] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template
+- [x] **EVT-03**: User can configure the event title via placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`); default `{channel}: {title}`; unknown placeholders rejected in flow
+- [x] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template
 - [x] **EVT-05**: Event start/end are correct and timezone-aware for all XMLTV timestamp variants; missing stop times are inferred
 - [x] **EVT-06**: Events have stable UIDs across refreshes
 - [ ] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
@@ -118,17 +118,17 @@
 | FLT-02 | Phase 1 | Complete |
 | FLT-03 | Phase 1 | Complete |
 | FLT-04 | Phase 1 | Complete |
-| FLT-05 | Phase 2 | Pending |
-| FLT-06 | Phase 2 | Pending |
+| FLT-05 | Phase 2 | Complete |
+| FLT-06 | Phase 2 | Complete |
 | FLT-07 | Phase 1 | Complete |
-| FLT-08 | Phase 2 | Pending |
-| FLT-09 | Phase 2 | Pending |
-| FLT-10 | Phase 2 | Pending |
+| FLT-08 | Phase 2 | Complete |
+| FLT-09 | Phase 2 | Complete |
+| FLT-10 | Phase 2 | Complete |
 | FLT-11 | Phase 2 | Pending |
 | EVT-01 | Phase 1 | Complete |
 | EVT-02 | Phase 1 | Complete |
-| EVT-03 | Phase 2 | Pending |
-| EVT-04 | Phase 2 | Pending |
+| EVT-03 | Phase 2 | Complete |
+| EVT-04 | Phase 2 | Complete |
 | EVT-05 | Phase 1 | Complete |
 | EVT-06 | Phase 1 | Complete |
 | EVT-07 | Phase 4 | Pending |
