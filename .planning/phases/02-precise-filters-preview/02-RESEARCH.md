@@ -788,16 +788,28 @@ The existing keys are kept as they are: [VERIFIED: translations/en.json] error `
 | A6 | An empty include/exclude field selection is rejected (`fields_required`) instead of meaning "default" | Code Examples (errors) | UX choice. Alternative: silently treat it as the default |
 | A7 | The cleanup separator set is `\s - – — : , ; \| · /` at the start/end of the rendered title | Pattern 8 | A real title starting or ending with one of these loses that character |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Is the window end inclusive?**
    - What we know: D-09 uses the start time, D-11 the anchor weekday. HA's time condition is `[after, before)`.
    - What's unclear: whether a programme starting exactly at `to` (e.g. 02:00 for 22:00–02:00) should match.
    - Recommendation: half-open (A2). State it in the field helper text ("start between from and before to"). Confirm with the user during plan review.
+   - **RESOLVED (user, A2):** half-open `[from, to)`. A start exactly at `from` matches, a start exactly at `to` does not. Implemented in 02-04 (`TimeWindow`, edge table "Sat 02:00 no"); the helper text in 02-07 reads "start time between from and before to".
 2. **Where does NFC normalization happen: parser or filter?**
    - Recommendation: in the parser (A4). Fallback: normalize per field inside `FilterSpec.apply` if the user wants to keep the parser untouched.
+   - **RESOLVED (user, A4):** in the parser, applied to `_text()` output only (titles, sub-titles, description, categories, episode, display names). Channel IDs are never normalized. Pattern lines are NFC-normalized in `compile_patterns`/`first_invalid_pattern`. Implemented in 02-02.
 3. **Should the preview count only from now, or report the total too?**
    - D-16 says "from now". Recommendation: count from now only.
+   - **RESOLVED (per recommendation, D-16):** the preview reports one count, the matches from now on: every match whose stop is after now, so a running programme counts and `stop == now` does not. No feed-wide total is shown. Implemented in 02-03 (`build_preview`, `PreviewResult.count`).
+
+**Assumptions A1–A7, as resolved for planning:**
+- A1 (stored key names): kept as listed, but gated by the blocking `checkpoint:decision` in 02-02 before any key is written (D-06 "costly").
+- A2: user resolution, see question 1.
+- A3 (preview weekday names): from `hass.config.language` (`de`, otherwise English), per recommendation. Implemented in 02-03.
+- A4: user resolution, see question 2.
+- A5 (Markdown/HTML in the preview): escaped anyway, per recommendation. Implemented in 02-03 (`escape_markdown`).
+- A6 (empty include/exclude field selection): user resolution: rejected in the flow with `fields_required`, never treated as "default". Implemented in 02-07.
+- A7 (cleanup separator set): whitespace plus `- – — : , ; | · /` at the start and end of the rendered text, per recommendation (D-22 discretion). Implemented in 02-06.
 
 ## Environment Availability
 

@@ -76,7 +76,7 @@ Plans:
   4. User sets the event title via a placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`) and can optionally set a description template. Unknown placeholders are rejected in the flow. Without a description template, events show sub-title, episode, categories and description.
   5. User reconfigures all filters and templates of an existing calendar and sees the updated events without a re-download or re-parse, and without reloading the source's other calendars.
 
-**Plans**: 7 plans
+**Plans**: 8 plans
 
 Plans:
 **Wave 1**
@@ -92,7 +92,10 @@ Plans:
 - [ ] 02-06-PLAN.md — TDD: title/description templates, default description, preview titles via templates (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 02-07-PLAN.md — Advanced options step with validation, D-03 checkbox behaviour, translations, UAT walkthrough (wave 4)
+- [ ] 02-07-PLAN.md — Advanced options step (fields, case, window, weekdays, durations, templates) with validation and translations (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 02-08-PLAN.md — Edit-flow D-03 checkbox pre-check, Back with advanced values, form pattern safety, placeholder audit, UAT walkthrough (wave 5)
 
 **UI hint**: yes
 **Notes**: Introduce the single diffing update listener: subentry add/edit/remove updates entities in place, and only changes to source data/options trigger a reload. Subentry reconfigure ends via `async_update_and_abort`. Rendering uses a restricted `str.format_map` (no Jinja, no `.`/`[` in fields, missing values become empty). Normalize text (NFC) before matching, and validate patterns with ReDoS in mind. Research flags: subentry reconfigure/helper APIs, preview rendering inside a flow step.
@@ -137,6 +140,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
-| 2. Precise Filters & Preview | 0/7 | Planned | - |
+| 2. Precise Filters & Preview | 0/8 | Planned | - |
 | 3. Resilient Sources | 0/TBD | Not started | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |
