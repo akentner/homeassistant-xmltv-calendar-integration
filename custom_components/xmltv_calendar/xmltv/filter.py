@@ -3,6 +3,7 @@
 import re
 import unicodedata
 from dataclasses import dataclass
+from datetime import UTC, timedelta
 from typing import TYPE_CHECKING
 
 # The stored keys are owned by settings.py; KEY_* stay importable from here for const.py
@@ -19,11 +20,16 @@ from .settings import (
     KEY_EXCLUDE_FIELDS,
     KEY_INCLUDE,
     KEY_INCLUDE_FIELDS,
+    KEY_TIME_FROM,
+    KEY_TIME_TO,
+    KEY_WEEKDAYS,
+    WEEKDAYS,
     with_defaults,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
+    from datetime import date, datetime, tzinfo
 
     from .model import EpgData, Programme
 
@@ -48,6 +54,48 @@ class FilterResult:
 
     matches: tuple[Programme, ...]
     missing_channels: frozenset[str] = frozenset()
+
+
+def _minute_of_day(value: str) -> int:
+    """Return the minutes after midnight of a stored "HH:MM" value."""
+    hours, minutes = value.split(":")
+    return int(hours) * 60 + int(minutes)
+
+
+@dataclass(frozen=True, slots=True)
+class TimeWindow:
+    """
+    Half-open local time-of-day window [start, end) in minutes after midnight; start > end crosses midnight (D-09).
+
+    Same semantics as Home Assistant's time condition: a start exactly at `end` is outside (user resolution A2).
+    """
+
+    start: int
+    end: int
+
+    @classmethod
+    def from_times(cls, time_from: str | None, time_to: str | None) -> TimeWindow | None:
+        """Build the window from stored "HH:MM" bounds; one missing bound or equal bounds mean no window (D-12)."""
+        if time_from is None or time_to is None:
+            return None
+        start, end = _minute_of_day(time_from), _minute_of_day(time_to)
+        return cls(start, end) if start != end else None
+
+    def anchor_date(self, local: datetime) -> date | None:
+        """
+        Return the date the window containing `local` opened on, or None when `local` is outside the window.
+
+        The after-midnight part of a crossing window belongs to the previous day, so a "Friday 22:00-02:00" window
+        also matches Saturday 01:00 (D-11).
+        """
+        minute = local.hour * 60 + local.minute
+        if self.start < self.end:
+            return local.date() if self.start <= minute < self.end else None
+        if minute >= self.start:
+            return local.date()
+        if minute < self.end:
+            return local.date() - timedelta(days=1)
+        return None
 
 
 def _lines(text: str) -> list[str]:
@@ -111,6 +159,8 @@ class FilterSpec:
     exclude: tuple[re.Pattern[str], ...] = ()
     include_fields: frozenset[str] = _DEFAULT_FIELDS
     exclude_fields: frozenset[str] = _DEFAULT_FIELDS
+    window: TimeWindow | None = None
+    weekdays: frozenset[int] = frozenset()  # datetime.weekday() values; empty = every day
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> FilterSpec:
@@ -125,6 +175,8 @@ class FilterSpec:
             exclude=compile_patterns(settings[KEY_EXCLUDE], case_sensitive=case_sensitive),
             include_fields=frozenset(settings[KEY_INCLUDE_FIELDS]),
             exclude_fields=frozenset(settings[KEY_EXCLUDE_FIELDS]),
+            window=TimeWindow.from_times(settings[KEY_TIME_FROM], settings[KEY_TIME_TO]),
+            weekdays=frozenset(WEEKDAYS.index(name) for name in settings[KEY_WEEKDAYS]),
         )
 
     def _channel_selected(self, channel_id: str) -> bool:
@@ -133,20 +185,34 @@ class FilterSpec:
             return True
         return channel_id in self.channels or any(pattern.search(channel_id) for pattern in self.channel_patterns)
 
+    def _time_matches(self, programme: Programme, tz: tzinfo) -> bool:
+        """Check the start time against the window and the weekdays in `tz`; the window's opening day is the weekday."""
+        local = programme.start.astimezone(tz)
+        day = self.window.anchor_date(local) if self.window is not None else local.date()
+        return day is not None and (not self.weekdays or day.weekday() in self.weekdays)
+
     def _text_matches(self, programme: Programme) -> bool:
         if self.include and not _any_match(self.include, _field_values(programme, self.include_fields)):
             return False
         return not (self.exclude and _any_match(self.exclude, _field_values(programme, self.exclude_fields)))
 
-    def apply(self, epg: EpgData) -> FilterResult:
-        """Return the matching programmes, each at most once, plus selected IDs the feed lacks (D-04)."""
+    def apply(self, epg: EpgData, *, tz: tzinfo = UTC) -> FilterResult:
+        """
+        Return the matching programmes in feed order, each at most once, plus selected IDs the feed lacks (D-04).
+
+        Window and weekdays are evaluated in `tz`, Home Assistant's time zone for the entity and the preview (D-10).
+        Checks run cheapest first and every one must pass (D-14).
+        """
         selected: dict[str, bool] = {}
         matches: list[Programme] = []
+        timed = self.window is not None or bool(self.weekdays)
         for programme in epg.programmes:
             channel_ok = selected.get(programme.channel_id)
             if channel_ok is None:
                 channel_ok = selected[programme.channel_id] = self._channel_selected(programme.channel_id)
-            if channel_ok and self._text_matches(programme):
+            if not channel_ok or (timed and not self._time_matches(programme, tz)):
+                continue
+            if self._text_matches(programme):
                 matches.append(programme)
         missing = self.channels - epg.channels.keys() - selected.keys()
         return FilterResult(matches=tuple(matches), missing_channels=frozenset(missing))

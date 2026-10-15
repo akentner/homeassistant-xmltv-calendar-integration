@@ -63,7 +63,9 @@ def build_preview(  # noqa: PLR0913, PLR0917 - positional for async_add_executor
     limit: int = PREVIEW_LIMIT,
 ) -> PreviewResult:
     """Count the calendar's matches with stop > now (airing included, D-16) and format the first `limit`."""
-    upcoming = [programme for programme in FilterSpec.from_mapping(data).apply(epg).matches if programme.stop > now]
+    # Same filter and time zone as the calendar entity, so the preview shows what the calendar will show
+    matches = FilterSpec.from_mapping(data).apply(epg, tz=tz).matches
+    upcoming = [programme for programme in matches if programme.stop > now]
     lines: list[str] = []
     for programme in upcoming[:limit]:
         channel = epg.channels.get(programme.channel_id)

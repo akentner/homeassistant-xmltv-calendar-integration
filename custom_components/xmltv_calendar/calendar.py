@@ -2,6 +2,7 @@
 
 import logging
 import re
+from functools import partial
 from typing import TYPE_CHECKING, override
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
@@ -134,7 +135,10 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             self._index = MatchIndex(())
             self.async_write_ha_state()
             return
-        result = await self.hass.async_add_executor_job(self._spec.apply, epg)
+        # Window and weekdays use Home Assistant's configured time zone (D-10); the executor helper takes no kwargs
+        result = await self.hass.async_add_executor_job(
+            partial(self._spec.apply, epg, tz=dt_util.get_default_time_zone())
+        )
         if generation != self._generation:
             return
         self._epg = epg
