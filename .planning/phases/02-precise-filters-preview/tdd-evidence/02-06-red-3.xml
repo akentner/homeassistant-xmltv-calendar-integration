@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="49" time="0.682" timestamp="2026-10-15T13:23:50.091196+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.xmltv.test_render" name="test_uid_format_and_stability" time="0.101" /><testcase classname="tests.xmltv.test_render" name="test_uid_differs_for_different_titles" time="0.006" /><testcase classname="tests.xmltv.test_render" name="test_summary_and_location_unchanged" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{channel}: {title}-programme0-Das Erste: Tatort]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{channel}: {title}-programme1-x.de: Nachrichten]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{title} \u2013 {subtitle}-programme2-Tatort \u2013 Der Fall]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{title} \u2013 {subtitle}-programme3-Tagesschau]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{title} ({episode})-programme4-Tatort (1.4.)]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{category}: {title}-programme5-Tagesschau]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{category}: {title}-programme6-Krimi, Reihe: Tatort]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{channel_id} | {title}-programme7-daserste.de | Tatort]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[  {title}   {subtitle}  -programme8-Tatort Der Fall]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{subtitle}-programme9-Tagesschau]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_title_rendering[{{{title}}}-programme10-{Tatort}]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{foo}-unknown_placeholder-{foo}]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{title.__class__}-unknown_placeholder-{title.__class__}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{title[0]}-unknown_placeholder-{title[0]}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{}-unknown_placeholder-{}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{0}-unknown_placeholder-{0}]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{title:&gt;9}-unknown_placeholder-{title}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{title!r}-unknown_placeholder-{title}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{title:{channel}}-unknown_placeholder-{title}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{description}-unknown_placeholder-{description}]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[{title-invalid_template-None]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_template_error_reasons[title}-invalid_template-None]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_description_placeholder_allowed_in_description_fields" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_feed_text_with_braces_renders_literally" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_uid_ignores_templates" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_default_templates_reproduce_phase1_summary" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_default_description_layout" time="0.005"><failure message="AssertionError: assert 'Kommissarin ermittelt.' == 'Der Fall\nEp...in ermittelt.'&#10;  &#10;  - Der Fall&#10;  - Episode: 1.4.&#10;  - Categories: Krimi, Reihe&#10;  - &#10;    Kommissarin ermittelt.">def test_default_description_layout() -&gt; None:
+&gt;       assert _description(R1) == "Der Fall\nEpisode: 1.4.\nCategories: Krimi, Reihe\n\nKommissarin ermittelt."
+E       AssertionError: assert 'Kommissarin ermittelt.' == 'Der Fall\nEp...in ermittelt.'
+E         
+E         - Der Fall
+E         - Episode: 1.4.
+E         - Categories: Krimi, Reihe
+E         - 
+E           Kommissarin ermittelt.
+
+tests/xmltv/test_render.py:209: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_default_description_drops_empty_lines[programme0-None]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_default_description_drops_empty_lines[programme1-Nur Text.]" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_default_description_drops_empty_lines[programme2-Categories: A]" time="0.004"><failure message="AssertionError: assert None == 'Categories: A'&#10; +  where None = _description(Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...zinfo=datetime.timezone.utc), titles=('Tagesschau',), sub_titles=(), description=None, categories=('A',), episode=None))">programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...zinfo=datetime.timezone.utc), titles=('Tagesschau',), sub_titles=(), description=None, categories=('A',), episode=None)
+expected = 'Categories: A'
+
+    @pytest.mark.parametrize(
+        ("programme", "expected"),
+        [
+            (R2, None),
+            (_with(description="Nur Text."), "Nur Text."),
+            (_with(categories=("A",)), "Categories: A"),
+            (_with(episode="S01E04"), "Episode: S01E04"),
+            (_with(sub_titles=("Teil 1",), description="Text."), "Teil 1\n\nText."),
+        ],
+    )
+    def test_default_description_drops_empty_lines(programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme) == expected
+E       AssertionError: assert None == 'Categories: A'
+E        +  where None = _description(Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...zinfo=datetime.timezone.utc), titles=('Tagesschau',), sub_titles=(), description=None, categories=('A',), episode=None))
+
+tests/xmltv/test_render.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_default_description_drops_empty_lines[programme3-Episode: S01E04]" time="0.005"><failure message="AssertionError: assert None == 'Episode: S01E04'&#10; +  where None = _description(Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...zinfo=datetime.timezone.utc), titles=('Tagesschau',), sub_titles=(), description=None, categories=(), episode='S01E04'))">programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...zinfo=datetime.timezone.utc), titles=('Tagesschau',), sub_titles=(), description=None, categories=(), episode='S01E04')
+expected = 'Episode: S01E04'
+
+    @pytest.mark.parametrize(
+        ("programme", "expected"),
+        [
+            (R2, None),
+            (_with(description="Nur Text."), "Nur Text."),
+            (_with(categories=("A",)), "Categories: A"),
+            (_with(episode="S01E04"), "Episode: S01E04"),
+            (_with(sub_titles=("Teil 1",), description="Text."), "Teil 1\n\nText."),
+        ],
+    )
+    def test_default_description_drops_empty_lines(programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme) == expected
+E       AssertionError: assert None == 'Episode: S01E04'
+E        +  where None = _description(Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...zinfo=datetime.timezone.utc), titles=('Tagesschau',), sub_titles=(), description=None, categories=(), episode='S01E04'))
+
+tests/xmltv/test_render.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_default_description_drops_empty_lines[programme4-Teil 1\n\nText.]" time="0.005"><failure message="AssertionError: assert 'Text.' == 'Teil 1\n\nText.'&#10;  &#10;  - Teil 1&#10;  - &#10;    Text.">programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...tetime.timezone.utc), titles=('Tagesschau',), sub_titles=('Teil 1',), description='Text.', categories=(), episode=None)
+expected = 'Teil 1\n\nText.'
+
+    @pytest.mark.parametrize(
+        ("programme", "expected"),
+        [
+            (R2, None),
+            (_with(description="Nur Text."), "Nur Text."),
+            (_with(categories=("A",)), "Categories: A"),
+            (_with(episode="S01E04"), "Episode: S01E04"),
+            (_with(sub_titles=("Teil 1",), description="Text."), "Teil 1\n\nText."),
+        ],
+    )
+    def test_default_description_drops_empty_lines(programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme) == expected
+E       AssertionError: assert 'Text.' == 'Teil 1\n\nText.'
+E         
+E         - Teil 1
+E         - 
+E           Text.
+
+tests/xmltv/test_render.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_default_description_helper" time="0.004"><failure message="AttributeError: module 'custom_components.xmltv_calendar.xmltv.render' has no attribute 'default_description'">def test_default_description_helper() -&gt; None:
+&gt;       assert render.default_description(R1) == _description(R1)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'custom_components.xmltv_calendar.xmltv.render' has no attribute 'default_description'
+
+tests/xmltv/test_render.py:227: AttributeError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_description_template[{description}\n\n{category}-programme0-Kommissarin ermittelt.\n\nKrimi, Reihe]" time="0.005"><failure message="AssertionError: assert 'Kommissarin ermittelt.' == 'Kommissarin ...nKrimi, Reihe'&#10;  &#10;  - Kommissarin ermittelt.&#10;  ?                       -&#10;  + Kommissarin ermittelt.&#10;  - &#10;  - Krimi, Reihe">template = '{description}\n\n{category}'
+programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...sub_titles=('Der Fall', 'Teil 2'), description='Kommissarin ermittelt.', categories=('Krimi', 'Reihe'), episode='1.4.')
+expected = 'Kommissarin ermittelt.\n\nKrimi, Reihe'
+
+    @pytest.mark.parametrize(
+        ("template", "programme", "expected"),
+        [
+            ("{description}\n\n{category}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
+            ("{description}\n\n{category}", R2, None),
+            ("- {subtitle}\n- {episode}", R1, "- Der Fall\n- 1.4."),
+            ("- {subtitle}\n- {episode}", R2, None),
+            ("{title}   {subtitle}\n\n\n\n{description}", R1, "Tatort Der Fall\n\nKommissarin ermittelt."),
+            ("{episode}: {description}", R2, None),
+            ("{channel}: {title}", R1, "Das Erste: Tatort"),
+        ],
+    )
+    def test_description_template(template: str, programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme, {KEY_DESCRIPTION_TEMPLATE: template}) == expected
+E       AssertionError: assert 'Kommissarin ermittelt.' == 'Kommissarin ...nKrimi, Reihe'
+E         
+E         - Kommissarin ermittelt.
+E         ?                       -
+E         + Kommissarin ermittelt.
+E         - 
+E         - Krimi, Reihe
+
+tests/xmltv/test_render.py:244: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_description_template[{description}\n\n{category}-programme1-None]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_description_template[- {subtitle}\n- {episode}-programme2-- Der Fall\n- 1.4.]" time="0.005"><failure message="AssertionError: assert 'Kommissarin ermittelt.' == '- Der Fall\n- 1.4.'&#10;  &#10;  + Kommissarin ermittelt.&#10;  - - Der Fall&#10;  - - 1.4.">template = '- {subtitle}\n- {episode}'
+programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...sub_titles=('Der Fall', 'Teil 2'), description='Kommissarin ermittelt.', categories=('Krimi', 'Reihe'), episode='1.4.')
+expected = '- Der Fall\n- 1.4.'
+
+    @pytest.mark.parametrize(
+        ("template", "programme", "expected"),
+        [
+            ("{description}\n\n{category}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
+            ("{description}\n\n{category}", R2, None),
+            ("- {subtitle}\n- {episode}", R1, "- Der Fall\n- 1.4."),
+            ("- {subtitle}\n- {episode}", R2, None),
+            ("{title}   {subtitle}\n\n\n\n{description}", R1, "Tatort Der Fall\n\nKommissarin ermittelt."),
+            ("{episode}: {description}", R2, None),
+            ("{channel}: {title}", R1, "Das Erste: Tatort"),
+        ],
+    )
+    def test_description_template(template: str, programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme, {KEY_DESCRIPTION_TEMPLATE: template}) == expected
+E       AssertionError: assert 'Kommissarin ermittelt.' == '- Der Fall\n- 1.4.'
+E         
+E         + Kommissarin ermittelt.
+E         - - Der Fall
+E         - - 1.4.
+
+tests/xmltv/test_render.py:244: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_description_template[- {subtitle}\n- {episode}-programme3-None]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_description_template[{title}   {subtitle}\n\n\n\n{description}-programme4-Tatort Der Fall\n\nKommissarin ermittelt.]" time="0.005"><failure message="AssertionError: assert 'Kommissarin ermittelt.' == 'Tatort Der F...in ermittelt.'&#10;  &#10;  - Tatort Der Fall&#10;  - &#10;    Kommissarin ermittelt.">template = '{title}   {subtitle}\n\n\n\n{description}'
+programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...sub_titles=('Der Fall', 'Teil 2'), description='Kommissarin ermittelt.', categories=('Krimi', 'Reihe'), episode='1.4.')
+expected = 'Tatort Der Fall\n\nKommissarin ermittelt.'
+
+    @pytest.mark.parametrize(
+        ("template", "programme", "expected"),
+        [
+            ("{description}\n\n{category}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
+            ("{description}\n\n{category}", R2, None),
+            ("- {subtitle}\n- {episode}", R1, "- Der Fall\n- 1.4."),
+            ("- {subtitle}\n- {episode}", R2, None),
+            ("{title}   {subtitle}\n\n\n\n{description}", R1, "Tatort Der Fall\n\nKommissarin ermittelt."),
+            ("{episode}: {description}", R2, None),
+            ("{channel}: {title}", R1, "Das Erste: Tatort"),
+        ],
+    )
+    def test_description_template(template: str, programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme, {KEY_DESCRIPTION_TEMPLATE: template}) == expected
+E       AssertionError: assert 'Kommissarin ermittelt.' == 'Tatort Der F...in ermittelt.'
+E         
+E         - Tatort Der Fall
+E         - 
+E           Kommissarin ermittelt.
+
+tests/xmltv/test_render.py:244: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_description_template[{episode}: {description}-programme5-None]" time="0.005" /><testcase classname="tests.xmltv.test_render" name="test_description_template[{channel}: {title}-programme6-Das Erste: Tatort]" time="0.005"><failure message="AssertionError: assert 'Kommissarin ermittelt.' == 'Das Erste: Tatort'&#10;  &#10;  - Das Erste: Tatort&#10;  + Kommissarin ermittelt.">template = '{channel}: {title}'
+programme = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 18, 0, tzinfo=datetime.timezone.utc), stop=d...sub_titles=('Der Fall', 'Teil 2'), description='Kommissarin ermittelt.', categories=('Krimi', 'Reihe'), episode='1.4.')
+expected = 'Das Erste: Tatort'
+
+    @pytest.mark.parametrize(
+        ("template", "programme", "expected"),
+        [
+            ("{description}\n\n{category}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
+            ("{description}\n\n{category}", R2, None),
+            ("- {subtitle}\n- {episode}", R1, "- Der Fall\n- 1.4."),
+            ("- {subtitle}\n- {episode}", R2, None),
+            ("{title}   {subtitle}\n\n\n\n{description}", R1, "Tatort Der Fall\n\nKommissarin ermittelt."),
+            ("{episode}: {description}", R2, None),
+            ("{channel}: {title}", R1, "Das Erste: Tatort"),
+        ],
+    )
+    def test_description_template(template: str, programme: Programme, expected: str | None) -&gt; None:
+&gt;       assert _description(programme, {KEY_DESCRIPTION_TEMPLATE: template}) == expected
+E       AssertionError: assert 'Kommissarin ermittelt.' == 'Das Erste: Tatort'
+E         
+E         - Das Erste: Tatort
+E         + Kommissarin ermittelt.
+
+tests/xmltv/test_render.py:244: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_render" name="test_description_template_strips_dangling_leading_punctuation" time="0.004" /><testcase classname="tests.xmltv.test_render" name="test_broken_stored_template_falls_back" time="0.005"><failure message="assert 0 == 1&#10; +  where 0 = len([])">caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7f1768713cb0&gt;
+
+    def test_broken_stored_template_falls_back(caplog: pytest.LogCaptureFixture) -&gt; None:
+        with caplog.at_level(logging.WARNING):
+            templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{title.__class__}"})
+        warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert "title" in warnings[0].getMessage()
+        assert "__class__" not in warnings[0].getMessage()
+        assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+    
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            templates = EventTemplates.from_mapping({KEY_DESCRIPTION_TEMPLATE: "{foo"})
+&gt;       assert len([record for record in caplog.records if record.levelno == logging.WARNING]) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/xmltv/test_render.py:263: AssertionError</failure></testcase><testcase classname="tests.test_templates" name="test_title_template_end_to_end" time="0.080" /><testcase classname="tests.test_templates" name="test_template_edit_applies_in_place" time="0.046" /><testcase classname="tests.test_templates" name="test_default_description_end_to_end" time="0.042"><failure message="AssertionError: assert 'Kommissarin ermittelt.' == 'Der Fall\nEp...in ermittelt.'&#10;  &#10;  - Der Fall&#10;  - Episode: S01E04&#10;  - Categories: Krimi, Reihe&#10;  - &#10;    Kommissarin ermittelt.">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f1756e69380&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f1756e2d950&gt;
+
+    async def test_default_description_end_to_end(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        await setup_xmltv(DETAILED, calendars=(("Krimi", {}),))
+    
+        (event,) = await _events(hass, "calendar.krimi")
+        assert event["summary"] == "Das Erste: Tatort"
+&gt;       assert event["description"] == "Der Fall\nEpisode: S01E04\nCategories: Krimi, Reihe\n\nKommissarin ermittelt."
+E       AssertionError: assert 'Kommissarin ermittelt.' == 'Der Fall\nEp...in ermittelt.'
+E         
+E         - Der Fall
+E         - Episode: S01E04
+E         - Categories: Krimi, Reihe
+E         - 
+E           Kommissarin ermittelt.
+
+tests/test_templates.py:96: AssertionError</failure></testcase><testcase classname="tests.test_templates" name="test_description_template_end_to_end" time="0.047" /></testsuite></testsuites>

@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from custom_components.xmltv_calendar.xmltv.settings import KEY_CHANNELS, KEY_TITLE_TEMPLATE
+from custom_components.xmltv_calendar.xmltv.settings import KEY_CHANNELS, KEY_DESCRIPTION_TEMPLATE, KEY_TITLE_TEMPLATE
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -14,6 +14,19 @@ if TYPE_CHECKING:
 
 FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 NOW = "2026-10-13T06:00:00+00:00"
+DETAILED = b"""<?xml version="1.0" encoding="UTF-8"?>
+<tv>
+  <channel id="daserste.de"><display-name>Das Erste</display-name></channel>
+  <programme channel="daserste.de" start="20261013201500 +0200" stop="20261013214500 +0200">
+    <title>Tatort</title>
+    <sub-title>Der Fall</sub-title>
+    <desc>Kommissarin ermittelt.</desc>
+    <category>Krimi</category>
+    <category>Reihe</category>
+    <episode-num system="onscreen">S01E04</episode-num>
+  </programme>
+</tv>
+"""
 
 
 async def _events(hass: HomeAssistant, entity_id: str) -> list[dict[str, Any]]:
@@ -68,3 +81,28 @@ async def test_template_edit_applies_in_place(
         "Tagesschau (Das Erste)",
     ]
     assert aioclient_mock.call_count == calls
+
+
+async def test_default_description_end_to_end(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_xmltv(DETAILED, calendars=(("Krimi", {}),))
+
+    (event,) = await _events(hass, "calendar.krimi")
+    assert event["summary"] == "Das Erste: Tatort"
+    assert event["description"] == "Der Fall\nEpisode: S01E04\nCategories: Krimi, Reihe\n\nKommissarin ermittelt."
+
+
+async def test_description_template_end_to_end(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_xmltv(DETAILED, calendars=(("Krimi", {KEY_DESCRIPTION_TEMPLATE: "{description}"}),))
+
+    (event,) = await _events(hass, "calendar.krimi")
+    assert event["description"] == "Kommissarin ermittelt."

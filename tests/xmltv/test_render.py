@@ -1,12 +1,15 @@
-"""Event rendering: stable UIDs (EVT-06) and title templates (EVT-03)."""
+"""Event rendering: stable UIDs (EVT-06), title templates (EVT-03) and descriptions (EVT-04)."""
 
+import dataclasses
 import io
+import logging
 import zlib
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
+from custom_components.xmltv_calendar.xmltv import render
 from custom_components.xmltv_calendar.xmltv.model import Channel, Programme
 from custom_components.xmltv_calendar.xmltv.parser import parse
 from custom_components.xmltv_calendar.xmltv.render import (
@@ -20,6 +23,7 @@ from custom_components.xmltv_calendar.xmltv.render import (
     compile_template,
     to_event_fields,
 )
+from custom_components.xmltv_calendar.xmltv.settings import KEY_DESCRIPTION_TEMPLATE, KEY_TITLE_TEMPLATE
 
 CEST = timezone(timedelta(hours=2))
 CHANNEL = Channel(id="daserste.de", display_name="Das Erste")
@@ -187,3 +191,74 @@ def test_default_templates_reproduce_phase1_summary() -> None:
         fields = to_event_fields(programme, channel)
         assert fields["summary"] == f"{channel.display_name}: {programme.title}"
         assert fields == to_event_fields(programme, channel, DEFAULT_TEMPLATES)
+
+
+# --- Descriptions (EVT-04, D-23) -----------------------------------------------------------------------------------
+
+
+def _with(**changes: object) -> Programme:
+    return dataclasses.replace(R2, **changes)
+
+
+def _description(programme: Programme, data: dict[str, object] | None = None) -> str | None:
+    templates = EventTemplates.from_mapping(data) if data is not None else DEFAULT_TEMPLATES
+    return to_event_fields(programme, CHANNEL, templates)["description"]
+
+
+def test_default_description_layout() -> None:
+    assert _description(R1) == "Der Fall\nEpisode: 1.4.\nCategories: Krimi, Reihe\n\nKommissarin ermittelt."
+
+
+@pytest.mark.parametrize(
+    ("programme", "expected"),
+    [
+        (R2, None),
+        (_with(description="Nur Text."), "Nur Text."),
+        (_with(categories=("A",)), "Categories: A"),
+        (_with(episode="S01E04"), "Episode: S01E04"),
+        (_with(sub_titles=("Teil 1",), description="Text."), "Teil 1\n\nText."),
+    ],
+)
+def test_default_description_drops_empty_lines(programme: Programme, expected: str | None) -> None:
+    assert _description(programme) == expected
+
+
+def test_default_description_helper() -> None:
+    assert render.default_description(R1) == _description(R1)
+    assert render.default_description(R2) is None
+
+
+@pytest.mark.parametrize(
+    ("template", "programme", "expected"),
+    [
+        ("{description}\n\n{category}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
+        ("{description}\n\n{category}", R2, None),
+        ("- {subtitle}\n- {episode}", R1, "- Der Fall\n- 1.4."),
+        ("- {subtitle}\n- {episode}", R2, None),
+        ("{title}   {subtitle}\n\n\n\n{description}", R1, "Tatort Der Fall\n\nKommissarin ermittelt."),
+        ("{episode}: {description}", R2, None),
+        ("{channel}: {title}", R1, "Das Erste: Tatort"),
+    ],
+)
+def test_description_template(template: str, programme: Programme, expected: str | None) -> None:
+    assert _description(programme, {KEY_DESCRIPTION_TEMPLATE: template}) == expected
+
+
+def test_description_template_strips_dangling_leading_punctuation() -> None:
+    assert _description(_with(description="Text."), {KEY_DESCRIPTION_TEMPLATE: "{episode}: {description}"}) == "Text."
+
+
+def test_broken_stored_template_falls_back(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{title.__class__}"})
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "title" in warnings[0].getMessage()
+    assert "__class__" not in warnings[0].getMessage()
+    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        templates = EventTemplates.from_mapping({KEY_DESCRIPTION_TEMPLATE: "{foo"})
+    assert len([record for record in caplog.records if record.levelno == logging.WARNING]) == 1
+    assert to_event_fields(R1, CHANNEL, templates)["description"] == render.default_description(R1)
