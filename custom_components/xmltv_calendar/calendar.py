@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, override
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -151,14 +152,31 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         return (subentry.title, subentry.data) != (self._subentry_title, self._subentry_data)
 
     async def async_apply_subentry(self, subentry: ConfigSubentry) -> None:
-        """Apply an edited calendar subentry in place: rebuild the filter and re-filter the current data (D-04)."""
-        # Store the new diff base before awaiting, so a concurrent listener call sees this edit as applied
-        self._spec = _build_spec(subentry.data, self.entity_id or subentry.title)
-        self._subentry_title = subentry.title
+        """Apply an edited calendar subentry in place: rename the device, rebuild the filter and re-filter (D-04)."""
+        refilter = False
+        if subentry.data != self._subentry_data:
+            spec = _build_spec(subentry.data, self.entity_id or subentry.title)
+            if spec is not None:  # an uncompilable stored pattern keeps the previous filter and matches (T-02-01)
+                self._spec = spec
+                refilter = True
+        # Store the new diff base before awaiting, so a concurrent listener call sees this edit as applied and the
+        # same corrupt data is not retried and re-logged on every later listener call
         self._subentry_data = subentry.data
-        if self.hass is None:  # not added yet: async_added_to_hass filters with the stored settings (Pitfall 10)
-            return
-        await self._async_refilter()
+        if subentry.title != self._subentry_title:
+            self._subentry_title = subentry.title
+            self._attr_device_info = DeviceInfo(
+                identifiers={(DOMAIN, self._subentry_id)},
+                name=subentry.title,
+                entry_type=DeviceEntryType.SERVICE,
+            )
+            if self.hass is not None:
+                # The friendly name follows the device name by itself; the entity_id stays the same
+                registry = dr.async_get(self.hass)
+                device = registry.async_get_device_by_identifier((DOMAIN, self._subentry_id), self._entry.entry_id)
+                if device is not None:
+                    registry.async_update_device(device.id, name=subentry.title)
+        if refilter and self.hass is not None:  # not added yet: async_added_to_hass filters (Pitfall 10)
+            await self._async_refilter()
 
     @property
     @override

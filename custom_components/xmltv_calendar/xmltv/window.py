@@ -29,16 +29,23 @@ class MatchIndex:
         """Return the number of indexed matches."""
         return len(self._programmes)
 
+    def _lower(self, t: datetime) -> int:
+        """Return the first index whose start is at or after `t` - max_duration; times near datetime.min clamp to 0."""
+        try:
+            return bisect_left(self._starts, t - self._max_duration)
+        except OverflowError:  # t - max_duration is below datetime.min (IN-14)
+            return 0
+
     def overlapping(self, start: datetime, end: datetime) -> list[Programme]:
         """Return matches with start < `end` and stop >= `start` (end-inclusive), sorted by start."""
         # Every candidate starts at or after start - max_duration, so only that slice is scanned
-        lo = bisect_left(self._starts, start - self._max_duration)
+        lo = self._lower(start)
         hi = bisect_left(self._starts, end)
         return [p for p in self._programmes[lo:hi] if p.stop >= start]
 
     def current_or_next(self, now: datetime) -> Programme | None:
         """Return the earliest-start match whose stop is after `now` (airing, else the next one)."""
-        for i in range(bisect_left(self._starts, now - self._max_duration), len(self._programmes)):
+        for i in range(self._lower(now), len(self._programmes)):
             if (programme := self._programmes[i]).stop > now:
                 return programme
         return None
