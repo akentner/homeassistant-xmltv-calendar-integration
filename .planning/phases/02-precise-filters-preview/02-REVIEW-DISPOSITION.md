@@ -5,19 +5,19 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Basic step brings cleared fields back after a validation error (carried forward, still open)"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Missing `reconfigure_successful` abort translation for the calendar edit flow, now in en and de (carried forward, still open)"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: deferred
     title: "Nested-repetition guard rejects harmless fixed-count repeats (carried forward, still open)"
   - id: WR-04
     severity: warning
-    disposition: open
+    disposition: deferred
     title: "Several invalid fields share one error placeholder (carried forward, still open)"
   - id: WR-05
     severity: warning
@@ -67,7 +67,7 @@ findings:
     severity: critical
     disposition: fixed
     title: "`OverflowError` from `re.compile` escapes pattern validation and crashes the flow (and entity setup)"
-open: 13
+open: 9
 total: 16
 recorded: 2026-10-15T19:34:50.076Z
 ---
@@ -76,10 +76,10 @@ recorded: 2026-10-15T19:34:50.076Z
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
-| WR-04 | warning | open | - |
+| WR-01 | warning | fixed | quick 261016-1ox (03c2f9b) |
+| WR-02 | warning | fixed | quick 261016-1ox (03c2f9b) |
+| WR-03 | warning | deferred | Over-rejection of harmless fixed-count repeats such as (\d{2}:)+; fails in the safe direction (pattern refused, never slow); revisit when a real feed pattern needs it |
+| WR-04 | warning | deferred | Cosmetic, only when several pattern fields are invalid in one submit; a fix needs per-field placeholders and translation keys in en and de |
 | WR-05 | warning | fixed | quick 261015-u6j (9b87e7f); not in the current review |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
