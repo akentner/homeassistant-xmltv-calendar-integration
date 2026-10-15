@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="17" time="0.653" timestamp="2026-10-15T12:28:40.762864+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_reconfigure" name="test_data_change_applies_in_place" time="0.198" /><testcase classname="tests.test_reconfigure" name="test_title_change_renames_device" time="0.046"><failure message="AssertionError: assert 'A' == 'Renamed'&#10;  &#10;  - Renamed&#10;  + A">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1d89bc0b90&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f1d88577270&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f1d89cb9f90&gt;
+
+    async def test_title_change_renames_device(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
+        a_id = _subentry_id(entry, "A")
+        calls = aioclient_mock.call_count
+        index = entry.runtime_data.calendars[a_id]._index
+    
+        assert hass.config_entries.async_update_subentry(entry, entry.subentries[a_id], title="Renamed")
+        await hass.async_block_till_done()
+    
+        device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, a_id), entry.entry_id)
+        assert device is not None
+&gt;       assert device.name == "Renamed"
+E       AssertionError: assert 'A' == 'Renamed'
+E         
+E         - Renamed
+E         + A
+
+tests/test_reconfigure.py:86: AssertionError</failure></testcase><testcase classname="tests.test_reconfigure" name="test_unchanged_update_is_a_no_op" time="0.043" /><testcase classname="tests.test_reconfigure" name="test_two_calendars_changed_together" time="0.055" /><testcase classname="tests.test_reconfigure" name="test_last_of_two_updates_wins" time="0.048" /><testcase classname="tests.test_reconfigure" name="test_apply_before_added_stores_settings" time="0.034" /><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches" time="0.054"><failure message="AssertionError: assert [] == ['Das Erste: Tagesschau']&#10;  &#10;  Right contains one more item: 'Das Erste: Tagesschau'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f1d88372f00&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f1d883a1c70&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7f1d8838c830&gt;
+
+    async def test_corrupt_pattern_keeps_previous_matches(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+        caplog: pytest.LogCaptureFixture,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}), ("B", {"channels": ["zdf.de"]})))
+        a_id = _subentry_id(entry, "A")
+        b_id = _subentry_id(entry, "B")
+        a_events = await _summaries(hass, "calendar.a")
+        assert a_events == ["Das Erste: Tagesschau"]
+    
+        # Hand-edited storage: A's pattern bypasses the flow's validation; B's edit fires the one listener call
+        object.__setattr__(entry.subentries[a_id], "data", MappingProxyType({"include": "("}))
+        assert hass.config_entries.async_update_subentry(entry, entry.subentries[b_id], data={"channels": ["daserste.de"]})
+        await hass.async_block_till_done()
+    
+&gt;       assert await _summaries(hass, "calendar.a") == a_events
+E       AssertionError: assert [] == ['Das Erste: Tagesschau']
+E         
+E         Right contains one more item: 'Das Erste: Tagesschau'
+E         Use -v to get more diff
+
+tests/test_reconfigure.py:187: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_window" name="test_len" time="0.014" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_includes_programme_ending_at_range_start" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_excludes_programme_starting_at_range_end" time="0.004" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_spanning_programme" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_long_programme_lookback" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_sorted_by_start" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_empty_index" time="0.004" /><testcase classname="tests.xmltv.test_window" name="test_current_or_next_boundaries" time="0.004" /><testcase classname="tests.xmltv.test_window" name="test_current_or_next_prefers_earliest_airing_match" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_queries_near_datetime_min_do_not_overflow" time="0.005"><failure message="OverflowError: date value out of range">def test_queries_near_datetime_min_do_not_overflow() -&gt; None:
+        # t - max_duration (23 h for L) is below datetime.min; the lookup clamps to the first match (IN-14)
+        t = datetime.min.replace(tzinfo=UTC)
+&gt;       assert INDEX.overlapping(t, t + timedelta(hours=1)) == []
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_window.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;custom_components.xmltv_calendar.xmltv.window.MatchIndex object at 0x7f1d89a689c0&gt;
+start = datetime.datetime(1, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+end = datetime.datetime(1, 1, 1, 1, 0, tzinfo=datetime.timezone.utc)
+
+    def overlapping(self, start: datetime, end: datetime) -&gt; list[Programme]:
+        """Return matches with start &lt; `end` and stop &gt;= `start` (end-inclusive), sorted by start."""
+        # Every candidate starts at or after start - max_duration, so only that slice is scanned
+&gt;       lo = bisect_left(self._starts, start - self._max_duration)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OverflowError: date value out of range
+
+custom_components/xmltv_calendar/xmltv/window.py:35: OverflowError</failure></testcase></testsuite></testsuites>

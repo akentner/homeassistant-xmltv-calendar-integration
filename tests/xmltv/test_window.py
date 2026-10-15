@@ -1,6 +1,6 @@
 """MatchIndex: end-inclusive range reads with a max-duration lookback, and the airing-or-next lookup."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from custom_components.xmltv_calendar.xmltv.model import Programme
 from custom_components.xmltv_calendar.xmltv.window import MatchIndex
@@ -82,3 +82,10 @@ def test_current_or_next_prefers_earliest_airing_match() -> None:
     # L (00:00-23:00) is airing at 12:30 alongside A and started first
     assert INDEX.current_or_next(_at(12, 30)) is L
     assert INDEX.current_or_next(_at(23, 30)) is None
+
+
+def test_queries_near_datetime_min_do_not_overflow() -> None:
+    # t - max_duration (23 h for L) is below datetime.min; the lookup clamps to the first match (IN-14)
+    t = datetime.min.replace(tzinfo=UTC)
+    assert INDEX.overlapping(t, t + timedelta(hours=1)) == []
+    assert INDEX.current_or_next(t) is L
