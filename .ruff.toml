@@ -18,6 +18,8 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
 ]
+# En and em dash are real title separators in templates and their cleanup (D-22), not confusables
+allowed-confusables = ["–", "—"]
 
 [lint.per-file-ignores]
 "tests/**" = [

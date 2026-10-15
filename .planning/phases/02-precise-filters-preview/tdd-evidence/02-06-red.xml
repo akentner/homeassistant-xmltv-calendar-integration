@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.307" timestamp="2026-10-15T13:19:52.647769+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_templates" name="test_title_template_end_to_end" time="0.178"><failure message="AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Formel 1: G... 'Tagesschau']&#10;  &#10;  At index 0 diff: 'Das Erste: Formel 1: Großer Preis von Mexiko' != 'Formel 1: Großer Preis von Mexiko – Qualifying'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f6bb5f97740&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f6bb2d3d6a0&gt;
+
+    async def test_title_template_end_to_end(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        await setup_xmltv(
+            FEED, calendars=(("Erste", {KEY_CHANNELS: ["daserste.de"], KEY_TITLE_TEMPLATE: "{title} – {subtitle}"}),)
+        )
+    
+&gt;       assert await _summaries(hass, "calendar.erste") == [
+            "Formel 1: Großer Preis von Mexiko – Qualifying",
+            "Tagesschau",
+        ]
+E       AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Formel 1: G... 'Tagesschau']
+E         
+E         At index 0 diff: 'Das Erste: Formel 1: Großer Preis von Mexiko' != 'Formel 1: Großer Preis von Mexiko – Qualifying'
+E         Use -v to get more diff
+
+tests/test_templates.py:44: AssertionError</failure></testcase><testcase classname="tests.test_templates" name="test_template_edit_applies_in_place" time="0.050"><failure message="AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Formel 1: G... (Das Erste)']&#10;  &#10;  At index 0 diff: 'Das Erste: Formel 1: Großer Preis von Mexiko' != 'Formel 1: Großer Preis von Mexiko (Das Erste)'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f6bb5f7afd0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f6bb0836ae0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f6bb5f79950&gt;
+
+    async def test_template_edit_applies_in_place(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=(("Erste", {KEY_CHANNELS: ["daserste.de"]}),))
+        (subentry,) = entry.subentries.values()
+        calls = aioclient_mock.call_count
+    
+        assert hass.config_entries.async_update_subentry(
+            entry, subentry, data={KEY_CHANNELS: ["daserste.de"], KEY_TITLE_TEMPLATE: "{title} ({channel})"}
+        )
+        await hass.async_block_till_done()
+    
+&gt;       assert await _summaries(hass, "calendar.erste") == [
+            "Formel 1: Großer Preis von Mexiko (Das Erste)",
+            "Tagesschau (Das Erste)",
+        ]
+E       AssertionError: assert ['Das Erste: ...: Tagesschau'] == ['Formel 1: G... (Das Erste)']
+E         
+E         At index 0 diff: 'Das Erste: Formel 1: Großer Preis von Mexiko' != 'Formel 1: Großer Preis von Mexiko (Das Erste)'
+E         Use -v to get more diff
+
+tests/test_templates.py:66: AssertionError</failure></testcase></testsuite></testsuites>
