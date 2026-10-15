@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Precise Filters & Preview
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-10-15T11:01:48.964Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-10-15T11:11:04.669Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: f04896273fc5d35920108f263eb44a85539323b9
+state_head: 20d42830dea5e739d4fb4c23bd0f964f2fa030e6
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 19
-  completed_plans: 14
+  completed_plans: 15
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 02 (Precise Filters & Preview) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 02 execution started
 
@@ -70,6 +70,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P01 | 4 min | 2 tasks | 5 files |
 | Phase 02 P02 | 7 min | 3 tasks | 8 files |
 | Phase 02 P03 | 7 min | 3 tasks | 14 files |
+| Phase 02 P04 | 6 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-03: the calendar subentry still stores only the four Phase 1 keys; later plans extend _pending/_filter_data
 - [Phase 02]: 02-03: preview weekday names keyed by the primary subtag of hass.config.language (de -> Mo..So, else Mon..Sun), no locale
 - [Phase 02]: 02-03: escape_markdown turns & < > into entities, then backslash-escapes backslash, backtick, * _ [ ] # and pipe; parentheses stay
+- [Phase 02]: 02-04: stored durations above timedelta.max minutes are clamped (huge min hides everything, huge max is unbounded); FilterSpec.from_mapping never raises OverflowError
+- [Phase 02]: 02-04: nested-repetition check treats max > 1 as unbounded (so (a{2,3})* is rejected), also walks GROUPREF_EXISTS, and is fail-open (incl. RecursionError) when re._parser changes
+- [Phase 02]: 02-04: weekdays without a window use the local start date; with a window the weekday is the day the window opened (D-11); apply(epg) without tz evaluates in UTC
 
 ### Pending Todos
 
@@ -148,6 +152,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T11:01:48.882Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-10-15T11:11:04.592Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
