@@ -368,7 +368,10 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 errors[CONF_NAME] = "name_required"
             # Nothing that fails to compile or exceeds the caps is ever stored (FLT-07, T-01-23)
             for field in _PATTERN_FIELDS:
-                if (bad := first_invalid_pattern(str(user_input.get(field, "")))) is not None:
+                # D-08: include/exclude compile with the calendar's case flag; the channel regex always ignores case
+                case_sensitive = field != CONF_CHANNEL_REGEX and pending[CONF_CASE_SENSITIVE]
+                text = str(user_input.get(field, ""))
+                if (bad := first_invalid_pattern(text, case_sensitive=case_sensitive)) is not None:
                     errors[field] = "invalid_regex"
                     placeholders.setdefault("pattern", bad.pattern)
                     placeholders.setdefault("error", bad.message)
