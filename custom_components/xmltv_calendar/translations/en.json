@@ -57,7 +57,8 @@
   "config_subentries": {
     "calendar": {
       "initiate_flow": {
-        "user": "Add calendar"
+        "user": "Add calendar",
+        "reconfigure": "Edit calendar"
       },
       "entry_type": "Calendar",
       "step": {

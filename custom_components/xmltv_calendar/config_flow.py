@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
+    SOURCE_USER,
     ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
@@ -58,6 +59,7 @@ from .source import (
 )
 from .xmltv.filter import first_invalid_pattern
 from .xmltv.preview import build_preview
+from .xmltv.settings import with_defaults
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -189,21 +191,33 @@ _PATTERN_FIELDS = (CONF_CHANNEL_REGEX, CONF_INCLUDE, CONF_EXCLUDE)
 
 
 class CalendarSubentryFlow(ConfigSubentryFlow):
-    """Add a calendar to a loaded source: basic form -> preview -> save | back (D-01)."""
+    """Add or edit a calendar of a loaded source: basic form -> preview -> save | back (D-01, D-19)."""
 
     def __init__(self) -> None:
-        """Initialize the pending calendar values; they survive Back (D-15)."""
-        self._pending: dict[str, Any] = {}
+        """Initialize the pending calendar values; loaded on first use, they survive Back (D-15)."""
+        self._pending: dict[str, Any] | None = None
 
-    def _filter_data(self) -> dict[str, Any]:
-        """Return the stored filter keys from the pending values."""
-        return {key: self._pending[key] for key in (CONF_CHANNELS, *_PATTERN_FIELDS)}
+    def _load_pending(self) -> dict[str, Any]:
+        """Return the pending values: defaults for a new calendar, the stored calendar for an edit (D-06)."""
+        if self._pending is None:
+            if self.source == SOURCE_USER:
+                self._pending = with_defaults({})
+            else:
+                subentry = self._get_reconfigure_subentry()
+                self._pending = with_defaults(dict(subentry.data))
+                self._pending[CONF_NAME] = subentry.title
+        return self._pending
+
+    def _calendar_data(self) -> dict[str, Any]:
+        """Return the full stored key set from the pending values; the name is the subentry title (D-06)."""
+        return with_defaults(self._load_pending())
 
     async def async_step_basic(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         """Ask for name, channels (sorted IDs, D-03), channel regex, include and exclude (D-02, D-05)."""
         entry: XmltvConfigEntry = self._get_entry()
         if entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="source_not_loaded")
+        pending = self._load_pending()
 
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
@@ -218,9 +232,9 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                     placeholders.setdefault("pattern", bad.pattern)
                     placeholders.setdefault("error", bad.message)
             if not errors:
-                # A missing key means the field was cleared
-                self._pending = {CONF_NAME: name, CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))}
-                self._pending.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
+                # A missing key means the field was cleared; keys outside this form keep their pending values
+                pending.update({CONF_NAME: name, CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))})
+                pending.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
                 return await self.async_step_preview()
 
         channel_ids = sorted(entry.runtime_data.coordinator.data.channels)
@@ -239,12 +253,14 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 **{vol.Optional(field): TextSelector(TextSelectorConfig(multiline=True)) for field in _PATTERN_FIELDS},
             }
         )
-        schema = self.add_suggested_values_to_schema(schema, self._pending | (user_input or {}))
+        schema = self.add_suggested_values_to_schema(schema, pending | (user_input or {}))
         return self.async_show_form(
             step_id="basic", data_schema=schema, errors=errors, description_placeholders=placeholders
         )
 
     async_step_user = async_step_basic
+    # Same form for edits; self.source tells add and edit apart (FLT-11)
+    async_step_reconfigure = async_step_basic
 
     async def async_step_preview(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
         """Show the match count from now on and the next matches, then offer Save or Back (FLT-10, D-15..D-17)."""
@@ -254,7 +270,7 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
         # A full feed scan takes up to a second: never on the event loop (T-02-06)
         result = await self.hass.async_add_executor_job(
             build_preview,
-            self._filter_data(),
+            self._calendar_data(),
             entry.runtime_data.coordinator.data,
             dt_util.utcnow(),
             dt_util.get_default_time_zone(),
@@ -274,10 +290,18 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
     async_step_preview_empty = async_step_preview
 
     async def async_step_save(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
-        """Create the calendar; only reachable from the preview (D-01)."""
-        if self._get_entry().state is not ConfigEntryState.LOADED:
+        """Create or update the calendar; only reachable from the preview (D-01)."""
+        entry: XmltvConfigEntry = self._get_entry()
+        if entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="source_not_loaded")
-        return self.async_create_entry(title=self._pending[CONF_NAME], data=self._filter_data())
+        name = self._load_pending()[CONF_NAME]
+        if self.source == SOURCE_USER:
+            return self.async_create_entry(title=name, data=self._calendar_data())
+        # Update only: the entry's update listener applies the change in place, with no reload and no
+        # new download (D-04); the reloading variant raises when an update listener exists (Pitfall 1)
+        return self.async_update_and_abort(
+            entry, self._get_reconfigure_subentry(), title=name, data=self._calendar_data()
+        )
 
     async def async_step_back(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
         """Return to the form, pre-filled with the pending values (D-15)."""
