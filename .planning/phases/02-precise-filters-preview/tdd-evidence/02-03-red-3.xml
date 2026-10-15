@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="19" time="0.297" timestamp="2026-10-15T12:59:08.980595+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.xmltv.test_preview" name="test_running_programme_is_counted_and_listed_first" time="0.101" /><testcase classname="tests.xmltv.test_preview" name="test_programme_ending_now_is_excluded" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_programme_starting_now_is_included" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[eleven]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[exactly-ten]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[limit-3]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_default_limit_is_ten" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_equal_starts_keep_feed_order" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_the_calendar_filter_path" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_missing_channel_shows_its_id" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[en-Tue]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[de-Di]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[de-CH-Di]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[DE-Di]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[fr-Tue]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_time_is_truncated_to_the_minute" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_day_and_month_are_zero_padded_in_winter_time" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_markdown_and_html_in_feed_text_are_escaped" time="0.005"><failure message="AssertionError: assert 'Tue 13.10. 1...x_ #1 | a &amp; b' == 'Tue 13.10. 1...\\| a &amp;amp; b'&#10;  &#10;  - Tue 13.10. 12:00 · &amp;lt;b&amp;gt;Sky&amp;lt;/b&amp;gt; · \*Live\* \[Link\](javascript:x) \_x\_ \#1 \| a &amp;amp; b&#10;  ?                    ^^^^ ^^^^   ^^^^  ^^^^   -     -  -     -                -  -  -   -     ----&#10;  + Tue 13.10. 12:00 · &lt;b&gt;Sky&lt;/b&gt; · *Live* [Link](javascript:x) _x_ #1 | a &amp; b&#10;  ?                    ^ ^   ^  ^">def test_markdown_and_html_in_feed_text_are_escaped() -&gt; None:
+        programme = _programme("x", _at(10), _at(11))
+        title = "*Live* [Link](javascript:x) _x_ #1 | a &amp; b"
+    
+        line = format_line(programme, "&lt;b&gt;Sky&lt;/b&gt;", title, TZ, "en")
+    
+&gt;       assert line == (
+            "Tue 13.10. 12:00 · &amp;lt;b&amp;gt;Sky&amp;lt;/b&amp;gt; · \\*Live\\* \\[Link\\](javascript:x) \\_x\\_ \\#1 \\| a &amp;amp; b"
+        )
+E       AssertionError: assert 'Tue 13.10. 1...x_ #1 | a &amp; b' == 'Tue 13.10. 1...\\| a &amp;amp; b'
+E         
+E         - Tue 13.10. 12:00 · &amp;lt;b&amp;gt;Sky&amp;lt;/b&amp;gt; · \*Live\* \[Link\](javascript:x) \_x\_ \#1 \| a &amp;amp; b
+E         ?                    ^^^^ ^^^^   ^^^^  ^^^^   -     -  -     -                -  -  -   -     ----
+E         + Tue 13.10. 12:00 · &lt;b&gt;Sky&lt;/b&gt; · *Live* [Link](javascript:x) _x_ #1 | a &amp; b
+E         ?                    ^ ^   ^  ^
+
+tests/xmltv/test_preview.py:164: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_backslash_and_backtick_are_escaped_and_parentheses_kept" time="0.006"><failure message="AssertionError: assert 'Tue 13.10. 1...u (Das Erste)' == 'Tue 13.10. 1...u (Das Erste)'&#10;  &#10;  - Tue 13.10. 12:00 · Das Erste · \`code\` C:\\path Tagesschau (Das Erste)&#10;  ?                                -     -    -&#10;  + Tue 13.10. 12:00 · Das Erste · `code` C:\path Tagesschau (Das Erste)">def test_backslash_and_backtick_are_escaped_and_parentheses_kept() -&gt; None:
+        programme = _programme("x", _at(10), _at(11))
+    
+        line = format_line(programme, "Das Erste", "`code` C:\\path Tagesschau (Das Erste)", TZ, "en")
+    
+&gt;       assert line == "Tue 13.10. 12:00 · Das Erste · \\`code\\` C:\\\\path Tagesschau (Das Erste)"
+E       AssertionError: assert 'Tue 13.10. 1...u (Das Erste)' == 'Tue 13.10. 1...u (Das Erste)'
+E         
+E         - Tue 13.10. 12:00 · Das Erste · \`code\` C:\\path Tagesschau (Das Erste)
+E         ?                                -     -    -
+E         + Tue 13.10. 12:00 · Das Erste · `code` C:\path Tagesschau (Das Erste)
+
+tests/xmltv/test_preview.py:174: AssertionError</failure></testcase></testsuite></testsuites>
