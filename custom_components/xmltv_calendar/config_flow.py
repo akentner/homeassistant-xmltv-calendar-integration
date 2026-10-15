@@ -237,7 +237,8 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 pending.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
                 return await self.async_step_preview()
 
-        channel_ids = sorted(entry.runtime_data.coordinator.data.channels)
+        # Stored IDs missing from the feed stay selectable, so an edit can be saved unchanged (Phase 1 D-04)
+        channel_ids = sorted(set(entry.runtime_data.coordinator.data.channels) | set(pending[CONF_CHANNELS]))
         # No default=: optional fields must stay clearable; values come back as suggested values (Pattern 6)
         schema = vol.Schema(
             {
