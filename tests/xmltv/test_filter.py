@@ -8,7 +8,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from custom_components.xmltv_calendar.xmltv.filter import FilterSpec, first_invalid_pattern
+from custom_components.xmltv_calendar.xmltv import filter as filter_module
+from custom_components.xmltv_calendar.xmltv.filter import FilterSpec, InvalidPattern, first_invalid_pattern
 from custom_components.xmltv_calendar.xmltv.model import Channel, EpgData, ParseStats, Programme
 from custom_components.xmltv_calendar.xmltv.settings import (
     FIELD_CATEGORY,
@@ -452,3 +453,52 @@ def test_apply_without_tz_evaluates_in_utc() -> None:
 
     assert spec.apply(_timed_epg(programme)).matches == (programme,)
     assert spec.apply(_timed_epg(programme), tz=BERLIN).matches == ()
+
+
+# --- Nested repetition guard (WR-01, T-02-08) ------------------------------------------------------------------------
+
+NESTED = "nested repetition can be very slow"
+
+
+@pytest.mark.parametrize(
+    ("pattern", "rejected"),
+    [
+        pytest.param(r"^(\w+\s?)+$", True, id="word-groups"),
+        pytest.param(r"(a*)*", True, id="star-in-star"),
+        pytest.param(r"(\d+\s*)+x", True, id="digits-in-plus"),
+        pytest.param(r"(formel|formula)\s*1", False, id="alternation"),
+        pytest.param(r"^Tatort$", False, id="literal"),
+        pytest.param(r"(?:a+)++", False, id="possessive"),
+        pytest.param(r"(?>a+)+", False, id="atomic-group"),
+        pytest.param(r"(ab){2,5}", False, id="bounded-group"),
+        pytest.param(r"[a-z]+\d*", False, id="sequential-repeats"),
+    ],
+)
+def test_nested_repetition_table(pattern: str, *, rejected: bool) -> None:
+    expected = InvalidPattern(pattern=pattern, message=NESTED) if rejected else None
+
+    assert first_invalid_pattern(pattern) == expected
+
+
+def test_first_invalid_pattern_rejects_nested_repetition() -> None:
+    assert first_invalid_pattern("ok\n^(\\w+\\s?)+$") == InvalidPattern(pattern=r"^(\w+\s?)+$", message=NESTED)
+
+
+def test_caps_checked_before_shape() -> None:
+    line = "(a*)*" * 60 + "a"  # 301 characters
+
+    result = first_invalid_pattern(line)
+
+    assert result == InvalidPattern(pattern=line, message="pattern longer than 300 characters")
+
+
+def test_shape_check_fails_open(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(filter_module, "_sre_parse", None, raising=False)
+
+    assert first_invalid_pattern("(a*)*") is None
+    assert first_invalid_pattern("a" * 301) is not None  # the caps still apply
+
+
+def test_residual_overlapping_alternation_documented() -> None:
+    # Accepted residual risk (T-02-08): overlapping alternation under a repeat is not detected
+    assert first_invalid_pattern("(a|aa)+") is None
