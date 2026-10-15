@@ -1,4 +1,145 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "XMLTV-Quelle hinzufügen",
+        "menu_options": {
+          "url": "Feed-URL",
+          "file": "Lokale Datei"
+        }
+      },
+      "url": {
+        "title": "URL des XMLTV-Feeds",
+        "description": "Der Feed wird pro Aktualisierung einmal heruntergeladen und von allen Kalendern dieser Quelle gemeinsam genutzt.",
+        "data": {
+          "url": "URL",
+          "refresh_hours": "Aktualisierungsintervall"
+        },
+        "data_description": {
+          "url": "HTTP- oder HTTPS-Adresse der XMLTV-Datei.",
+          "refresh_hours": "Wie oft der Feed erneut heruntergeladen wird, in Stunden (1 bis 168)."
+        }
+      },
+      "file": {
+        "title": "Lokale XMLTV-Datei",
+        "description": "Die Datei wird pro Aktualisierung einmal gelesen und von allen Kalendern dieser Quelle gemeinsam genutzt.",
+        "data": {
+          "path": "Dateipfad",
+          "refresh_hours": "Aktualisierungsintervall"
+        },
+        "data_description": {
+          "path": "Absoluter Pfad der XMLTV-Datei (unkomprimiert oder gzip), zum Beispiel /media/epg/guide.xml. Lesbar sind nur Verzeichnisse, die Home Assistant erlaubt: die Medienordner und die unter allowlist_external_dirs eingetragenen.",
+          "refresh_hours": "Wie oft die Datei erneut gelesen wird, in Stunden (1 bis 168)."
+        }
+      },
+      "name": {
+        "title": "Quelle benennen",
+        "data": {
+          "name": "Name"
+        },
+        "data_description": {
+          "name": "Wird in Home Assistant als Titel dieser Quelle angezeigt."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Gib eine http://- oder https://-URL ein.",
+      "cannot_connect": "Die URL war nicht erreichbar oder hat mit einem HTTP-Fehler geantwortet.",
+      "invalid_feed": "Die Quelle ist weder eine XML- noch eine gzip-komprimierte XMLTV-Datei.",
+      "path_not_allowed": "Gib einen absoluten Pfad in einem Verzeichnis ein, das Home Assistant erlaubt (Medienordner oder allowlist_external_dirs).",
+      "file_not_found": "Die Datei existiert nicht, ist keine reguläre Datei oder kann nicht gelesen werden.",
+      "name_required": "Gib einen Namen ein."
+    },
+    "abort": {
+      "already_configured": "Diese Quelle ist bereits konfiguriert."
+    }
+  },
+  "config_subentries": {
+    "calendar": {
+      "initiate_flow": {
+        "user": "Kalender hinzufügen",
+        "reconfigure": "Kalender bearbeiten"
+      },
+      "entry_type": "Kalender",
+      "step": {
+        "basic": {
+          "title": "Kalender",
+          "data": {
+            "name": "Name",
+            "channels": "Sender",
+            "channel_regex": "Sender-Regex",
+            "include": "Einschließen",
+            "exclude": "Ausschließen",
+            "advanced": "Erweiterte Optionen"
+          },
+          "data_description": {
+            "name": "Die Kalender-Entität wird danach benannt, zum Beispiel calendar.formel_1.",
+            "channels": "Einzuschließende Sender-IDs. Kombiniert mit der Sender-Regex: Ein Sender wird eingeschlossen, wenn eines von beiden passt. Lass beide leer, um alle Sender einzuschließen.",
+            "channel_regex": "Reguläre Ausdrücke, die gegen die Sender-ID geprüft werden, einer pro Zeile, zum Beispiel ^sky oder \\.de$. Kombiniert mit den ausgewählten Sendern (eines von beiden genügt). Lass beide leer, um alle Sender einzuschließen.",
+            "include": "Reguläre Ausdrücke, einer pro Zeile. Eine Sendung wird angezeigt, wenn einer davon auf ihren Titel oder Untertitel passt (ohne Beachtung der Groß-/Kleinschreibung), zum Beispiel formel\\s*1|formula\\s*1 oder ^Tatort$. Lass das Feld leer, um jede Sendung der ausgewählten Sender anzuzeigen.",
+            "exclude": "Reguläre Ausdrücke, einer pro Zeile. Eine Sendung wird ausgeblendet, wenn einer davon auf ihren Titel oder Untertitel passt (ohne Beachtung der Groß-/Kleinschreibung), zum Beispiel Wiederholung. Leere Zeilen werden ignoriert.",
+            "advanced": "Zeigt ein zweites Formular mit den zu durchsuchenden Feldern, der Groß-/Kleinschreibung, einem Zeitfenster, Wochentagen, einem Dauerbereich und Vorlagen für Termintitel und -beschreibungen."
+          }
+        },
+        "advanced": {
+          "title": "Erweiterte Optionen",
+          "data": {
+            "include_fields": "Suchfelder (Einschließen)",
+            "exclude_fields": "Suchfelder (Ausschließen)",
+            "case_sensitive": "Groß-/Kleinschreibung beachten",
+            "time_from": "Von",
+            "time_to": "Bis",
+            "weekdays": "Wochentage",
+            "min_duration": "Mindestdauer",
+            "max_duration": "Höchstdauer",
+            "title_template": "Titelvorlage",
+            "description_template": "Beschreibungsvorlage"
+          },
+          "data_description": {
+            "include_fields": "Felder, gegen die die Einschließen-Muster geprüft werden. Jeder Untertitel und jede Kategorie wird einzeln geprüft. Das Durchsuchen von Beschreibungen ist bei großen Feeds langsamer.",
+            "exclude_fields": "Felder, gegen die die Ausschließen-Muster geprüft werden. Jeder Untertitel und jede Kategorie wird einzeln geprüft. Das Durchsuchen von Beschreibungen ist bei großen Feeds langsamer.",
+            "case_sensitive": "Groß- und Kleinschreibung exakt beachten. Umlaute passen so oder so in jeder Unicode-Form; ß passt nicht auf ss.",
+            "time_from": "Nur Sendungen, deren Startzeit ab Von und vor Bis liegt, in der Zeitzone von Home Assistant. Ein Fenster über Mitternacht, zum Beispiel 22:00 bis 02:00, zählt für den Tag, an dem es beginnt. Setze beide oder keines.",
+            "time_to": "Ende des Startzeit-Fensters (exklusiv). Setze Von und Bis oder lass beide leer.",
+            "weekdays": "Nur Sendungen an diesen Tagen. Leer lassen für jeden Tag.",
+            "min_duration": "In Minuten, einschließlich. Leer lassen für keine Untergrenze.",
+            "max_duration": "In Minuten, einschließlich. Leer lassen für keine Obergrenze.",
+            "title_template": "Platzhalter: {title_fields}. Standard: {default_title}",
+            "description_template": "Platzhalter: {description_fields}. Leer lassen für die Standardbeschreibung (Untertitel, Folge, Kategorien, Beschreibung)."
+          }
+        },
+        "preview": {
+          "title": "Vorschau",
+          "description": "{count} passende Sendungen ab jetzt. Als Nächstes:\n\n{matches}",
+          "menu_options": {
+            "save": "Speichern",
+            "back": "Zurück"
+          }
+        },
+        "preview_empty": {
+          "title": "Vorschau",
+          "description": "Derzeit passt keine Sendung im Feed auf diese Filter. Du kannst den Kalender trotzdem speichern; er füllt sich, sobald passende Sendungen erscheinen.",
+          "menu_options": {
+            "save": "Speichern",
+            "back": "Zurück"
+          }
+        }
+      },
+      "error": {
+        "name_required": "Gib einen Namen ein.",
+        "invalid_regex": "Ungültiges Muster {pattern}: {error}. Jede Zeile muss ein gültiger regulärer Ausdruck mit höchstens 300 Zeichen sein, und pro Feld sind höchstens 50 Zeilen erlaubt.",
+        "fields_required": "Wähle mindestens ein Feld.",
+        "time_incomplete": "Setze Von und Bis oder lass beide leer.",
+        "time_equal": "Von und Bis müssen sich unterscheiden.",
+        "duration_order": "Die Mindestdauer darf nicht länger als die Höchstdauer sein.",
+        "invalid_template": "Die Vorlage ist ungültig: {template_error}",
+        "unknown_placeholder": "{template_error} ist kein erlaubter Platzhalter. Erlaubt in Titeln: {title_fields}. Erlaubt in Beschreibungen: {description_fields}."
+      },
+      "abort": {
+        "source_not_loaded": "Die Quelle ist nicht geladen. Warte, bis sie heruntergeladen wurde, und versuche es dann erneut."
+      }
+    }
+  },
   "exceptions": {
     "unable_to_fetch": {
       "message": "Der XMLTV-Feed konnte nicht heruntergeladen werden."
