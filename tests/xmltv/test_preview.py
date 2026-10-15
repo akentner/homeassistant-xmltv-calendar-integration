@@ -10,7 +10,7 @@ import pytest
 from custom_components.xmltv_calendar.xmltv.filter import FilterSpec
 from custom_components.xmltv_calendar.xmltv.model import Channel, EpgData, ParseStats, Programme
 from custom_components.xmltv_calendar.xmltv.parser import parse
-from custom_components.xmltv_calendar.xmltv.preview import build_preview, format_line
+from custom_components.xmltv_calendar.xmltv.preview import build_preview, escape_markdown, format_line
 from custom_components.xmltv_calendar.xmltv.settings import KEY_TIME_FROM, KEY_TIME_TO, KEY_TITLE_TEMPLATE, KEY_WEEKDAYS
 
 TZ = ZoneInfo("Europe/Berlin")
@@ -176,6 +176,23 @@ def test_backslash_and_backtick_are_escaped_and_parentheses_kept() -> None:
     line = format_line(programme, "Das Erste", "`code` C:\\path Tagesschau (Das Erste)", TZ, "en")
 
     assert line == "Tue 13.10. 12:00 · Das Erste · \\`code\\` C:\\\\path Tagesschau (Das Erste)"
+
+
+# G-02-2: marked (GFM) autolinks scheme URLs in plain text; a backslash before the ':' of '://' stops that
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("http://x.y", "http\\://x.y"),
+        ("https://example.de/a_b?q=1", "https\\://example.de/a\\_b?q=1"),
+        ("HTTP://X.Y", "HTTP\\://X.Y"),
+        ("ftp://x.y", "ftp\\://x.y"),
+        ("[link](http://x.y)", "\\[link\\](http\\://x.y)"),
+        ("Formel 1: Rennen", "Formel 1: Rennen"),
+    ],
+    ids=["http", "https-path", "upper-case", "ftp", "markdown-link", "plain-colon"],
+)
+def test_url_scheme_separator_is_escaped(text: str, expected: str) -> None:
+    assert escape_markdown(text) == expected
 
 
 # --- Window and weekdays in the given time zone (FLT-09, D-10) -----------------------------------------------------

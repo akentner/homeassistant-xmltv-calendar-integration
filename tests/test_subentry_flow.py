@@ -401,6 +401,33 @@ async def test_empty_preview_still_saves(
     assert await _summaries(hass, "calendar.nothing") == []
 
 
+async def test_preview_shows_feed_urls_as_plain_text(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    berlin_tz: None,
+) -> None:
+    # G-02-2: a URL in a feed title reaches the preview with its scheme separator escaped, so it is not autolinked
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(
+        _feed(
+            _programme("daserste.de", "20261013120000", "20261013130000", "[link](http://x.y)")
+            + _programme("daserste.de", "20261013180000", "20261013181500", "Tagesschau")
+        ),
+        calendars=(),
+    )
+
+    result = await _submit(hass, entry, {"name": "Links", "include": "link"})
+
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+    assert result["description_placeholders"]["count"] == "1"
+    assert result["description_placeholders"]["matches"] == (
+        "- Tue 13.10. 14:00 · Das Erste · Das Erste: \\[link\\](http\\://x.y)"
+    )
+    hass.config_entries.subentries.async_abort(result["flow_id"])
+
+
 async def test_save_on_unloaded_source_aborts(
     hass: HomeAssistant,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
