@@ -136,7 +136,8 @@
         "unknown_placeholder": "{template_error} ist kein erlaubter Platzhalter. Erlaubt in Titeln: {title_fields}. Erlaubt in Beschreibungen: {description_fields}."
       },
       "abort": {
-        "source_not_loaded": "Die Quelle ist nicht geladen. Warte, bis sie heruntergeladen wurde, und versuche es dann erneut."
+        "source_not_loaded": "Die Quelle ist nicht geladen. Warte, bis sie heruntergeladen wurde, und versuche es dann erneut.",
+        "reconfigure_successful": "Der Kalender wurde aktualisiert."
       }
     }
   },

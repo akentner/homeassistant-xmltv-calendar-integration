@@ -136,7 +136,8 @@
         "unknown_placeholder": "{template_error} is not an allowed placeholder. Allowed in titles: {title_fields}. Allowed in descriptions: {description_fields}."
       },
       "abort": {
-        "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again."
+        "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again.",
+        "reconfigure_successful": "The calendar was updated."
       }
     }
   },

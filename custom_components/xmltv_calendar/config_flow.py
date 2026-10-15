@@ -402,7 +402,9 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 vol.Optional(CONF_ADVANCED, default=self._show_advanced): BooleanSelector(),
             }
         )
-        schema = self.add_suggested_values_to_schema(schema, pending | (user_input or {}))
+        # After an error the form shows exactly what was submitted, so a cleared field stays cleared (WR-01)
+        suggestions = user_input if user_input is not None else pending
+        schema = self.add_suggested_values_to_schema(schema, suggestions)
         return self.async_show_form(
             step_id="basic", data_schema=schema, errors=errors, description_placeholders=placeholders
         )
