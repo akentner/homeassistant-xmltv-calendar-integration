@@ -1,18 +1,18 @@
 ---
 gsd_state_version: "1.0"
 current_phase: 02
-current_phase_name: precise-filters-preview
+current_phase_name: Precise Filters & Preview
 status: executing
-stopped_at: Completed 02-08-PLAN.md
-last_updated: "2026-10-15T12:26:46.558Z"
+stopped_at: Completed 02-09-PLAN.md
+last_updated: "2026-10-15T15:19:27.653Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: a6e95b0e64d6fa137e3f253d75f813c9ab6c86a7
+state_head: 502a967e177e5dc7c747153cdccb287f96f182c1
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 19
+  completed_plans: 20
   percent: 25
 ---
 
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 
 ## Current Position
 
-Phase: 02 (precise-filters-preview) — READY TO EXECUTE
-Plan: 8 of 8
-Status: Ready to execute
-Last activity: 2026-10-15 — Phase 02 execution started
+Phase: 02 (Precise Filters & Preview) — EXECUTING
+Plan: 9 of 9
+Status: All plans executed (02-09 gap closure done) — ready for re-verification
+Last activity: 2026-10-15 — Completed 02-09 (CR-01 gap closure)
 
 Progress: [███░░░░░░░] 25%
 
@@ -75,6 +75,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P06 | 6 min | 3 tasks | 8 files |
 | Phase 02 P07 | 6 min | 2 tasks | 5 files |
 | Phase 02 P08 | 5 min | 2 tasks | 4 files |
+| Phase 02 P09 | 7 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-07: _load_pending sets self._show_advanced = False; 02-08 replaces that single assignment with has_advanced (D-03)
 - [Phase 02]: 02-08: _show_advanced = has_advanced(self._pending) inside the run-once _load_pending, so Back and re-submits keep the user's own checkbox choice (D-03)
 - [Phase 02]: 02-08: Task 2 is a regression suite (all cases green before changes); basic-step include/exclude validation now uses the calendar's case flag as a refactor (re.compile acceptance does not depend on IGNORECASE)
+- [Phase 02]: 02-09: PATTERN_ERRORS = (re.error, OverflowError, RecursionError) is the single definition of an uncompilable pattern; _build_spec and first_invalid_pattern both catch it (CR-01)
+- [Phase 02]: 02-09: pytest JUnit double-fail reports (call failure + teardown error) are rejected by the RED classifier; such RED records use a TAP rerun from a stdlib pytest reporter plugin
 
 ### Pending Todos
 
@@ -168,6 +171,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T11:43:04.291Z
-Stopped at: Completed 02-08-PLAN.md
+Last session: 2026-10-15T15:19:27.567Z
+Stopped at: Completed 02-09-PLAN.md
 Resume file: None
