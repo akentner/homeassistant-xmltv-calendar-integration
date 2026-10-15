@@ -13,7 +13,7 @@ Four vertical slices, each usable on `ha-host` when it completes. Phase 1 is the
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: First Filtered Calendar** - One source with channel + regex filtered calendars showing correct events in HA; pure library, scaffold and CI first (completed 2026-10-15)
-- [ ] **Phase 2: Precise Filters & Preview** - Field-scoped Unicode-safe regex, duration and time-window filters, title/description templates, live preview, instant reconfigure
+- [x] **Phase 2: Precise Filters & Preview** - Field-scoped Unicode-safe regex, duration and time-window filters, title/description templates, live preview, instant reconfigure (completed 2026-10-15)
 - [ ] **Phase 3: Resilient Sources** - Disk cache, conditional GET, daily schedule, timezone options, options flow, setup progress, last-good data, Repairs, diagnostics
 - [ ] **Phase 4: Automation Extras & Release** - Next-match sensor, new-match event, past-match retention, blueprint, German translation, README, tagged HACS releases
 
@@ -76,7 +76,7 @@ Plans:
   4. User sets the event title via a placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`) and can optionally set a description template. Unknown placeholders are rejected in the flow. Without a description template, events show sub-title, episode, categories and description.
   5. User reconfigures all filters and templates of an existing calendar and sees the updated events without a re-download or re-parse, and without reloading the source's other calendars.
 
-**Plans**: 10/10 plans executed
+**Plans**: 10/10 plans complete
 
 Plans:
 **Wave 1**
@@ -146,6 +146,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
-| 2. Precise Filters & Preview | 10/10 | In Progress | - |
+| 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 0/TBD | Not started | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |

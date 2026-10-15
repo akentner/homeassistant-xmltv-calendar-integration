@@ -20,13 +20,14 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 - ✓ Every matching XMLTV programme becomes one calendar event (no merging) — Phase 1
 - ✓ Event location = channel name — Phase 1
 - ✓ Calendar works with HA calendar triggers (automations) and the calendar dashboard/card — Phase 1
+- ✓ Filter by include regex and exclude regex on title, sub-title, description and category (field-scoped, Unicode-safe, case toggle, ReDoS-guarded) plus duration, time-window and weekday filters — Phase 2
+- ✓ Event title is configurable via template (e.g. `{channel}: {title}`); default includes the channel — Phase 2
+- ✓ Event description carries programme details (subtitle, description, category, episode where available), overridable via description template — Phase 2
+- ✓ Live filter preview in the flow (match count + next matches) before saving; calendars editable in place without re-downloading the source — Phase 2
 
 ### Active
 
 - [ ] Refresh interval is configurable per source (set at creation since Phase 1; later editing in Phase 3)
-- [ ] Filter by include regex and exclude regex on title and description (flexible enough to precisely identify specific shows)
-- [ ] Event title is configurable via template (e.g. `{channel}: {title}`); default includes the channel
-- [ ] Event description carries programme details (subtitle, description, category, episode where available)
 - [ ] Complete setup and later editing of all settings via Config Flow + Options Flow (no YAML)
 - [ ] Distributed as HACS repository (hacs.json, releases, CI with hassfest + HACS validation) — custom-repo install + green CI since Phase 1; tagged releases in Phase 4
 
@@ -61,7 +62,9 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 | Source = config entry, calendar = config subentry | HA-native sharing of one download/parse per source (coordinator in runtime_data), no custom ref-counting; chosen after research (2026-10-12) | ✓ Good — Phase 1 (UAT: independent per-source refresh, multiple calendars per source) |
 | One calendar entity per subentry | Simple mental model: one filter set = one calendar | ✓ Good — Phase 1 (entity_id stable across delete/re-add) |
 | 1 programme = 1 event, no merging | Predictable; exclude regex handles noise | ✓ Good — Phase 1 (exact duplicates collapsed, stable UIDs) |
-| Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | Partial — channel location + fixed `{channel}: {title}` in Phase 1; user templates in Phase 2 |
+| Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | ✓ Good — Phase 2 (restricted placeholder templates for title and description, validated in the flow) |
+| Preview renders feed text literally | Feed text is untrusted; HA renders the flow description as Markdown (marked GFM) | ✓ Good — Phase 2 (HTML/Markdown/autolink/tilde escaping, whitespace collapsed; verified live in ha-dev) |
+| German UI translation (de.json) alongside en.json | User runs HA in German; parity tests keep keys/placeholders in sync | ✓ Good — quick 261015-su3 |
 | UI-only configuration | User preference, editable via Options Flow | — Pending |
 | HACS distribution | Standard install/update path | ✓ Good — Phase 1 (HACS accepts custom repo, hassfest/HACS CI green) |
 
@@ -83,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-15 after Phase 1*
+*Last updated: 2026-10-15 after Phase 2*
