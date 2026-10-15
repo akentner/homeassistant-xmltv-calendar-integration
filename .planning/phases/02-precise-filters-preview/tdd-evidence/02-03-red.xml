@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.282" timestamp="2026-10-15T12:53:17.526899+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_tracer" name="test_url_source_to_calendar_events" time="0.191"><failure message="AssertionError: assert 'user' == 'basic'&#10;  &#10;  - basic&#10;  + user">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f97f6a6b4d0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f97f46dd010&gt;
+berlin_tz = None, forbid_loop_io = None
+
+    async def test_url_source_to_calendar_events(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        berlin_tz: None,
+        forbid_loop_io: None,
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T10:30:00+00:00")
+        aioclient_mock.get(FEED_URL, content=FIXTURE.read_bytes())
+    
+        # 1. Source flow: menu -&gt; url
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+        assert result["type"] is FlowResultType.MENU
+        assert "url" in result["menu_options"]
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "url"
+    
+        # 2. url -&gt; name (pre-filled with the host, D-09) -&gt; entry
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"url": FEED_URL, "refresh_hours": 24})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "name"
+        assert _schema_key(result, "name").description["suggested_value"] == "epg.example.com"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Test EPG"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["title"] == "Test EPG"
+        assert result["data"] == {"source_type": "url", "url": FEED_URL}
+        assert result["options"] == {"refresh_hours": 24}
+        await hass.async_block_till_done()
+        entry = result["result"]
+        assert entry.state is ConfigEntryState.LOADED
+    
+        # 3. Calendar subentry: channel picker from the loaded feed, no extra download
+        calls_before = aioclient_mock.call_count
+        result = await hass.config_entries.subentries.async_init(
+            (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
+        )
+        assert result["type"] is FlowResultType.FORM
+&gt;       assert result["step_id"] == "basic"
+E       AssertionError: assert 'user' == 'basic'
+E         
+E         - basic
+E         + user
+
+tests/test_tracer.py:66: AssertionError</failure></testcase></testsuite></testsuites>

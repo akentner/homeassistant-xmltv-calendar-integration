@@ -63,22 +63,34 @@ async def test_url_source_to_calendar_events(
         (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
     )
     assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
     channels_selector = result["data_schema"].schema[_schema_key(result, "channels")]
     assert list(channels_selector.config["options"]) == ["daserste.de", "zdf.de"]
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {"name": "Formel 1", "channels": ["daserste.de"]}
     )
+
+    # 4. Preview (FLT-10): match count from now on and the next matches in local time; Save creates the calendar
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+    assert list(result["menu_options"]) == ["save", "back"]
+    assert result["description_placeholders"]["count"] == "2"
+    assert result["description_placeholders"]["matches"] == (
+        "- Tue 13.10. 12:00 · Das Erste · Das Erste: Formel 1: Großer Preis von Mexiko\n"
+        "- Tue 13.10. 20:00 · Das Erste · Das Erste: Tagesschau"
+    )
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     assert aioclient_mock.call_count == calls_before
 
-    # 4. Live state: the Formel 1 programme airs 10:00-11:30 UTC
+    # 5. Live state: the Formel 1 programme airs 10:00-11:30 UTC
     state = hass.states.get("calendar.formel_1")
     assert state is not None
     assert state.state == "on"
     assert state.attributes["location"] == "Das Erste"
 
-    # 5. get_events returns only the selected channel's programmes
+    # 6. get_events returns only the selected channel's programmes
     response = await hass.services.async_call(
         "calendar",
         "get_events",
