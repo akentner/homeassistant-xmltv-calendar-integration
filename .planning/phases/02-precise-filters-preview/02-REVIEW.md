@@ -1,58 +1,55 @@
 ---
 phase: 02-precise-filters-preview
-reviewed: 2026-10-15T15:24:46Z
+reviewed: 2026-10-15T19:33:18Z
 depth: standard
-files_reviewed: 6
+files_reviewed: 5
 files_reviewed_list:
-  - custom_components/xmltv_calendar/calendar.py
-  - custom_components/xmltv_calendar/xmltv/filter.py
-  - tests/test_calendar.py
-  - tests/test_reconfigure.py
+  - custom_components/xmltv_calendar/translations/de.json
+  - custom_components/xmltv_calendar/xmltv/preview.py
   - tests/test_subentry_flow.py
-  - tests/xmltv/test_filter.py
+  - tests/test_translations.py
+  - tests/xmltv/test_preview.py
 findings:
   critical: 0
-  warning: 4
-  info: 7
-  total: 11
+  warning: 5
+  info: 9
+  total: 14
 status: issues_found
 ---
 
-# Phase 2: Code Review Report (incremental re-review after gap closure 02-09)
+# Phase 2: Code Review Report (incremental re-review after 02-10 and quick task 261015-su3)
 
-**Reviewed:** 2026-10-15T15:24:46Z
+**Reviewed:** 2026-10-15T19:33:18Z
 **Depth:** standard
-**Files Reviewed:** 6
+**Files Reviewed:** 5
 **Status:** issues_found
 
 ## Summary
 
-This is an incremental re-review of gap-closure plan 02-09 (`git diff 3c53e0f..HEAD`). The plan targets the previous review's CR-01: uncompilable regex patterns raising `OverflowError`/`RecursionError`, which escaped `except re.error`.
+This is an incremental re-review of `git diff 7252772..HEAD`. It covers two changes:
 
-**CR-01 is RESOLVED.** Evidence:
+- **Gap closure 02-10.** `escape_markdown` now escapes the autolink triggers (the `:` of `://`, the `.` after `www`, every `@`) and `~`.
+- **Quick task 261015-su3.** Adds a German `de.json` plus parity tests in `tests/test_translations.py`.
 
-- `filter.py:55` adds `PATTERN_ERRORS = (re.error, OverflowError, RecursionError)`. Both compile sites that face users or storage now catch it:
-  - `first_invalid_pattern` (`filter.py:194-198`, the flow validator for include, exclude and channel regex)
-  - `_build_spec` (`calendar.py:57-61`, entity `__init__` and `async_apply_subentry`)
-- **No other unguarded compile path.** `build_preview` (`preview.py:67`) calls `FilterSpec.from_mapping` without a guard. It only sees `pending` data, and the basic step writes pattern fields into `pending` only after `first_invalid_pattern` passes for all three fields (`config_flow.py:371-380`). Every path to the preview goes through that submit.
-- **The exception set is complete for the reachable input space.**
-  - Fuzzed 400k random short patterns under both flag settings (0 and `IGNORECASE`) with Python 3.14.7. No exception type outside `PATTERN_ERRORS` occurred.
-  - No pattern compiled under one flag but failed under the other. So validating include/exclude with the *pending* case flag stays sound even when the advanced step changes the flag afterwards without re-validating.
-- **The `RecursionError` path is reachable only through storage.** The first failing depth is about 500 nesting levels at the default recursion limit, while the flow's 300-character cap allows at most 150.
-- `with_defaults` coerces non-string pattern values to `""`, so hand-edited non-string data cannot raise `AttributeError` from `splitlines()`.
-- **Tests and lint pass.** `uv run pytest tests`: 517 passed, 1 skipped. `ruff check .` is clean.
+**IN-04 is RESOLVED.** `preview.py:33` adds `"~"` to `_MARKDOWN_CHARS`, and `tests/xmltv/test_preview.py` covers both `~x~` and `~~x~~`. The ID is retired and not reused.
 
-The new tests cover:
+**G-02-2 (autolinks) is fixed for the forms marked recognises.** I rendered the escaped output with a real marked install (17.0.5, `gfm: true, breaks: true`, the options `ha-markdown` uses):
 
-- Syntax errors, repeat overflow (count and range) and deep nesting.
-- Flow validation of all three pattern fields.
-- Platform setup with a bad stored pattern, isolated to its own calendar.
-- The live-apply path, which keeps the previous matches.
-- Repairing a stored overflow pattern through the edit flow.
+- `\[link\](http\://x.y)`, `https\://www\.ard.de/a\_b`, `www\.ard.de`, `user\@example.de`, `mailto:user\@x.de` and `\~\~x\~\~` all render as plain text, with no `<a>` and no `<del>`.
+- The escape order is sound: the autolink substitution runs after the backslash loop, so a feed backslash followed by `@` or `://` round-trips correctly (`a\@b` renders `a\@b`).
+- Tests and lint pass: `uv run pytest tests` gives 539 passed, 1 skipped, and `ruff check .` is clean.
 
-**New in this re-review:** one Info item (IN-07), a test-reliability detail in the new deep-nesting fixtures. No new Critical or Warning defects in the 02-09 diff.
+**New findings:**
 
-**Carried forward.** All other prior findings are still open and verified present in the current code. 02-09 changed only `calendar.py` and `filter.py` under `custom_components/`. Findings in `config_flow.py`, `translations/en.json`, `preview.py`, `parser.py` and `render.py` are therefore unchanged since `3c53e0f`. They keep their original IDs so the disposition record stays aligned. CR-01 is not carried and its ID is not reused.
+- **WR-05:** `escape_markdown` still lets line breaks through. A channel display name or a title containing a line break breaks the preview list. Verified in marked: the list splits into `<ul>`/`<ol>`/`<ul>`, or an `<hr>` is inserted.
+- **IN-08:** `de.json` now makes a mix of languages in one preview reachable.
+- **IN-09:** "1 passende Sendungen" is grammatically wrong (same problem in en).
+- **IN-10:** The literal-parity test has a vacuous substring check.
+
+**Carried forward:**
+
+- **Changed scope:** WR-02, IN-02 and IN-03 now also concern `de.json`, which copies the en text and its gaps exactly. `test_de_has_same_keys_as_en` and `test_de_keeps_literals` lock en/de parity, so each fix must update both files.
+- **Unchanged files:** WR-01, WR-03, WR-04, IN-01, IN-05, IN-06 and IN-07 sit in files this diff does not touch (`config_flow.py`, `filter.py`, `calendar.py`, `parser.py`, `render.py`, `tests/test_calendar.py`, `tests/test_reconfigure.py`). `git diff 7252772..HEAD` is empty for all of them, so they are still open exactly as previously reported and keep their IDs.
 
 ## Narrative Findings (AI reviewer)
 
@@ -60,128 +57,177 @@ The new tests cover:
 
 ### WR-01: Basic step brings cleared fields back after a validation error (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/config_flow.py:405` (outside this re-review's file scope; unchanged since 3c53e0f)
+**File:** `custom_components/xmltv_calendar/config_flow.py:405` (outside this re-review's file scope; unchanged since 7252772)
 
-**Issue:** The form is still rebuilt with `pending | (user_input or {})`. A field the user cleared is missing from `user_input`, and line 379 itself treats a missing key as "cleared". The merge therefore re-suggests the old pending value, and the next valid submit saves it again.
-
-02-09 makes this more likely to hit. The new repair path (`test_edit_repairs_overflowing_stored_pattern`) is exactly "submit, get `invalid_regex`, fix, resubmit". Clearing exclude in the first submit of that path silently restores it.
+**Issue:** The form is still rebuilt with `pending | (user_input or {})`. A field the user cleared is missing from `user_input`, so the merge suggests the old pending value again, and the next valid submit saves it again.
 
 **Fix:**
 ```python
         suggestions = user_input if user_input is not None else pending
         schema = self.add_suggested_values_to_schema(schema, suggestions)
 ```
-Add a reconfigure test: clear `exclude`, submit an invalid `include`, and assert that `exclude` has no suggested value.
 
-### WR-02: Missing `reconfigure_successful` abort translation for the calendar edit flow (carried forward, still open)
+### WR-02: Missing `reconfigure_successful` abort translation for the calendar edit flow, now in en and de (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/translations/en.json:138-140` (used by `config_flow.py:478`; outside this re-review's file scope)
+**File:** `custom_components/xmltv_calendar/translations/de.json:138-140`, `custom_components/xmltv_calendar/translations/en.json:138-140` (used by `config_flow.py:478`)
 
-**Issue:** `config_subentries.calendar.abort` still defines only `source_not_loaded`. Every successful calendar edit, including the new CR-01 repair flow (`test_edit_repairs_overflowing_stored_pattern` asserts `reason == "reconfigure_successful"`), ends on an abort with no text.
+**Issue:** `config_subentries.calendar.abort` defines only `source_not_loaded` in both languages. Every successful calendar edit ends on an abort that has no text. The new parity test (`test_de_has_same_keys_as_en`) fails if the key is added to only one file.
 
-**Fix:**
+**Fix:** Add the key to both files in the same position:
 ```json
       "abort": {
-        "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again.",
-        "reconfigure_successful": "The calendar was updated."
+        "source_not_loaded": "Die Quelle ist nicht geladen. Warte, bis sie heruntergeladen wurde, und versuche es dann erneut.",
+        "reconfigure_successful": "Der Kalender wurde aktualisiert."
       }
 ```
+The en value is "The calendar was updated."
 
-### WR-03: Nested-repetition guard rejects harmless fixed-count repeats, which blocks saving Phase 1 calendars unchanged (carried forward, still open)
+### WR-03: Nested-repetition guard rejects harmless fixed-count repeats (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/xmltv/filter.py:149-151`
+**File:** `custom_components/xmltv_calendar/xmltv/filter.py:149-151` (outside this re-review's file scope; unchanged since 7252772)
 
-**Issue:** `unbounded = high > 1` still treats exact counts like `{2}` as variable. `(\d{2}:)+` and `^(\d{2}\.){2}` are rejected as "nested repetition can be very slow", although a fixed-count inner repeat cannot cause catastrophic backtracking.
-
-The edit flow re-validates stored lines, so a Phase 1 calendar with such a pattern cannot be saved unchanged. The runtime still compiles and uses the pattern, so the flow and the entity disagree about validity.
+**Issue:** `unbounded = high > 1` treats `{2}` as variable. `(\d{2}:)+` is therefore rejected in the flow, although the entity accepts it at runtime.
 
 **Fix:**
 ```python
             low, high, body = av
-            variable = high > 1 and high != low  # {n} is a fixed count, not ambiguous
+            variable = high > 1 and high != low
             if (variable and inside) or _nested_repeat(body, inside=inside or variable):
                 return True
 ```
-Add `(\d{2}:)+` and `^(\d{2}\.){2}` (must pass) next to `(\w+\s?)+$` (must fail).
 
-### WR-04: Several invalid fields share one error placeholder, so the second field shows the first field's detail (carried forward, still open)
+### WR-04: Several invalid fields share one error placeholder (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/config_flow.py:376-377` and `config_flow.py:316` (outside this re-review's file scope)
+**File:** `custom_components/xmltv_calendar/config_flow.py:376-377`, `config_flow.py:316` (outside this re-review's file scope; unchanged since 7252772)
 
-**Issue:** `placeholders.setdefault("pattern"/"error", ...)` keeps only the first invalid field's detail. 02-09 widens the set of messages that land here. For example, with include `a{99999999999}` and exclude `(`, both fields are marked `invalid_regex`, but both show "Invalid pattern a{99999999999}: the repetition number is too large". The same happens for the two template fields in the advanced step.
+**Issue:** `placeholders.setdefault("pattern"/"error", ...)` keeps only the first invalid field's detail, so the second field shows the first field's message. This now applies to both languages, because de.json's `invalid_regex` uses the same `{pattern}`/`{error}` placeholders.
 
-**Fix:** Use per-field placeholders and error keys, for example `include_pattern`/`include_error` with an `invalid_regex_include` translation. Alternatively, report only the first invalid field. Assert each field's own detail in the tests.
+**Fix:** Use per-field placeholders and error keys (for example `include_pattern`/`include_error` with an `invalid_regex_include` translation in en and de). Alternatively, report only the first invalid field.
+
+### WR-05: `escape_markdown` lets line breaks through, so feed text can break the preview list (new)
+
+**File:** `custom_components/xmltv_calendar/xmltv/preview.py:37-44`, `preview.py:62`
+
+**Issue:** The docstring promises "feed text that renders literally". It escapes inline syntax only. Block syntax becomes reachable as soon as a value contains a line break, and the preview list is built as `"\n".join(f"- {line}" ...)` (`config_flow.py:461`). Two inputs carry line breaks unchanged:
+
+- **`channel_name`** is `channel.display_name`. The parser keeps it as `_text()` returns it, which only strips the edges, so an internal `\n` survives (`parser.py:56-58,75`). It never passes through `clean_title`.
+- **`title`** passes through `clean_title`, which replaces only `\n` (`render.py:88`). A `\r` (for example from `&#13;` in the feed) survives, and marked treats a lone `\r` as a line ending.
+
+Verified with marked 17.0.5 (`gfm: true, breaks: true`):
+
+| Input | Rendered |
+|---|---|
+| `- Tue 13.10. 14:00 · Sport\n1. Liga · T\n- Tue …` | `<ul>…Sport</ul><ol><li>Liga · T</li></ol><ul>…</ul>` |
+| `- Tue 13.10. 14:00 · Sport\r1. Liga · Tagesschau\n- …` | same split |
+| `- … · Sport\n+ Plus · T\n- …` | three separate `<ul>` |
+| `- … · Sport\n---\n- …` | `<hr>` inserted |
+
+There is no XSS: `<` is entity-escaped and js-xss sanitises. But the preview no longer shows "one line per match", and part of a channel name gets swallowed as a list marker. This is the same class of defect G-02-2 fixed for autolinks.
+
+**Fix:** Collapse every line break and whitespace run to one space before escaping. A preview line is single-line by definition.
+```python
+_LINE_BREAKS = re.compile(r"\s+")  # \s covers \n, \r, \v, \f, \x1c-\x1e, \x85, \u2028, \u2029
+
+def escape_markdown(text: str) -> str:
+    text = _LINE_BREAKS.sub(" ", text).strip()
+    for char, entity in _HTML_ESCAPES:
+        ...
+```
+Add test cases `("Das\nErste", "Das Erste")`, `("Sport\r1. Liga", "Sport 1. Liga")` and `("A\n---", "A ---")`. Separately, consider making `clean_title` (`render.py:88`) replace `\r` as well, because calendar summaries have the same gap.
 
 ## Info
 
 ### IN-01: "Templates only, no refilter" path is effectively dead; the comment is misleading (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/calendar.py:171-179`
+**File:** `custom_components/xmltv_calendar/calendar.py:171-179` (unchanged since 7252772)
 
-**Issue:** Any data change with compilable patterns sets `refilter = True`, including a template-only edit. The comment "rebuilt without a refilter (EVT-03, EVT-04)" never holds, and `elif write_state` runs only when the new spec fails to compile.
+**Issue:** Any data change with compilable patterns sets `refilter = True`, including a template-only edit.
 
-**Fix:** Refilter only when the rebuilt spec differs from `self._spec`. Otherwise, correct the comment.
+**Fix:** Refilter only when the rebuilt spec differs from `self._spec`, or correct the comment.
 
-### IN-02: Unchecking "Advanced options" leaves hidden filters active without any hint (carried forward, still open)
+### IN-02: Unchecking "Advanced options" leaves hidden filters active without any hint, now in en and de (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/config_flow.py:382-385`, `custom_components/xmltv_calendar/translations/en.json:81`
+**File:** `custom_components/xmltv_calendar/config_flow.py:382-385`, `translations/en.json:81`, `translations/de.json:81`
 
-**Issue:** Unchanged. The `advanced` help text does not say that unchecking keeps the stored advanced filters active.
+**Issue:** Neither language's `advanced` help text says that unchecking keeps the stored advanced filters active.
 
-**Fix:** Extend the `advanced` data_description: "Unchecking hides the form but keeps the advanced settings; clear them in the form to remove them."
+**Fix:** Extend both texts. de: "Abwählen blendet das Formular aus, die erweiterten Einstellungen bleiben aber aktiv; leere sie im Formular, um sie zu entfernen."
 
-### IN-03: Basic step help texts are stale after Phase 2 (carried forward, still open)
+### IN-03: Basic step help texts are stale after Phase 2, now in en and de (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/translations/en.json:79-80`
+**File:** `translations/en.json:79-80`, `translations/de.json:79-80`
 
-**Issue:** Unchanged. The include and exclude help still says "title or sub-title (case-insensitive)", but both the fields and the case are configurable now.
+**Issue:** Both languages still say "title or sub-title (case-insensitive)" / "Titel oder Untertitel (ohne Beachtung der Groß-/Kleinschreibung)". Both the fields and the case sensitivity are configurable now.
 
-**Fix:** Change the text to "…matches the selected fields (by default title or sub-title, case-insensitive)…".
-
-### IN-04: `escape_markdown` does not escape `~` (carried forward, still open)
-
-**File:** `custom_components/xmltv_calendar/xmltv/preview.py:27`
-
-**Issue:** Unchanged. `_MARKDOWN_CHARS` lacks `~`, so `~~Abgesagt~~` renders struck through in the preview.
-
-**Fix:** Add `"~"` to `_MARKDOWN_CHARS`.
+**Fix:** de: "…wenn einer davon auf die ausgewählten Felder passt (standardmäßig Titel oder Untertitel, ohne Beachtung der Groß-/Kleinschreibung)…". Make the matching change in en. `test_de_keeps_literals` stays green as long as the example regexes are kept.
 
 ### IN-05: Channel regex lines are NFC-normalised, but channel IDs are not (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/xmltv/filter.py:124-126,252`, `custom_components/xmltv_calendar/xmltv/parser.py:71,79`
+**File:** `custom_components/xmltv_calendar/xmltv/filter.py:124-126,252`, `xmltv/parser.py:71,79` (unchanged since 7252772)
 
-**Issue:** Unchanged. `_lines` NFC-normalises channel regex lines, while the parser only strips the `id`/`channel` attributes.
+**Issue:** The channel regex lines are normalised and the IDs they are matched against are not.
 
 **Fix:** NFC-normalise the channel ID in the parser, or skip NFC for `KEY_CHANNEL_REGEX`.
 
 ### IN-06: Description cleanup strips legitimate trailing characters (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/xmltv/render.py:32,38,93`
+**File:** `custom_components/xmltv_calendar/xmltv/render.py:32,38,93` (unchanged since 7252772)
 
-**Issue:** Unchanged. `_DESCRIPTION_END` strips any trailing `[\s\-–—:,;|·/]` run, so a description ending in a URL `/` or a dash loses it under a custom `{description}` template.
+**Issue:** `_DESCRIPTION_END` strips any trailing `[\s\-–—:,;|·/]` run.
 
-**Fix:** Only clean around placeholders that rendered empty, or limit the end strip to whitespace plus `:,;|`.
+**Fix:** Limit the end strip to whitespace plus `:,;|`, or clean only around placeholders that rendered empty.
 
-### IN-07: Deep-nesting test fixture depends on the interpreter's recursion limit and is duplicated (new)
+### IN-07: Deep-nesting test fixture depends on the interpreter's recursion limit and is duplicated (carried forward, still open)
 
-**File:** `tests/test_calendar.py:27-29`, `tests/test_reconfigure.py:34-36`
+**File:** `tests/test_calendar.py:27-29`, `tests/test_reconfigure.py:34-36` (unchanged since 7252772)
 
-**Issue:** `DEEP_NESTING = "(" * 2000 + ")" * 2000` only raises `RecursionError` because the process runs at the default limit of 1000. In practice the first failing depth is about 500 levels.
+**Issue:** `DEEP_NESTING = "(" * 2000 + ")" * 2000` raises `RecursionError` only at the default recursion limit.
 
-Verified in a scratch probe: after `sys.setrecursionlimit(5000)`, the same 2000-level pattern compiles. Under a raised limit, both `deep-nesting` parametrisations would then fail. They would show matches for calendar A and the warning count would be 0. The test would stop exercising the `RecursionError` branch of `PATTERN_ERRORS` without saying why. Such a limit could come from a plugin, a debugger or a future HA test harness.
+**Fix:** Derive the depth from `sys.getrecursionlimit()` and define the constant once in `tests/conftest.py`.
 
-The constant and its three-line comment are also copied verbatim into two modules.
+### IN-08: Preview weekday language follows the server, the surrounding text follows the user (new, made reachable by de.json)
 
-**Fix:** Derive the depth from the active limit and define it once in `tests/conftest.py` (or a shared helper):
+**File:** `custom_components/xmltv_calendar/xmltv/preview.py:59`, `custom_components/xmltv_calendar/config_flow.py:453`
+
+**Issue:** `build_preview` picks the weekday abbreviations from `hass.config.language` (the server language). The frontend picks the `de.json`/`en.json` description by the user's profile language.
+
+Before su3 every UI string was English, so only the weekday could vary. Now a German profile on a server configured as `en` sees "3 passende Sendungen ab jetzt. Als Nächstes: - Tue 13.10. …". The reverse setup shows "Di" inside English text. The flow handler has no access to the user's frontend language.
+
+**Fix:** Use a language-neutral stamp, for example `13.10. 14:00` without a weekday, or a numeric ISO date. Alternatively, document that the weekday follows the server language.
+
+### IN-09: "1 passende Sendungen" / "1 matching programmes" (new)
+
+**File:** `custom_components/xmltv_calendar/translations/de.json:113` (also `en.json:113`)
+
+**Issue:** `{count}` is substituted into a plural noun phrase. A count of 1 is a normal state: `test_preview_shows_feed_urls_as_plain_text` asserts `count == "1"`. In that case both languages render ungrammatical text.
+
+**Fix:** Rephrase so the count stands alone. That keeps the plain `{count}` placeholder, which the parity tests and HA's `_validate_placeholders` expect:
+```json
+"description": "Passende Sendungen ab jetzt: {count}. Als Nächstes:\n\n{matches}"
+```
+en: `"Matching programmes from now on: {count}. Next:\n\n{matches}"`.
+
+### IN-10: `test_de_keeps_literals` uses substring matching, so short numeric literals pass vacuously (new)
+
+**File:** `tests/test_translations.py:141`
+
+**Issue:** `token not in german` is a substring test, so short tokens pass even when the German text changes them:
+
+- The en token `1` from "(1 to 168)" is satisfied by the `1` inside `168`, or by any other `1`.
+- `50` would be satisfied by `500`.
+
+A German text that changed "1 bis 168" to "2 bis 168" would therefore pass.
+
+**Fix:** Match on token boundaries but still allow German compound suffixes such as `http://-`:
 ```python
-import sys
-
-# Each nesting level costs at least two parser frames, so this always exceeds the active recursion limit
-DEEP_NESTING = "(" * (2 * sys.getrecursionlimit()) + ")" * (2 * sys.getrecursionlimit())
+missing = [
+    token for token in _literals(text)
+    if not re.search(rf"(?<![0-9A-Za-z]){re.escape(token)}(?![0-9A-Za-z])", german)
+]
 ```
 
 ---
 
-_Reviewed: 2026-10-15T15:24:46Z_
+_Reviewed: 2026-10-15T19:33:18Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
