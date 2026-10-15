@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Precise Filters & Preview
-status: executing
-stopped_at: Completed 02-07-PLAN.md
-last_updated: "2026-10-15T11:35:41.904Z"
+status: verifying
+stopped_at: Completed 02-08-PLAN.md
+last_updated: "2026-10-15T11:43:04.370Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: 6afc3362fd7388f6ac1ca7e48244d1d966aa8d71
+state_head: ea681c94e9a2d787032650f6a648e05edebe93f9
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 
 Phase: 02 (Precise Filters & Preview) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-15 — Phase 02 execution started
 
 Progress: [███░░░░░░░] 25%
@@ -74,6 +74,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P05 | 4 min | 2 tasks | 8 files |
 | Phase 02 P06 | 6 min | 3 tasks | 8 files |
 | Phase 02 P07 | 6 min | 2 tasks | 5 files |
+| Phase 02 P08 | 5 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-07: a missing include_fields/exclude_fields key counts as an empty selection and is rejected with fields_required
 - [Phase 02]: 02-07: time_incomplete goes on the missing side; time_equal on To, duration_order on Maximum; after an error the advanced form suggests exactly the submitted input
 - [Phase 02]: 02-07: _load_pending sets self._show_advanced = False; 02-08 replaces that single assignment with has_advanced (D-03)
+- [Phase 02]: 02-08: _show_advanced = has_advanced(self._pending) inside the run-once _load_pending, so Back and re-submits keep the user's own checkbox choice (D-03)
+- [Phase 02]: 02-08: Task 2 is a regression suite (all cases green before changes); basic-step include/exclude validation now uses the calendar's case flag as a refactor (re.compile acceptance does not depend on IGNORECASE)
 
 ### Pending Todos
 
@@ -165,6 +168,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T11:35:41.824Z
-Stopped at: Completed 02-07-PLAN.md
+Last session: 2026-10-15T11:43:04.291Z
+Stopped at: Completed 02-08-PLAN.md
 Resume file: None

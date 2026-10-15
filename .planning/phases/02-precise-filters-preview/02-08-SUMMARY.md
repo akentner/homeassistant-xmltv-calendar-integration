@@ -194,3 +194,9 @@ None. No external service configuration is required.
 ---
 *Phase: 02-precise-filters-preview*
 *Completed: 2026-10-15*
+
+## Self-Check: PASSED
+
+- Modified files and the RED record exist; commits cdc207e, 2ef5b8b, c3302fb, 729bf04 are ancestors of HEAD
+- evaluation-scope resolves the plan commits on this branch
+- Acceptance criteria re-run: verify suites green, RED_EVIDENCE_OK, `has_advanced(` in config_flow.py, in-place assertions present, Ruff clean, benchmarks and hassfest pass
