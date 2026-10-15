@@ -80,14 +80,25 @@ def setup_xmltv(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> Cal
     return _setup
 
 
-async def complete_calendar_flow(hass: HomeAssistant, entry: MockConfigEntry, basic: Mapping[str, Any]) -> Any:
-    """Add a calendar through the subentry flow: basic form -> preview (or preview_empty) -> save."""
+async def complete_calendar_flow(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    basic: Mapping[str, Any],
+    advanced: Mapping[str, Any] | None = None,
+) -> Any:
+    """Add a calendar through the subentry flow: basic form -> [advanced] -> preview (or preview_empty) -> save."""
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "basic"
-    result = await hass.config_entries.subentries.async_configure(result["flow_id"], dict(basic))
+    last_form = dict(basic)
+    if advanced is not None:
+        result = await hass.config_entries.subentries.async_configure(result["flow_id"], {**basic, "advanced": True})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "advanced"
+        last_form = dict(advanced)
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], last_form)
     assert result["type"] is FlowResultType.MENU
     assert result["step_id"] in {"preview", "preview_empty"}
     return await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})

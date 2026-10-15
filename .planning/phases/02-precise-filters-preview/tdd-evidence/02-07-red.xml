@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.257" timestamp="2026-10-15T13:29:41.793795+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_advanced_flow" name="test_advanced_options_end_to_end" time="0.183"><failure message="AssertionError: assert 'advanced' in ['name', 'channels', 'channel_regex', 'include', 'exclude']&#10; +  where ['name', 'channels', 'channel_regex', 'include', 'exclude'] = _schema_keys({'data_schema': &lt;Schema({'name': &lt;class 'str'&gt;, 'channels': &lt;homeassistant.helpers.selector.SelectSelector object at 0...t at 0x7fbff240dfd0&gt;, 'description_placeholders': {}, 'errors': {}, 'flow_id': '443787c60ba3a67def378e7fe2812fe9', ...})">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fbff25b0e00&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fbff4772900&gt;
+berlin_tz = None
+
+    async def test_advanced_options_end_to_end(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+        berlin_tz: None,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=())
+    
+        result = await hass.config_entries.subentries.async_init(
+            (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
+        )
+        assert result["type"] is FlowResultType.FORM
+&gt;       assert "advanced" in _schema_keys(result)
+E       AssertionError: assert 'advanced' in ['name', 'channels', 'channel_regex', 'include', 'exclude']
+E        +  where ['name', 'channels', 'channel_regex', 'include', 'exclude'] = _schema_keys({'data_schema': &lt;Schema({'name': &lt;class 'str'&gt;, 'channels': &lt;homeassistant.helpers.selector.SelectSelector object at 0...t at 0x7fbff240dfd0&gt;, 'description_placeholders': {}, 'errors': {}, 'flow_id': '443787c60ba3a67def378e7fe2812fe9', ...})
+
+tests/test_advanced_flow.py:77: AssertionError</failure></testcase></testsuite></testsuites>
