@@ -29,13 +29,18 @@ WEEKDAY_NAMES: dict[str, tuple[str, ...]] = {
 # form needs (the ':' of '://', the '.' after 'www', every '@') stops that and still renders as the bare character,
 # so the text reads unchanged (G-02-2). 'www' ignores case: older marked versions also link 'WWW.', and the escape
 # renders identically either way. '~' is escaped for GFM strikethrough (IN-04).
+# A preview line is single-line by definition: config_flow joins the lines into a Markdown list, so every whitespace
+# run (a str pattern \s also covers \r, \v, \f, \x85, \u2028 and \u2029) becomes one space and the edges are stripped.
+# Otherwise a line break in a channel name or title could start a new list, an ordered list or a thematic break (WR-05).
 _HTML_ESCAPES = (("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"))
 _MARKDOWN_CHARS = ("\\", "`", "*", "_", "[", "]", "#", "|", "~")
 _AUTOLINK_TRIGGERS = re.compile(r"(?<=www)\.|:(?=//)|@", re.IGNORECASE)
+_WHITESPACE_RUNS = re.compile(r"\s+")
 
 
 def escape_markdown(text: str) -> str:
-    """Return feed text that renders literally in a Markdown/HTML description (T-02-05, Pitfall 8)."""
+    """Return feed text on one line that renders literally in a Markdown/HTML description (T-02-05, Pitfall 8)."""
+    text = _WHITESPACE_RUNS.sub(" ", text).strip()
     for char, entity in _HTML_ESCAPES:
         text = text.replace(char, entity)
     for char in _MARKDOWN_CHARS:
