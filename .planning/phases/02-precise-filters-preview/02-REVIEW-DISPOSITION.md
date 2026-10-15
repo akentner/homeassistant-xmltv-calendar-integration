@@ -3,60 +3,63 @@ phase: 02
 review: 02-REVIEW.md
 titles: json
 findings:
+  - id: WR-01
+    severity: warning
+    disposition: open
+    title: "Basic step brings cleared fields back after a validation error (carried forward, still open)"
+  - id: WR-02
+    severity: warning
+    disposition: open
+    title: "Missing `reconfigure_successful` abort translation for the calendar edit flow (carried forward, still open)"
+  - id: WR-03
+    severity: warning
+    disposition: open
+    title: "Nested-repetition guard rejects harmless fixed-count repeats, which blocks saving Phase 1 calendars unchanged (carried forward, still open)"
+  - id: WR-04
+    severity: warning
+    disposition: open
+    title: "Several invalid fields share one error placeholder, so the second field shows the first field's detail (carried forward, still open)"
+  - id: IN-01
+    severity: info
+    disposition: open
+    title: "\"Templates only, no refilter\" path is effectively dead; the comment is misleading (carried forward, still open)"
+  - id: IN-02
+    severity: info
+    disposition: open
+    title: "Unchecking \"Advanced options\" leaves hidden filters active without any hint (carried forward, still open)"
+  - id: IN-03
+    severity: info
+    disposition: open
+    title: "Basic step help texts are stale after Phase 2 (carried forward, still open)"
+  - id: IN-04
+    severity: info
+    disposition: open
+    title: "`escape_markdown` does not escape `~` (carried forward, still open)"
+  - id: IN-05
+    severity: info
+    disposition: open
+    title: "Channel regex lines are NFC-normalised, but channel IDs are not (carried forward, still open)"
+  - id: IN-06
+    severity: info
+    disposition: open
+    title: "Description cleanup strips legitimate trailing characters (carried forward, still open)"
+  - id: IN-07
+    severity: info
+    disposition: open
+    title: "Deep-nesting test fixture depends on the interpreter's recursion limit and is duplicated (new)"
   - id: CR-01
     severity: critical
     disposition: open
     title: "`OverflowError` from `re.compile` escapes pattern validation and crashes the flow (and entity setup)"
-  - id: WR-01
-    severity: warning
-    disposition: open
-    title: "Basic step brings cleared fields back after a validation error"
-  - id: WR-02
-    severity: warning
-    disposition: open
-    title: "Missing `reconfigure_successful` abort translation for the calendar edit flow"
-  - id: WR-03
-    severity: warning
-    disposition: open
-    title: "Nested-repetition guard rejects harmless fixed-count repeats, which blocks saving Phase 1 calendars unchanged"
-  - id: WR-04
-    severity: warning
-    disposition: open
-    title: "Several invalid fields share one error placeholder, so the second field shows the first field's detail"
-  - id: IN-01
-    severity: info
-    disposition: open
-    title: "\"Templates only, no refilter\" path is effectively dead; the comment is misleading"
-  - id: IN-02
-    severity: info
-    disposition: open
-    title: "Unchecking \"Advanced options\" leaves hidden filters active without any hint"
-  - id: IN-03
-    severity: info
-    disposition: open
-    title: "Basic step help texts are stale after Phase 2"
-  - id: IN-04
-    severity: info
-    disposition: open
-    title: "`escape_markdown` does not escape `~`"
-  - id: IN-05
-    severity: info
-    disposition: open
-    title: "Channel regex lines are NFC-normalised, but channel IDs are not"
-  - id: IN-06
-    severity: info
-    disposition: open
-    title: "Description cleanup strips legitimate trailing characters"
-open: 11
-total: 11
-recorded: 2026-10-15T11:52:04.335Z
+open: 12
+total: 12
+recorded: 2026-10-15T15:25:49.481Z
 ---
 
 # Phase 02: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| CR-01 | critical | open | - |
 | WR-01 | warning | open | - |
 | WR-02 | warning | open | - |
 | WR-03 | warning | open | - |
@@ -67,6 +70,8 @@ recorded: 2026-10-15T11:52:04.335Z
 | IN-04 | info | open | - |
 | IN-05 | info | open | - |
 | IN-06 | info | open | - |
+| IN-07 | info | open | - |
+| CR-01 | critical | open | - (not in the current review) |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
