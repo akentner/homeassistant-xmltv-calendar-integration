@@ -1,18 +1,18 @@
 ---
 gsd_state_version: "1.0"
 current_phase: 02
-current_phase_name: Precise Filters & Preview
+current_phase_name: precise-filters-preview
 status: executing
-stopped_at: Completed 02-09-PLAN.md
-last_updated: "2026-10-15T18:59:37.829Z"
+stopped_at: Completed 02-10-PLAN.md
+last_updated: "2026-10-15T19:28:06.355Z"
 last_activity: 2026-10-15
-last_activity_desc: Phase 02 execution started
-state_head: 4345d537afb84cb212fcf1c3d0581e99da25cdfa
+last_activity_desc: Completed 02-10-PLAN.md (gap closure G-02-2, IN-04)
+state_head: debb599cf4f25ba3e9f2e20e6c07daef6990f2b8
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 21
+  completed_plans: 21
   percent: 25
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-15)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 02 — Precise Filters & Preview
+**Current focus:** Phase 02 — precise-filters-preview
 
 ## Current Position
 
-Phase: 02 (Precise Filters & Preview) — EXECUTING
-Plan: 9 of 9
-Status: All plans executed (02-09 gap closure done) — ready for re-verification
-Last activity: 2026-10-15 - Completed quick task 261015-su3: Add German translation de.json mirroring en.json with key/placeholder parity test
+Phase: 02 (precise-filters-preview) — EXECUTING
+Plan: 10 of 10
+Status: All plans executed (02-10 gap closure done: G-02-2, IN-04) — ready for re-verification
+Last activity: 2026-10-15 — Completed 02-10-PLAN.md (preview autolink/strikethrough escaping)
 
 Progress: [███░░░░░░░] 25%
 
@@ -76,6 +76,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P07 | 6 min | 2 tasks | 5 files |
 | Phase 02 P08 | 5 min | 2 tasks | 4 files |
 | Phase 02 P09 | 7 min | 2 tasks | 6 files |
+| Phase 02 P10 | 4 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,7 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-08: Task 2 is a regression suite (all cases green before changes); basic-step include/exclude validation now uses the calendar's case flag as a refactor (re.compile acceptance does not depend on IGNORECASE)
 - [Phase 02]: 02-09: PATTERN_ERRORS = (re.error, OverflowError, RecursionError) is the single definition of an uncompilable pattern; _build_spec and first_invalid_pattern both catch it (CR-01)
 - [Phase 02]: 02-09: pytest JUnit double-fail reports (call failure + teardown error) are rejected by the RED classifier; such RED records use a TAP rerun from a stdlib pytest reporter plugin
+- [Phase 02]: 02-10: Preview escapes GFM autolink triggers (':' of '://', '.' after 'www' case-insensitive, '@') with a backslash after the character loop, plus '~' (G-02-2, IN-04)
 
 ### Pending Todos
 
@@ -177,6 +179,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T15:19:27.567Z
-Stopped at: Completed 02-09-PLAN.md
+Last session: 2026-10-15T19:28:06.253Z
+Stopped at: Completed 02-10-PLAN.md
 Resume file: None

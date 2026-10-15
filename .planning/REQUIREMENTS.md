@@ -32,7 +32,7 @@
 - [x] **FLT-07**: Invalid regex patterns are rejected in the flow with the error shown; empty patterns are ignored
 - [ ] **FLT-08**: User can filter by minimum and maximum programme duration
 - [ ] **FLT-09**: User can filter by time window (time-of-day range, may cross midnight) and weekdays
-- [ ] **FLT-10**: User sees a filter preview in the flow (match count + next ~10 matches with channel and time) before saving
+- [x] **FLT-10**: User sees a filter preview in the flow (match count + next ~10 matches with channel and time) before saving
 - [ ] **FLT-11**: User can edit all filters of an existing calendar (reconfigure) without re-downloading or re-parsing the source
 
 ### Events
@@ -123,7 +123,7 @@
 | FLT-07 | Phase 1 | Complete |
 | FLT-08 | Phase 2 | Gaps Found |
 | FLT-09 | Phase 2 | Gaps Found |
-| FLT-10 | Phase 2 | Gaps Found |
+| FLT-10 | Phase 2 | Complete |
 | FLT-11 | Phase 2 | Gaps Found |
 | EVT-01 | Phase 1 | Complete |
 | EVT-02 | Phase 1 | Complete |
