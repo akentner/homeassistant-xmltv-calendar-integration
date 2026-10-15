@@ -3,7 +3,7 @@ status: complete
 phase: 02-precise-filters-preview
 source: [02-VERIFICATION.md]
 started: 2026-10-15T15:35:00Z
-updated: 2026-10-15T18:37:34.894Z
+updated: 2026-10-15T19:50:00Z
 ---
 
 ## Current Test
@@ -56,7 +56,7 @@ blocked: 0
 
 - gap_id: G-02-2
   truth: "Preview renders feed text literally; only the known '~~' exception (IN-04) differs"
-  status: failed
+  status: resolved
   reason: "User reported: a bare URL in a programme title (e.g. http://x.y) is autolinked into a clickable link in the preview"
   severity: minor
   test: 2
@@ -67,3 +67,6 @@ blocked: 0
   missing:
     - "Neutralise autolinking of URLs in escape_markdown (e.g. break the scheme/'www.' pattern), plus a test"
   debug_session: ""
+  resolved_by: "02-10-PLAN.md"
+  resolved_at: "2026-10-15"
+  recheck: "2026-10-15 ha-dev via chrome-devtools: http://, HTTP://, https://www., www.ard.de and redaktion@example.de render as plain text (no <a>), ~~strike~~ keeps its tildes, no stray backslashes"
