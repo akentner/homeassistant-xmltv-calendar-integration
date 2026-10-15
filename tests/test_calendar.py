@@ -24,6 +24,9 @@ if TYPE_CHECKING:
 
 BUSY_DAY = datetime(2026, 10, 13, tzinfo=UTC)
 BASIC_FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
+# About two interpreter frames per nesting level: 2,000 levels exceed the default recursion limit of 1,000, so
+# re.compile raises RecursionError; the flow's 300-character cap makes this reachable only through stored data
+DEEP_NESTING = "(" * 2000 + ")" * 2000
 NO_PROGRAMMES_FEED = b"""<?xml version="1.0" encoding="UTF-8"?>
 <tv>
   <channel id="daserste.de"><display-name>Das Erste</display-name></channel>
@@ -282,3 +285,35 @@ async def test_calendar_with_no_matches(
     state = hass.states.get("calendar.empty")
     assert state is not None
     assert state.state == "off"
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        pytest.param("(", id="syntax-error"),
+        pytest.param("a{99999999999}", id="repeat-overflow"),
+        pytest.param(DEEP_NESTING, id="deep-nesting"),
+    ],
+)
+async def test_invalid_stored_pattern_does_not_break_platform_setup(
+    hass: HomeAssistant,
+    freezer: Any,
+    caplog: pytest.LogCaptureFixture,
+    setup_xmltv: Callable[..., Awaitable[Any]],
+    pattern: str,
+) -> None:
+    """A hand-edited pattern that re.compile rejects empties only its own calendar (T-02-01, T-02-18, D-06)."""
+    freezer.move_to("2026-10-13T06:00:00+00:00")
+    entry = await setup_xmltv(BASIC_FEED, calendars=(("A", {"include": pattern}), ("B", {"channels": ["zdf.de"]})))
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.states.get("calendar.a") is not None
+    b_events = await _get_events(hass, "calendar.b", "2026-10-13T00:00:00+00:00", 24)
+    assert [event["summary"] for event in b_events] == ["ZDF: heute", "ZDF: heute"]
+    assert await _get_events(hass, "calendar.a", "2026-10-13T00:00:00+00:00", 24) == []
+    warnings = [
+        r
+        for r in caplog.records
+        if r.levelno == logging.WARNING and "Calendar A: stored filter pattern is invalid" in r.getMessage()
+    ]
+    assert len(warnings) == 1

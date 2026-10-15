@@ -1,0 +1,2822 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="2" failures="4" skipped="0" tests="30" time="12.120" timestamp="2026-10-15T17:11:52.638348+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_reconfigure" name="test_data_change_applies_in_place" time="0.202" /><testcase classname="tests.test_reconfigure" name="test_title_change_renames_device" time="0.046" /><testcase classname="tests.test_reconfigure" name="test_unchanged_update_is_a_no_op" time="0.047" /><testcase classname="tests.test_reconfigure" name="test_two_calendars_changed_together" time="0.057" /><testcase classname="tests.test_reconfigure" name="test_last_of_two_updates_wins" time="0.048" /><testcase classname="tests.test_reconfigure" name="test_apply_before_added_stores_settings" time="0.033" /><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches[syntax-error]" time="0.054" /><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches[repeat-overflow]" time="0.049"><failure message="assert 0 == 1&#10; +  where 0 = len([])">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff5d0767530&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7ff5d0784f30&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7ff5d06c0a50&gt;
+pattern = 'a{99999999999}'
+
+    @pytest.mark.parametrize(
+        "pattern",
+        [
+            pytest.param("(", id="syntax-error"),
+            pytest.param("a{99999999999}", id="repeat-overflow"),
+            pytest.param(DEEP_NESTING, id="deep-nesting"),
+        ],
+    )
+    async def test_corrupt_pattern_keeps_previous_matches(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+        caplog: pytest.LogCaptureFixture,
+        pattern: str,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}), ("B", {"channels": ["zdf.de"]})))
+        a_id = _subentry_id(entry, "A")
+        b_id = _subentry_id(entry, "B")
+        a_events = await _summaries(hass, "calendar.a")
+        assert a_events == ["Das Erste: Tagesschau"]
+    
+        # Hand-edited storage: A's pattern bypasses the flow's validation; B's edit fires the one listener call
+        object.__setattr__(entry.subentries[a_id], "data", MappingProxyType({"include": pattern}))
+        assert hass.config_entries.async_update_subentry(entry, entry.subentries[b_id], data={"channels": ["daserste.de"]})
+        await hass.async_block_till_done()
+    
+        assert await _summaries(hass, "calendar.a") == a_events
+        warnings = [
+            r
+            for r in caplog.records
+            if r.levelno == logging.WARNING and "stored filter pattern" in r.getMessage() and "calendar.a" in r.getMessage()
+        ]
+&gt;       assert len(warnings) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/test_reconfigure.py:264: AssertionError</failure></testcase><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches[repeat-overflow]" time="0.008"><error message="failed on teardown with &quot;OverflowError: the repetition number is too large&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+custom_components/xmltv_calendar/__init__.py:44: in _async_entry_updated
+    await entity.async_apply_subentry(subentry)
+custom_components/xmltv_calendar/calendar.py:172: in async_apply_subentry
+    spec = _build_spec(subentry.data, self.entity_id or subentry.title)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/calendar.py:54: in _build_spec
+    return FilterSpec.from_mapping(data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/filter.py:236: in from_mapping
+    include=compile_patterns(settings[KEY_INCLUDE], case_sensitive=case_sensitive),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/filter.py:132: in compile_patterns
+    return tuple(re.compile(line, flags) for line in _lines(text))
+           ^^^^^
+custom_components/xmltv_calendar/xmltv/filter.py:132: in &lt;genexpr&gt;
+    return tuple(re.compile(line, flags) for line in _lines(text))
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/__init__.py:289: in compile
+    return _compile(pattern, flags)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/__init__.py:350: in _compile
+    p = _compiler.compile(pattern, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_compiler.py:762: in compile
+    p = _parser.parse(p, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:973: in parse
+    p = _parse_sub(source, state, flags &amp; SRE_FLAG_VERBOSE, 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = &lt;re._parser.Tokenizer object at 0x7ff5d087a970&gt;
+state = &lt;re._parser.State object at 0x7ff5d07485d0&gt;, verbose = 0, nested = 1
+first = True
+
+    def _parse(source, state, verbose, nested, first=False):
+        # parse a simple pattern
+        subpattern = SubPattern(state)
+    
+        # precompute constants into local variables
+        subpatternappend = subpattern.append
+        sourceget = source.get
+        sourcematch = source.match
+        _len = len
+        _ord = ord
+    
+        while True:
+    
+            this = source.next
+            if this is None:
+                break # end of pattern
+            if this in "|)":
+                break # end of subpattern
+            sourceget()
+    
+            if verbose:
+                # skip whitespace and comments
+                if this in WHITESPACE:
+                    continue
+                if this == "#":
+                    while True:
+                        this = sourceget()
+                        if this is None or this == "\n":
+                            break
+                    continue
+    
+            if this[0] == "\\":
+                code = _escape(source, this, state)
+                subpatternappend(code)
+    
+            elif this not in SPECIAL_CHARS:
+                subpatternappend((LITERAL, _ord(this)))
+    
+            elif this == "[":
+                here = source.tell() - 1
+                # character set
+                set = []
+                setappend = set.append
+    ##          if sourcematch(":"):
+    ##              pass # handle character classes
+                if source.next == '[':
+                    import warnings
+                    warnings.warn(
+                        'Possible nested set at position %d' % source.tell(),
+                        FutureWarning, stacklevel=nested + 6
+                    )
+                negate = sourcematch("^")
+                # check remaining characters
+                while True:
+                    this = sourceget()
+                    if this is None:
+                        raise source.error("unterminated character set",
+                                           source.tell() - here)
+                    if this == "]" and set:
+                        break
+                    elif this[0] == "\\":
+                        code1 = _class_escape(source, this)
+                    else:
+                        if set and this in '-&amp;~|' and source.next == this:
+                            import warnings
+                            warnings.warn(
+                                'Possible set %s at position %d' % (
+                                    'difference' if this == '-' else
+                                    'intersection' if this == '&amp;' else
+                                    'symmetric difference' if this == '~' else
+                                    'union',
+                                    source.tell() - 1),
+                                FutureWarning, stacklevel=nested + 6
+                            )
+                        code1 = LITERAL, _ord(this)
+                    if sourcematch("-"):
+                        # potential range
+                        that = sourceget()
+                        if that is None:
+                            raise source.error("unterminated character set",
+                                               source.tell() - here)
+                        if that == "]":
+                            if code1[0] is IN:
+                                code1 = code1[1][0]
+                            setappend(code1)
+                            setappend((LITERAL, _ord("-")))
+                            break
+                        if that[0] == "\\":
+                            code2 = _class_escape(source, that)
+                        else:
+                            if that == '-':
+                                import warnings
+                                warnings.warn(
+                                    'Possible set difference at position %d' % (
+                                        source.tell() - 2),
+                                    FutureWarning, stacklevel=nested + 6
+                                )
+                            code2 = LITERAL, _ord(that)
+                        if code1[0] != LITERAL or code2[0] != LITERAL:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        lo = code1[1]
+                        hi = code2[1]
+                        if hi &lt; lo:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        setappend((RANGE, (lo, hi)))
+                    else:
+                        if code1[0] is IN:
+                            code1 = code1[1][0]
+                        setappend(code1)
+    
+                set = _uniq(set)
+                # XXX: &lt;fl&gt; should move set optimization to compiler!
+                if _len(set) == 1 and set[0][0] is LITERAL:
+                    # optimization
+                    if negate:
+                        subpatternappend((NOT_LITERAL, set[0][1]))
+                    else:
+                        subpatternappend(set[0])
+                else:
+                    if negate:
+                        set.insert(0, (NEGATE, None))
+                    # charmap optimization can't be added here because
+                    # global flags still are not known
+                    subpatternappend((IN, set))
+    
+            elif this in REPEAT_CHARS:
+                # repeat previous item
+                here = source.tell()
+                if this == "?":
+                    min, max = 0, 1
+                elif this == "*":
+                    min, max = 0, MAXREPEAT
+    
+                elif this == "+":
+                    min, max = 1, MAXREPEAT
+                elif this == "{":
+                    if source.next == "}":
+                        subpatternappend((LITERAL, _ord(this)))
+                        continue
+    
+                    min, max = 0, MAXREPEAT
+                    lo = hi = ""
+                    while source.next in DIGITS:
+                        lo += sourceget()
+                    if sourcematch(","):
+                        while source.next in DIGITS:
+                            hi += sourceget()
+                    else:
+                        hi = lo
+                    if not sourcematch("}"):
+                        subpatternappend((LITERAL, _ord(this)))
+                        source.seek(here)
+                        continue
+    
+                    if lo:
+                        min = int(lo)
+                        if min &gt;= MAXREPEAT:
+&gt;                           raise OverflowError("the repetition number is too large")
+E                           OverflowError: the repetition number is too large
+
+/usr/lib/python3.14/re/_parser.py:671: OverflowError</error></testcase><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches[deep-nesting]" time="0.324"><failure message="assert 0 == 1&#10; +  where 0 = len([])">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff5d0765170&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7ff5d0763f00&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7ff5d06c0690&gt;
+pattern = '(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((...))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))'
+
+    @pytest.mark.parametrize(
+        "pattern",
+        [
+            pytest.param("(", id="syntax-error"),
+            pytest.param("a{99999999999}", id="repeat-overflow"),
+            pytest.param(DEEP_NESTING, id="deep-nesting"),
+        ],
+    )
+    async def test_corrupt_pattern_keeps_previous_matches(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+        caplog: pytest.LogCaptureFixture,
+        pattern: str,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}), ("B", {"channels": ["zdf.de"]})))
+        a_id = _subentry_id(entry, "A")
+        b_id = _subentry_id(entry, "B")
+        a_events = await _summaries(hass, "calendar.a")
+        assert a_events == ["Das Erste: Tagesschau"]
+    
+        # Hand-edited storage: A's pattern bypasses the flow's validation; B's edit fires the one listener call
+        object.__setattr__(entry.subentries[a_id], "data", MappingProxyType({"include": pattern}))
+        assert hass.config_entries.async_update_subentry(entry, entry.subentries[b_id], data={"channels": ["daserste.de"]})
+        await hass.async_block_till_done()
+    
+        assert await _summaries(hass, "calendar.a") == a_events
+        warnings = [
+            r
+            for r in caplog.records
+            if r.levelno == logging.WARNING and "stored filter pattern" in r.getMessage() and "calendar.a" in r.getMessage()
+        ]
+&gt;       assert len(warnings) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/test_reconfigure.py:264: AssertionError</failure></testcase><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches[deep-nesting]" time="0.011"><error message="failed on teardown with &quot;RecursionError: maximum recursion depth exceeded&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+custom_components/xmltv_calendar/__init__.py:44: in _async_entry_updated
+    await entity.async_apply_subentry(subentry)
+custom_components/xmltv_calendar/calendar.py:172: in async_apply_subentry
+    spec = _build_spec(subentry.data, self.entity_id or subentry.title)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/calendar.py:54: in _build_spec
+    return FilterSpec.from_mapping(data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/filter.py:236: in from_mapping
+    include=compile_patterns(settings[KEY_INCLUDE], case_sensitive=case_sensitive),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/filter.py:132: in compile_patterns
+    return tuple(re.compile(line, flags) for line in _lines(text))
+           ^^^^^
+custom_components/xmltv_calendar/xmltv/filter.py:132: in &lt;genexpr&gt;
+    return tuple(re.compile(line, flags) for line in _lines(text))
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/__init__.py:289: in compile
+    return _compile(pattern, flags)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/__init__.py:350: in _compile
+    p = _compiler.compile(pattern, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_compiler.py:762: in compile
+    p = _parser.parse(p, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:973: in parse
+    p = _parse_sub(source, state, flags &amp; SRE_FLAG_VERBOSE, 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+/usr/lib/python3.14/re/_parser.py:856: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/re/_parser.py:460: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = &lt;re._parser.Tokenizer object at 0x7ff5d0605be0&gt;
+state = &lt;re._parser.State object at 0x7ff5d07e2c50&gt;, verbose = 0, nested = 945
+first = False
+
+    def _parse(source, state, verbose, nested, first=False):
+        # parse a simple pattern
+        subpattern = SubPattern(state)
+    
+        # precompute constants into local variables
+        subpatternappend = subpattern.append
+        sourceget = source.get
+        sourcematch = source.match
+        _len = len
+        _ord = ord
+    
+        while True:
+    
+            this = source.next
+            if this is None:
+                break # end of pattern
+            if this in "|)":
+                break # end of subpattern
+&gt;           sourceget()
+E           RecursionError: maximum recursion depth exceeded
+
+/usr/lib/python3.14/re/_parser.py:530: RecursionError</error></testcase><testcase classname="tests.test_reconfigure" name="test_reconfigure_flow_end_to_end" time="0.058" /><testcase classname="tests.test_reconfigure" name="test_phase1_calendar_edit_keeps_events" time="0.048" /><testcase classname="tests.test_reconfigure" name="test_missing_channel_stays_selectable" time="0.053" /><testcase classname="tests.test_reconfigure" name="test_rename_via_edit_flow" time="0.048" /><testcase classname="tests.test_reconfigure" name="test_edit_to_empty_filters_shows_all" time="0.054" /><testcase classname="tests.test_reconfigure" name="test_edit_on_unloaded_source_aborts" time="0.032" /><testcase classname="tests.test_reconfigure" name="test_back_in_edit_flow_keeps_edits" time="0.049" /><testcase classname="tests.test_reconfigure" name="test_advanced_checkbox_prechecked_on_edit" time="0.054" /><testcase classname="tests.test_reconfigure" name="test_unchecking_advanced_keeps_stored_values" time="0.054" /><testcase classname="tests.test_calendar" name="test_busy_calendar_get_events_is_capped" time="0.674" /><testcase classname="tests.test_calendar" name="test_build_events_skips_invalid" time="0.015" /><testcase classname="tests.test_calendar" name="test_build_events_skips_out_of_range_programme" time="0.015" /><testcase classname="tests.test_calendar" name="test_build_events_skips_value_error" time="0.014" /><testcase classname="tests.test_calendar" name="test_event_property_skips_out_of_range_match" time="0.045" /><testcase classname="tests.test_calendar" name="test_state_turns_on_and_off_without_refresh" time="0.052" /><testcase classname="tests.test_calendar" name="test_start_offset_and_end_triggers_fire" time="0.126" /><testcase classname="tests.test_calendar" name="test_calendar_with_no_matches[channel-not-in-feed]" time="0.048" /><testcase classname="tests.test_calendar" name="test_calendar_with_no_matches[feed-without-programmes]" time="0.049" /><testcase classname="tests.test_calendar" name="test_invalid_stored_pattern_does_not_break_platform_setup[syntax-error]" time="0.048" /><testcase classname="tests.test_calendar" name="test_invalid_stored_pattern_does_not_break_platform_setup[repeat-overflow]" time="0.047"><failure message="AssertionError: assert None is not None&#10; +  where None = get('calendar.a')&#10; +    where get = &lt;homeassistant.core.StateMachine object at 0x7ff5d03f36a0&gt;.get&#10; +      where &lt;homeassistant.core.StateMachine object at 0x7ff5d03f36a0&gt; = &lt;HomeAssistant RUNNING&gt;.states">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7ff5d0748ed0&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7ff5d1baae00&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff5cb977ed0&gt;
+pattern = 'a{99999999999}'
+
+    @pytest.mark.parametrize(
+        "pattern",
+        [
+            pytest.param("(", id="syntax-error"),
+            pytest.param("a{99999999999}", id="repeat-overflow"),
+            pytest.param(DEEP_NESTING, id="deep-nesting"),
+        ],
+    )
+    async def test_invalid_stored_pattern_does_not_break_platform_setup(
+        hass: HomeAssistant,
+        freezer: Any,
+        caplog: pytest.LogCaptureFixture,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+        pattern: str,
+    ) -&gt; None:
+        """A hand-edited pattern that re.compile rejects empties only its own calendar (T-02-01, T-02-18, D-06)."""
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        entry = await setup_xmltv(BASIC_FEED, calendars=(("A", {"include": pattern}), ("B", {"channels": ["zdf.de"]})))
+    
+        assert entry.state is ConfigEntryState.LOADED
+&gt;       assert hass.states.get("calendar.a") is not None
+E       AssertionError: assert None is not None
+E        +  where None = get('calendar.a')
+E        +    where get = &lt;homeassistant.core.StateMachine object at 0x7ff5d03f36a0&gt;.get
+E        +      where &lt;homeassistant.core.StateMachine object at 0x7ff5d03f36a0&gt; = &lt;HomeAssistant RUNNING&gt;.states
+
+tests/test_calendar.py:310: AssertionError</failure></testcase><testcase classname="tests.test_calendar" name="test_invalid_stored_pattern_does_not_break_platform_setup[deep-nesting]" time="0.307"><failure message="AssertionError: assert None is not None&#10; +  where None = get('calendar.a')&#10; +    where get = &lt;homeassistant.core.StateMachine object at 0x7ff5cbff1440&gt;.get&#10; +      where &lt;homeassistant.core.StateMachine object at 0x7ff5cbff1440&gt; = &lt;HomeAssistant RUNNING&gt;.states">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7ff5d3f11630&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7ff5d1ba9590&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff5cb9775e0&gt;
+pattern = '(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((...))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))'
+
+    @pytest.mark.parametrize(
+        "pattern",
+        [
+            pytest.param("(", id="syntax-error"),
+            pytest.param("a{99999999999}", id="repeat-overflow"),
+            pytest.param(DEEP_NESTING, id="deep-nesting"),
+        ],
+    )
+    async def test_invalid_stored_pattern_does_not_break_platform_setup(
+        hass: HomeAssistant,
+        freezer: Any,
+        caplog: pytest.LogCaptureFixture,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+        pattern: str,
+    ) -&gt; None:
+        """A hand-edited pattern that re.compile rejects empties only its own calendar (T-02-01, T-02-18, D-06)."""
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        entry = await setup_xmltv(BASIC_FEED, calendars=(("A", {"include": pattern}), ("B", {"channels": ["zdf.de"]})))
+    
+        assert entry.state is ConfigEntryState.LOADED
+&gt;       assert hass.states.get("calendar.a") is not None
+E       AssertionError: assert None is not None
+E        +  where None = get('calendar.a')
+E        +    where get = &lt;homeassistant.core.StateMachine object at 0x7ff5cbff1440&gt;.get
+E        +      where &lt;homeassistant.core.StateMachine object at 0x7ff5cbff1440&gt; = &lt;HomeAssistant RUNNING&gt;.states
+
+tests/test_calendar.py:310: AssertionError</failure></testcase></testsuite></testsuites>

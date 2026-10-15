@@ -1,0 +1,32 @@
+TAP version 13
+1..30
+ok 1 - test_data_change_applies_in_place
+ok 2 - test_title_change_renames_device
+ok 3 - test_unchanged_update_is_a_no_op
+ok 4 - test_two_calendars_changed_together
+ok 5 - test_last_of_two_updates_wins
+ok 6 - test_apply_before_added_stores_settings
+ok 7 - test_corrupt_pattern_keeps_previous_matches[syntax-error]
+not ok 8 - test_corrupt_pattern_keeps_previous_matches[repeat-overflow]
+not ok 9 - test_corrupt_pattern_keeps_previous_matches[deep-nesting]
+ok 10 - test_reconfigure_flow_end_to_end
+ok 11 - test_phase1_calendar_edit_keeps_events
+ok 12 - test_missing_channel_stays_selectable
+ok 13 - test_rename_via_edit_flow
+ok 14 - test_edit_to_empty_filters_shows_all
+ok 15 - test_edit_on_unloaded_source_aborts
+ok 16 - test_back_in_edit_flow_keeps_edits
+ok 17 - test_advanced_checkbox_prechecked_on_edit
+ok 18 - test_unchecking_advanced_keeps_stored_values
+ok 19 - test_busy_calendar_get_events_is_capped
+ok 20 - test_build_events_skips_invalid
+ok 21 - test_build_events_skips_out_of_range_programme
+ok 22 - test_build_events_skips_value_error
+ok 23 - test_event_property_skips_out_of_range_match
+ok 24 - test_state_turns_on_and_off_without_refresh
+ok 25 - test_start_offset_and_end_triggers_fire
+ok 26 - test_calendar_with_no_matches[channel-not-in-feed]
+ok 27 - test_calendar_with_no_matches[feed-without-programmes]
+ok 28 - test_invalid_stored_pattern_does_not_break_platform_setup[syntax-error]
+not ok 29 - test_invalid_stored_pattern_does_not_break_platform_setup[repeat-overflow]
+not ok 30 - test_invalid_stored_pattern_does_not_break_platform_setup[deep-nesting]

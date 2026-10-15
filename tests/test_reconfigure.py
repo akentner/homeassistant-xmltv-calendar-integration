@@ -5,6 +5,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
@@ -24,13 +25,15 @@ from .conftest import DOMAIN
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    import pytest
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.common import MockConfigEntry
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 NOW = "2026-10-13T06:00:00+00:00"
+# About two interpreter frames per nesting level: 2,000 levels exceed the default recursion limit of 1,000, so
+# re.compile raises RecursionError; the flow's 300-character cap makes this reachable only through stored data
+DEEP_NESTING = "(" * 2000 + ")" * 2000
 
 
 def _subentry_id(entry: MockConfigEntry, title: str) -> str:
@@ -225,11 +228,20 @@ async def test_apply_before_added_stores_settings(
     assert not entity.differs_from(subentry)
 
 
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        pytest.param("(", id="syntax-error"),
+        pytest.param("a{99999999999}", id="repeat-overflow"),
+        pytest.param(DEEP_NESTING, id="deep-nesting"),
+    ],
+)
 async def test_corrupt_pattern_keeps_previous_matches(
     hass: HomeAssistant,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
     freezer: Any,
     caplog: pytest.LogCaptureFixture,
+    pattern: str,
 ) -> None:
     freezer.move_to(NOW)
     entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}), ("B", {"channels": ["zdf.de"]})))
@@ -239,7 +251,7 @@ async def test_corrupt_pattern_keeps_previous_matches(
     assert a_events == ["Das Erste: Tagesschau"]
 
     # Hand-edited storage: A's pattern bypasses the flow's validation; B's edit fires the one listener call
-    object.__setattr__(entry.subentries[a_id], "data", MappingProxyType({"include": "("}))
+    object.__setattr__(entry.subentries[a_id], "data", MappingProxyType({"include": pattern}))
     assert hass.config_entries.async_update_subentry(entry, entry.subentries[b_id], data={"channels": ["daserste.de"]})
     await hass.async_block_till_done()
 
