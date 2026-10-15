@@ -1,0 +1,40 @@
+{
+  "exceptions": {
+    "unable_to_fetch": {
+      "message": "Der XMLTV-Feed konnte nicht heruntergeladen werden."
+    },
+    "invalid_feed": {
+      "message": "Die heruntergeladene Datei ist kein gültiger XMLTV-Feed."
+    },
+    "feed_too_large": {
+      "message": "Der XMLTV-Feed ist zu groß (Grenzen: 256 MiB Download, 1 GiB entpackt)."
+    },
+    "path_not_allowed": {
+      "message": "Der Dateipfad liegt nicht in einem Verzeichnis, das Home Assistant erlaubt (Medienordner oder allowlist_external_dirs)."
+    },
+    "file_not_found": {
+      "message": "Die XMLTV-Datei existiert nicht oder ist keine reguläre Datei."
+    }
+  },
+  "selector": {
+    "match_field": {
+      "options": {
+        "title": "Titel",
+        "subtitle": "Untertitel",
+        "description": "Beschreibung",
+        "category": "Kategorie"
+      }
+    },
+    "weekday": {
+      "options": {
+        "mon": "Montag",
+        "tue": "Dienstag",
+        "wed": "Mittwoch",
+        "thu": "Donnerstag",
+        "fri": "Freitag",
+        "sat": "Samstag",
+        "sun": "Sonntag"
+      }
+    }
+  }
+}
