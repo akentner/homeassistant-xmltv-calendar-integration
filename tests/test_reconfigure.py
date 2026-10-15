@@ -5,10 +5,12 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 
 from custom_components.xmltv_calendar.calendar import XmltvCalendarEntity
+from custom_components.xmltv_calendar.xmltv.settings import with_defaults
 
 from .conftest import DOMAIN
 
@@ -36,6 +38,28 @@ def _suggested(result: Any, name: str) -> Any:
             return (key.description or {}).get("suggested_value")
     msg = f"{name} not in form"
     raise AssertionError(msg)
+
+
+def _channel_options(result: Any) -> list[str]:
+    for key, selector in result["data_schema"].schema.items():
+        if key == "channels":
+            return list(selector.config["options"])
+    msg = "channels not in form"
+    raise AssertionError(msg)
+
+
+async def _edit(hass: HomeAssistant, entry: MockConfigEntry, subentry_id: str, basic: dict[str, Any]) -> Any:
+    """Run the edit flow: basic form -> preview (or preview_empty) -> save."""
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], basic)
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] in {"preview", "preview_empty"}
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+    return result
 
 
 async def _summaries(hass: HomeAssistant, entity_id: str) -> list[str]:
@@ -248,3 +272,126 @@ async def test_reconfigure_flow_end_to_end(
     assert runtime.coordinator.data is epg
     assert runtime.calendars[b_id] is entity_b
     assert await _summaries(hass, "calendar.b") == b_events
+
+
+PHASE1_DATA = {"channels": ["daserste.de"], "channel_regex": "", "include": "", "exclude": ""}
+
+
+async def test_phase1_calendar_edit_keeps_events(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", PHASE1_DATA),))
+    a_id = _subentry_id(entry, "A")
+    before = await _summaries(hass, "calendar.a")
+    assert before == ["Das Erste: Formel 1: Großer Preis von Mexiko", "Das Erste: Tagesschau"]
+
+    # The pre-filled values, submitted unchanged
+    await _edit(hass, entry, a_id, {"name": "A", **PHASE1_DATA})
+
+    stored = dict(entry.subentries[a_id].data)
+    assert stored == with_defaults(PHASE1_DATA)
+    assert len(stored) == 14
+    assert await _summaries(hass, "calendar.a") == before
+
+
+async def test_missing_channel_stays_selectable(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"channels": ["gone.de", "zdf.de"]}),))
+    a_id = _subentry_id(entry, "A")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, a_id)
+    assert result["type"] is FlowResultType.FORM
+    assert _channel_options(result) == ["daserste.de", "gone.de", "zdf.de"]
+    assert _suggested(result, "channels") == ["gone.de", "zdf.de"]
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "A", "channels": ["gone.de", "zdf.de"]}
+    )
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+
+
+async def test_rename_via_edit_flow(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
+    a_id = _subentry_id(entry, "A")
+
+    await _edit(hass, entry, a_id, {"name": "Renamed", "include": "tagesschau"})
+
+    assert entry.subentries[a_id].title == "Renamed"
+    device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, a_id), entry.entry_id)
+    assert device is not None
+    assert device.name == "Renamed"
+    state = hass.states.get("calendar.a")
+    assert state is not None
+    assert state.attributes["friendly_name"] == "Renamed"
+    assert hass.states.get("calendar.renamed") is None
+
+
+async def test_edit_to_empty_filters_shows_all(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
+    a_id = _subentry_id(entry, "A")
+
+    # Cleared optional fields arrive as missing keys
+    await _edit(hass, entry, a_id, {"name": "A"})
+
+    assert sorted(await _summaries(hass, "calendar.a")) == [
+        "Das Erste: Formel 1: Großer Preis von Mexiko",
+        "Das Erste: Tagesschau",
+        "ZDF: heute",
+        "ZDF: heute",
+    ]
+
+
+async def test_edit_on_unloaded_source_aborts(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
+    a_id = _subentry_id(entry, "A")
+    entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+
+    result = await entry.start_subentry_reconfigure_flow(hass, a_id)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "source_not_loaded"
+
+
+async def test_back_in_edit_flow_keeps_edits(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
+    a_id = _subentry_id(entry, "A")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, a_id)
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"name": "A", "include": "formel"})
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "back"})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    assert _suggested(result, "include") == "formel"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"name": "A", "include": "formel"})
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.subentries[a_id].data["include"] == "formel"

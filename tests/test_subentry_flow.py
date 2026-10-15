@@ -7,6 +7,8 @@ from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.xmltv_calendar.xmltv.settings import with_defaults
+
 from .conftest import DOMAIN, FEED_URL, complete_calendar_flow
 
 if TYPE_CHECKING:
@@ -94,12 +96,10 @@ async def test_include_calendar_via_form_end_to_end(
 
     result = await complete_calendar_flow(hass, entry, {"name": "Formel 1", "include": r"formel\s*1|formula\s*1"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["data"] == {
-        "channels": [],
-        "channel_regex": "",
-        "include": r"formel\s*1|formula\s*1",
-        "exclude": "",
-    }
+    # Every save stores the full key set (D-06)
+    assert result["data"] == with_defaults(
+        {"channels": [], "channel_regex": "", "include": r"formel\s*1|formula\s*1", "exclude": ""}
+    )
     await hass.async_block_till_done()
 
     assert await _summaries(hass, "calendar.formel_1") == [
