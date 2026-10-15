@@ -1275,7 +1275,7 @@ wheels = [
 ]
 
 [[package]]
-name = "homeassistant-xmltv-integration"
+name = "homeassistant-xmltv-calendar-integration"
 version = "0.0.0"
 source = { virtual = "." }
 

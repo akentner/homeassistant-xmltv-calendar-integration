@@ -16,7 +16,7 @@ Requires Home Assistant 2026.3 or newer.
 Install it as a custom repository in [HACS](https://hacs.xyz):
 
 1. In HACS, open the menu and choose **Custom repositories**.
-2. Add `https://github.com/akentner/homeassistant-xmltv-integration` with the category **Integration**.
+2. Add `https://github.com/akentner/homeassistant-xmltv-calendar-integration` with the category **Integration**.
 3. Download **XMLTV Calendar** and restart Home Assistant.
 
 ## Adding a source

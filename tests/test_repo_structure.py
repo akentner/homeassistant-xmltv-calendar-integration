@@ -147,7 +147,7 @@ def test_license_is_mit_with_holder() -> None:
 
 def test_readme_documents_hacs_install_and_floor() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "https://github.com/akentner/homeassistant-xmltv-integration" in text
+    assert "https://github.com/akentner/homeassistant-xmltv-calendar-integration" in text
     assert "HACS" in text
     assert "2026.3" in text
 
