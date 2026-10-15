@@ -3,6 +3,7 @@
 import gzip
 import sys
 import time
+import unicodedata
 import xml.etree.ElementTree as ET
 import zlib
 from datetime import datetime, timedelta
@@ -53,7 +54,8 @@ class _CappedReader:
 
 
 def _text(elem: ET.Element) -> str:
-    return (elem.text or "").strip()
+    """Return the stripped element text in NFC, so composed and decomposed umlauts compare equal (D-08)."""
+    return unicodedata.normalize("NFC", (elem.text or "").strip())
 
 
 def _texts(parent: ET.Element, tag: str) -> tuple[str, ...]:

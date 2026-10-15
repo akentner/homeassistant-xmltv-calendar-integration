@@ -1,6 +1,7 @@
 """Per-calendar programme filtering."""
 
 import re
+import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -35,7 +36,8 @@ class FilterResult:
 
 
 def _lines(text: str) -> list[str]:
-    return [line for raw in text.splitlines() if (line := raw.strip())]
+    """Return the stripped non-blank lines in NFC, matching the NFC feed text from the parser (D-08)."""
+    return [unicodedata.normalize("NFC", line) for raw in text.splitlines() if (line := raw.strip())]
 
 
 def compile_patterns(text: str) -> tuple[re.Pattern[str], ...]:
