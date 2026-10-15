@@ -24,11 +24,14 @@ WEEKDAY_NAMES: dict[str, tuple[str, ...]] = {
 
 # The menu description is rendered as Markdown with HTML: neutralise entities first, then Markdown syntax.
 # Backslash comes first so the added escapes are not escaped again; parentheses stay readable (no [ ] -> no link).
-# The HA frontend renders it with marked in GFM mode, which autolinks scheme URLs in plain text. A backslash before
-# the ':' of '://' stops that and still renders as the bare ':', so the text reads unchanged (G-02-2).
+# The HA frontend renders it with marked in GFM mode, which autolinks three forms in plain text: scheme URLs
+# ('http://'), 'www.' hosts and e-mail addresses (also 'mailto:'/'xmpp:'). A backslash before the punctuation each
+# form needs (the ':' of '://', the '.' after 'www', every '@') stops that and still renders as the bare character,
+# so the text reads unchanged (G-02-2). 'www' ignores case: older marked versions also link 'WWW.', and the escape
+# renders identically either way. '~' is escaped for GFM strikethrough (IN-04).
 _HTML_ESCAPES = (("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"))
-_MARKDOWN_CHARS = ("\\", "`", "*", "_", "[", "]", "#", "|")
-_AUTOLINK_TRIGGERS = re.compile(r":(?=//)")
+_MARKDOWN_CHARS = ("\\", "`", "*", "_", "[", "]", "#", "|", "~")
+_AUTOLINK_TRIGGERS = re.compile(r"(?<=www)\.|:(?=//)|@", re.IGNORECASE)
 
 
 def escape_markdown(text: str) -> str:
