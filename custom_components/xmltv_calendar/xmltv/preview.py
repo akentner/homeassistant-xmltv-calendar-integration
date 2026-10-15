@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from .filter import FilterSpec
-from .render import to_event_fields
+from .render import EventTemplates, to_event_fields
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -65,11 +65,12 @@ def build_preview(  # noqa: PLR0913, PLR0917 - positional for async_add_executor
     """Count the calendar's matches with stop > now (airing included, D-16) and format the first `limit`."""
     # Same filter and time zone as the calendar entity, so the preview shows what the calendar will show
     matches = FilterSpec.from_mapping(data).apply(epg, tz=tz).matches
+    templates = EventTemplates.from_mapping(data)  # same title rendering as the entity (D-17)
     upcoming = [programme for programme in matches if programme.stop > now]
     lines: list[str] = []
     for programme in upcoming[:limit]:
         channel = epg.channels.get(programme.channel_id)
         channel_name = channel.display_name if channel is not None else programme.channel_id
-        title = to_event_fields(programme, channel)["summary"]
+        title = to_event_fields(programme, channel, templates)["summary"]
         lines.append(format_line(programme, channel_name, title, tz, language))
     return PreviewResult(count=len(upcoming), lines=tuple(lines))
