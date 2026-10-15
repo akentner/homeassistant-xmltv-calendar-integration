@@ -260,14 +260,18 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
             dt_util.get_default_time_zone(),
             self.hass.config.language,
         )
+        # D-18: zero matches warn but still allow saving; the warning lives in translations
         return self.async_show_menu(
-            step_id="preview",
+            step_id="preview" if result.count else "preview_empty",
             menu_options=["save", "back"],
             description_placeholders={
                 "count": str(result.count),
                 "matches": "\n".join(f"- {line}" for line in result.lines),
             },
         )
+
+    # HA requires a handler for every shown step id; the empty variant only differs in its translated text
+    async_step_preview_empty = async_step_preview
 
     async def async_step_save(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
         """Create the calendar; only reachable from the preview (D-01)."""

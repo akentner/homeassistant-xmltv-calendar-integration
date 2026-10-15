@@ -85,6 +85,14 @@
             "save": "Save",
             "back": "Back"
           }
+        },
+        "preview_empty": {
+          "title": "Preview",
+          "description": "Currently no programmes in the feed match these filters. You can still save the calendar; it fills as soon as matching programmes appear.",
+          "menu_options": {
+            "save": "Save",
+            "back": "Back"
+          }
         }
       },
       "error": {

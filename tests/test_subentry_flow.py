@@ -335,7 +335,7 @@ async def test_back_returns_prefilled_form(
         "name": "Motorsport",
         "channels": ["zdf.de"],
         "channel_regex": "^das",
-        "include": "formel",
+        "include": "formula",  # matches the ZDF highlights, so the preview is not empty
         "exclude": "rennen",
     }
 
