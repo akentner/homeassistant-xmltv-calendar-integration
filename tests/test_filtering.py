@@ -1,13 +1,15 @@
 """End-to-end filter tests: subentry filter data drives what a calendar shows."""
 
 import logging
+import unicodedata
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    import pytest
     from homeassistant.core import HomeAssistant
 
 BASIC_FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
@@ -54,3 +56,39 @@ async def test_missing_channel_warning_once_per_refresh(
     assert len(missing_warnings()) == 2
 
     assert await _summaries(hass, "calendar.mixed") == ["ZDF: heute", "ZDF: heute"]
+
+
+def _feed(title: str) -> bytes:
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<tv><channel id="daserste.de"><display-name>Das Erste</display-name></channel>'
+        '<programme channel="daserste.de" start="20261013200000 +0200" stop="20261013213000 +0200">'
+        f"<title>{title}</title></programme>"
+        '<programme channel="daserste.de" start="20261013220000 +0200" stop="20261013223000 +0200">'
+        "<title>Tagesthemen</title></programme></tv>"
+    ).encode()
+
+
+@pytest.mark.parametrize(
+    ("title", "include"),
+    [
+        pytest.param(unicodedata.normalize("NFD", "Tatort Köln"), "köln", id="nfd-feed"),
+        pytest.param("Tatort Köln", unicodedata.normalize("NFD", "köln"), id="nfd-pattern"),
+    ],
+)
+async def test_umlaut_pattern_matches_decomposed_feed(
+    hass: HomeAssistant,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[Any]],
+    title: str,
+    include: str,
+) -> None:
+    freezer.move_to("2026-10-13T06:00:00+00:00")
+    await setup_xmltv(_feed(title), calendars=(("Koeln", {"include": include}),))
+
+    summaries = await _summaries(hass, "calendar.koeln")
+
+    assert len(summaries) == 1
+    (summary,) = summaries
+    assert summary == "Das Erste: Tatort Köln"
+    assert unicodedata.is_normalized("NFC", summary)

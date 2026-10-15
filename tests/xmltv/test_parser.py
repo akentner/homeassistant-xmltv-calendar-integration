@@ -2,6 +2,7 @@
 
 import gzip
 import io
+import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -246,3 +247,36 @@ def test_multibyte_encoding_declaration_raises_feed_error() -> None:
         _parse(b'<?xml version="1.0" encoding="Shift_JIS"?><tv></tv>')
 
     assert excinfo.value.__cause__ is None
+
+
+def _nfd(text: str) -> str:
+    return unicodedata.normalize("NFD", text)
+
+
+def test_text_is_nfc_and_ids_are_untouched() -> None:
+    channel_id = _nfd("café.de")
+    feed = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<tv><channel id="{channel_id}"><display-name>{_nfd("Café Fernsehen")}</display-name></channel>'
+        f'<programme channel="{channel_id}" start="20261013120000 +0000" stop="20261013130000 +0000">'
+        f"<title>{_nfd('Tatort Köln')}</title><sub-title>{_nfd('Der Löwe')}</sub-title>"
+        f"<desc>{_nfd('Schöne Grüße')}</desc><category>{_nfd('Krimi für Ältere')}</category>"
+        f"<episode-num>{_nfd('Folge ü1')}</episode-num></programme></tv>"
+    ).encode()
+
+    data = _parse(feed)
+
+    (programme,) = data.programmes
+    texts = (
+        *programme.titles,
+        *programme.sub_titles,
+        programme.description,
+        *programme.categories,
+        programme.episode,
+        data.channels[channel_id].display_name,
+    )
+    assert texts == ("Tatort Köln", "Der Löwe", "Schöne Grüße", "Krimi für Ältere", "Folge ü1", "Café Fernsehen")
+    assert all(unicodedata.is_normalized("NFC", text) for text in texts)
+    # Channel IDs are identifiers, never normalized
+    assert programme.channel_id.encode() == channel_id.encode()
+    assert list(data.channels) == [channel_id]
