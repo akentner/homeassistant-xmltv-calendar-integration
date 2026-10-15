@@ -10,15 +10,19 @@ findings:
   - id: WR-02
     severity: warning
     disposition: open
-    title: "Missing `reconfigure_successful` abort translation for the calendar edit flow (carried forward, still open)"
+    title: "Missing `reconfigure_successful` abort translation for the calendar edit flow, now in en and de (carried forward, still open)"
   - id: WR-03
     severity: warning
     disposition: open
-    title: "Nested-repetition guard rejects harmless fixed-count repeats, which blocks saving Phase 1 calendars unchanged (carried forward, still open)"
+    title: "Nested-repetition guard rejects harmless fixed-count repeats (carried forward, still open)"
   - id: WR-04
     severity: warning
     disposition: open
-    title: "Several invalid fields share one error placeholder, so the second field shows the first field's detail (carried forward, still open)"
+    title: "Several invalid fields share one error placeholder (carried forward, still open)"
+  - id: WR-05
+    severity: warning
+    disposition: open
+    title: "`escape_markdown` lets line breaks through, so feed text can break the preview list (new)"
   - id: IN-01
     severity: info
     disposition: open
@@ -26,15 +30,15 @@ findings:
   - id: IN-02
     severity: info
     disposition: open
-    title: "Unchecking \"Advanced options\" leaves hidden filters active without any hint (carried forward, still open)"
+    title: "Unchecking \"Advanced options\" leaves hidden filters active without any hint, now in en and de (carried forward, still open)"
   - id: IN-03
     severity: info
     disposition: open
-    title: "Basic step help texts are stale after Phase 2 (carried forward, still open)"
+    title: "Basic step help texts are stale after Phase 2, now in en and de (carried forward, still open)"
   - id: IN-04
     severity: info
-    disposition: open
-    title: "`escape_markdown` does not escape `~` (carried forward, still open)"
+    disposition: fixed
+    title: "`escape_markdown` does not escape `~`"
   - id: IN-05
     severity: info
     disposition: open
@@ -46,14 +50,26 @@ findings:
   - id: IN-07
     severity: info
     disposition: open
-    title: "Deep-nesting test fixture depends on the interpreter's recursion limit and is duplicated (new)"
+    title: "Deep-nesting test fixture depends on the interpreter's recursion limit and is duplicated (carried forward, still open)"
+  - id: IN-08
+    severity: info
+    disposition: open
+    title: "Preview weekday language follows the server, the surrounding text follows the user (new, made reachable by de.json)"
+  - id: IN-09
+    severity: info
+    disposition: open
+    title: "\"1 passende Sendungen\" / \"1 matching programmes\" (new)"
+  - id: IN-10
+    severity: info
+    disposition: open
+    title: "`test_de_keeps_literals` uses substring matching, so short numeric literals pass vacuously (new)"
   - id: CR-01
     severity: critical
-    disposition: open
+    disposition: fixed
     title: "`OverflowError` from `re.compile` escapes pattern validation and crashes the flow (and entity setup)"
-open: 12
-total: 12
-recorded: 2026-10-15T15:25:49.481Z
+open: 14
+total: 16
+recorded: 2026-10-15T19:34:50.076Z
 ---
 
 # Phase 02: Code Review Disposition
@@ -64,14 +80,18 @@ recorded: 2026-10-15T15:25:49.481Z
 | WR-02 | warning | open | - |
 | WR-03 | warning | open | - |
 | WR-04 | warning | open | - |
+| WR-05 | warning | open | - |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
-| IN-04 | info | open | - |
+| IN-04 | info | fixed | 02-10 (debb599); not in the current review |
 | IN-05 | info | open | - |
 | IN-06 | info | open | - |
 | IN-07 | info | open | - |
-| CR-01 | critical | open | - (not in the current review) |
+| IN-08 | info | open | - |
+| IN-09 | info | open | - |
+| IN-10 | info | open | - |
+| CR-01 | critical | fixed | 02-09 (1ca6646); not in the current review |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
