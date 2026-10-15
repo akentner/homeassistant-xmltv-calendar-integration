@@ -1,9 +1,9 @@
 ---
-status: partial
+status: complete
 phase: 01-first-filtered-calendar
 source: [01-VERIFICATION.md]
 started: 2026-10-14T14:34:31Z
-updated: 2026-10-15T08:55:21.732Z
+updated: 2026-10-15T08:56:35.190Z
 ---
 
 ## Current Test
@@ -23,10 +23,11 @@ result: pass
 ### 3. ha-dev walkthrough step 6: automation with Calendar trigger (event start, offset -0:05:00) on a calendar whose next match starts within ~20 minutes (large feed)
 expected: Automation trace shows it fired five minutes before the programme start
 result: skipped
+reason: "Deferred follow-up: 3 verschieben"
 
 ### 4. ha-dev walkthrough step 7: podman logs ha-dev after all steps (redeploy first so ha-dev runs the 01-11 code)
 expected: No 'Detected blocking call' and no xmltv_calendar error/traceback
-result: skipped
+result: pass
 
 ### 5. ha-dev walkthrough step 8: delete-and-re-add a calendar (no Reconfigure until Phase 2 FLT-11); acknowledge the note that an invalid stored pattern only surfaces in the HA log
 expected: No Reconfigure action; entity and device disappear on delete; re-add under the same name keeps the entity_id and shows the new matches; user records whether the workflow is acceptable until Phase 2
@@ -38,7 +39,7 @@ result: pass
 
 ### 7. Backstop truth (01-07): two sources with equal refresh intervals refresh independently
 expected: Refreshing one source never triggers a download or parse of another
-result: skipped
+result: pass
 
 ### 8. Judgment-tier prohibitions (non-authoritative LLM verdict: all hold) — confirm: (a) no network endpoint other than the configured source URL is contacted (01-01); (b) no programme- or use-case-specific matching logic (01-03); (c) no third-party EPG data committed (01-09)
 expected: (a) only source.py session.get(url) for the user URL; (b) 'formel'/'Tatort' appear only as help-text examples in translations/en.json; (c) tracked fixtures basic.xml, edge_cases.xml, latin1.xml are synthetic; real_de_excerpt.xml not committed
@@ -51,10 +52,16 @@ result: pass
 ## Summary
 
 total: 9
-passed: 6
+passed: 8
 issues: 0
 pending: 0
-skipped: 3
+skipped: 1
 blocked: 0
 
 ## Gaps
+
+## Deferred Follow-Ups
+
+- test: 3
+  idea: "3 verschieben"
+  deferred_at: 2026-10-15
