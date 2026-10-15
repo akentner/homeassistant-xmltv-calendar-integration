@@ -6,7 +6,8 @@ import threading
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from homeassistant.config_entries import ConfigSubentryData
+from homeassistant.config_entries import SOURCE_USER, ConfigSubentryData
+from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 # Must be imported before the hass fixture resolves `custom_components` to the phcc testing package
@@ -77,3 +78,16 @@ def setup_xmltv(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> Cal
         return entry
 
     return _setup
+
+
+async def complete_calendar_flow(hass: HomeAssistant, entry: MockConfigEntry, basic: Mapping[str, Any]) -> Any:
+    """Add a calendar through the subentry flow: basic form -> preview (or preview_empty) -> save."""
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], dict(basic))
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] in {"preview", "preview_empty"}
+    return await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})

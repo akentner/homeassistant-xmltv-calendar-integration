@@ -4,12 +4,12 @@ from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .conftest import DOMAIN
+from .conftest import DOMAIN, complete_calendar_flow
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -60,12 +60,7 @@ async def test_add_calendar_via_flow_no_refetch(
     entry = await setup_xmltv(FEED, calendars=(("A", {}), ("B", {"channels": ["zdf.de"]})))
     calls = aioclient_mock.call_count
 
-    result = await hass.config_entries.subentries.async_init(
-        (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
-    )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"name": "C", "channels": ["daserste.de"]}
-    )
+    result = await complete_calendar_flow(hass, entry, {"name": "C", "channels": ["daserste.de"]})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
@@ -221,12 +216,8 @@ async def test_add_and_remove_order_does_not_change_events(
     # Remove the first-added calendar and add a third one; the remaining calendar is unaffected
     assert hass.config_entries.async_remove_subentry(entry, _subentry_id(entry, "ZDF"))
     await hass.async_block_till_done()
-    result = await hass.config_entries.subentries.async_init(
-        (entry.entry_id, "calendar"), context={"source": SOURCE_USER}
-    )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"name": "ZDF again", "channels": ["zdf.de"]}
-    )
+    result = await complete_calendar_flow(hass, entry, {"name": "ZDF again", "channels": ["zdf.de"]})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
     assert await _summaries(hass, "calendar.erste") == erste

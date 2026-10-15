@@ -7,7 +7,7 @@ from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from .conftest import DOMAIN, FEED_URL
+from .conftest import DOMAIN, FEED_URL, complete_calendar_flow
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -90,10 +90,9 @@ async def test_include_calendar_via_form_end_to_end(
     result = await _start_flow(hass, entry)
     assert result["type"] is FlowResultType.FORM
     assert {"name", "channels", "channel_regex", "include", "exclude"} <= set(_schema_keys(result))
+    hass.config_entries.subentries.async_abort(result["flow_id"])
 
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"name": "Formel 1", "include": r"formel\s*1|formula\s*1"}
-    )
+    result = await complete_calendar_flow(hass, entry, {"name": "Formel 1", "include": r"formel\s*1|formula\s*1"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {
         "channels": [],
@@ -131,7 +130,9 @@ async def test_form_filters_are_applied(
     freezer.move_to(NOW)
     entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
 
-    result = await _submit(hass, entry, {"name": "Motorsport", "include": r"formel\s*1|formula\s*1", **user_input})
+    result = await complete_calendar_flow(
+        hass, entry, {"name": "Motorsport", "include": r"formel\s*1|formula\s*1", **user_input}
+    )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
@@ -201,7 +202,7 @@ async def test_fifty_patterns_and_300_chars_are_accepted(
     entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
     include = "\n".join(["z" * 300, *(f"show{index}" for index in range(49))])
 
-    result = await _submit(hass, entry, {"name": "At the limit", "include": include})
+    result = await complete_calendar_flow(hass, entry, {"name": "At the limit", "include": include})
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
@@ -214,7 +215,7 @@ async def test_blank_lines_only_are_ignored(
     freezer.move_to(NOW)
     entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
 
-    result = await _submit(
+    result = await complete_calendar_flow(
         hass, entry, {"name": "Das Erste", "channels": ["daserste.de"], "include": "\n\n", "exclude": "  \n"}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -243,10 +244,12 @@ async def test_input_is_kept_after_a_validation_error(
     for name, value in user_input.items():
         assert _schema_key(result, name).description["suggested_value"] == value
 
-    # The user fixes the line and submits again in the same flow
+    # The user fixes the line and submits again in the same flow, then saves from the preview
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {**user_input, "include": "formel\\s*1"}
     )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"]["include"] == "formel\\s*1"
 
@@ -309,10 +312,107 @@ async def test_channel_selection_order_does_not_change_matches(
     entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
 
     for name, channels in (("Forward", ["daserste.de", "zdf.de"]), ("Reverse", ["zdf.de", "daserste.de"])):
-        result = await _submit(hass, entry, {"name": name, "channels": channels})
+        result = await complete_calendar_flow(hass, entry, {"name": name, "channels": channels})
         assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
     forward = await _summaries(hass, "calendar.forward")
     assert len(forward) == 4
     assert await _summaries(hass, "calendar.reverse") == forward
+
+
+# --- Preview step (FLT-10, D-01, D-15, D-18) ---------------------------------------------------------------------
+
+
+async def test_back_returns_prefilled_form(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+    user_input = {
+        "name": "Motorsport",
+        "channels": ["zdf.de"],
+        "channel_regex": "^das",
+        "include": "formel",
+        "exclude": "rennen",
+    }
+
+    result = await _submit(hass, entry, user_input)
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "back"})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    for name, value in user_input.items():
+        assert _schema_key(result, name).description["suggested_value"] == value
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], user_input)
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+    assert not entry.subentries
+
+
+async def test_empty_preview_still_saves(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, {"name": "Nothing", "include": "no-such-show"})
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview_empty"
+    assert list(result["menu_options"]) == ["save", "back"]
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert hass.states.get("calendar.nothing") is not None
+    assert await _summaries(hass, "calendar.nothing") == []
+
+
+async def test_save_on_unloaded_source_aborts(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, {"name": "Late"})
+    assert result["type"] is FlowResultType.MENU
+    entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "source_not_loaded"
+    assert not entry.subentries
+
+
+@pytest.mark.parametrize(
+    "user_input",
+    [
+        {"name": "All"},
+        {"name": "Formel 1", "include": "formel"},
+        {"name": "Nothing", "include": "no-such-show"},
+        {"name": "ZDF", "channels": ["zdf.de"], "exclude": "heute"},
+    ],
+    ids=["all", "include", "no-match", "channel-exclude"],
+)
+async def test_form_submit_never_creates_directly(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    user_input: dict[str, Any],
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(MOTORSPORT_FEED, calendars=())
+
+    result = await _submit(hass, entry, user_input)
+
+    assert result["type"] is FlowResultType.MENU
+    assert not entry.subentries
