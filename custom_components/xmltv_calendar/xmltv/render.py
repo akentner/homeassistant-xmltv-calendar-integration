@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC
 from typing import TYPE_CHECKING, TypedDict
 
-from .settings import DEFAULT_TITLE_TEMPLATE, KEY_TITLE_TEMPLATE, with_defaults
+from .settings import DEFAULT_TITLE_TEMPLATE, KEY_DESCRIPTION_TEMPLATE, KEY_TITLE_TEMPLATE, with_defaults
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -32,6 +32,11 @@ _FORMATTER = string.Formatter()
 _SEP = r"[\s\-–—:,;|·/]"
 _TITLE_EDGES = re.compile(rf"^{_SEP}+|{_SEP}+$")
 _SPACES = re.compile(r"[ \t]{2,}")
+# Descriptions are cleaned as a whole, never per line (Pitfall 9). A dash or "·" at the very start is kept as a
+# bullet ("- {subtitle}"); other dangling punctuation at the start and any separators at the end are stripped
+_DESCRIPTION_START = re.compile(r"^[\s:,;|/]+")
+_DESCRIPTION_END = re.compile(rf"{_SEP}+$")
+_BLANK_LINES = re.compile(r"\n{3,}")
 
 
 class EventFields(TypedDict):
@@ -82,6 +87,27 @@ def clean_title(text: str) -> str:
     return _TITLE_EDGES.sub("", _SPACES.sub(" ", text.replace("\n", " ")))
 
 
+def clean_description(text: str) -> str | None:
+    """Return a rendered description with line breaks kept: spaces collapsed, at most one blank line, edges stripped."""
+    text = _BLANK_LINES.sub("\n\n", _SPACES.sub(" ", text))
+    return _DESCRIPTION_END.sub("", _DESCRIPTION_START.sub("", text)) or None
+
+
+def default_description(programme: Programme) -> str | None:
+    """
+    Return the D-23 description: sub-title, episode and categories lines, a blank line, then the feed description.
+
+    Lines without data are dropped with their label; None when nothing is left. Labels are English (D-23).
+    """
+    lines = (
+        programme.sub_titles[0] if programme.sub_titles else "",
+        f"Episode: {programme.episode}" if programme.episode else "",
+        f"Categories: {', '.join(programme.categories)}" if programme.categories else "",
+    )
+    head = "\n".join(line for line in lines if line)
+    return "\n\n".join(part for part in (head, programme.description or "") if part) or None
+
+
 def template_values(programme: Programme, channel: Channel | None) -> dict[str, str]:
     """Return the placeholder values of a programme; missing values are empty strings (D-21, D-22)."""
     return {
@@ -95,7 +121,7 @@ def template_values(programme: Programme, channel: Channel | None) -> dict[str, 
     }
 
 
-def _stored(text: str, allowed: frozenset[str], default: CompiledTemplate, name: str) -> CompiledTemplate:
+def _stored[T](text: str, allowed: frozenset[str], default: T, name: str) -> CompiledTemplate | T:
     """Compile a stored template; one that does not compile (hand-edited storage) falls back to `default`."""
     try:
         return compile_template(text, allowed)
@@ -109,13 +135,27 @@ class EventTemplates:
     """The compiled templates of one calendar: shared by the calendar entity and the flow preview (D-17)."""
 
     title: CompiledTemplate
-    description: CompiledTemplate | None = None
+    description: CompiledTemplate | None = None  # None: the default description (D-20)
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> EventTemplates:
-        """Build from stored subentry data; never raises."""
+        """Build from stored subentry data; an uncompilable stored template logs one WARNING and uses the default."""
         settings = with_defaults(data)
-        return cls(title=_stored(settings[KEY_TITLE_TEMPLATE], TITLE_FIELDS, DEFAULT_TEMPLATES.title, "title"))
+        description = settings[KEY_DESCRIPTION_TEMPLATE]
+        return cls(
+            title=_stored(settings[KEY_TITLE_TEMPLATE], TITLE_FIELDS, DEFAULT_TEMPLATES.title, "title"),
+            description=_stored(description, DESCRIPTION_FIELDS, None, "description") if description else None,
+        )
+
+    def render_title(self, programme: Programme, values: Mapping[str, str]) -> str:
+        """Return the cleaned title, or the programme title when it renders empty (CalendarEvent needs a summary)."""
+        return clean_title(render_template(self.title, values)) or programme.title
+
+    def render_description(self, programme: Programme, values: Mapping[str, str]) -> str | None:
+        """Return the templated description, else the default description (EVT-04)."""
+        if self.description is None:
+            return default_description(programme)
+        return clean_description(render_template(self.description, values))
 
 
 DEFAULT_TEMPLATES = EventTemplates(title=compile_template(DEFAULT_TITLE_TEMPLATE, TITLE_FIELDS))
@@ -131,11 +171,11 @@ def event_uid(programme: Programme) -> str:
 def to_event_fields(
     programme: Programme, channel: Channel | None, templates: EventTemplates = DEFAULT_TEMPLATES
 ) -> EventFields:
-    """Return the templated summary (else the programme title), location = display name else channel ID, and UID."""
+    """Return templated summary and description, location = display name else channel ID, and the UID."""
     values = template_values(programme, channel)
     return EventFields(
-        summary=clean_title(render_template(templates.title, values)) or programme.title,
+        summary=templates.render_title(programme, values),
         location=values["channel"],
-        description=programme.description,
+        description=templates.render_description(programme, values),
         uid=event_uid(programme),
     )
