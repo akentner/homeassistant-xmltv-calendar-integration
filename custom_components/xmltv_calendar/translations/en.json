@@ -127,7 +127,13 @@
       },
       "error": {
         "name_required": "Enter a name.",
-        "invalid_regex": "Invalid pattern {pattern}: {error}. Each line must be a valid regular expression of at most 300 characters, and at most 50 lines per field."
+        "invalid_regex": "Invalid pattern {pattern}: {error}. Each line must be a valid regular expression of at most 300 characters, and at most 50 lines per field.",
+        "fields_required": "Choose at least one field.",
+        "time_incomplete": "Set both From and To, or leave both empty.",
+        "time_equal": "From and To must differ.",
+        "duration_order": "The minimum duration must not be longer than the maximum.",
+        "invalid_template": "The template is not valid: {template_error}",
+        "unknown_placeholder": "{template_error} is not an allowed placeholder. Allowed in titles: {title_fields}. Allowed in descriptions: {description_fields}."
       },
       "abort": {
         "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again."

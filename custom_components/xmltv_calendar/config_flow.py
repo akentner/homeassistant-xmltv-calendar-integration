@@ -73,6 +73,7 @@ from .source import (
 )
 from .xmltv.filter import first_invalid_pattern
 from .xmltv.preview import build_preview
+from .xmltv.render import DESCRIPTION_FIELDS, TITLE_FIELDS, TemplateError, compile_template
 from .xmltv.settings import (
     ADVANCED_DEFAULTS,
     DEFAULT_TITLE_TEMPLATE,
@@ -280,6 +281,41 @@ def _advanced_values(user_input: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _advanced_errors(values: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
+    """
+    Return the form errors and their placeholders for built advanced values, all checked in one pass.
+
+    Template errors use their own template_error placeholder, never the regex pattern/error ones (Pitfall 12).
+    """
+    errors: dict[str, str] = {}
+    placeholders: dict[str, str] = {}
+    # A6: an empty selection is rejected instead of silently meaning the default fields
+    for field in (CONF_INCLUDE_FIELDS, CONF_EXCLUDE_FIELDS):
+        if not values[field]:
+            errors[field] = "fields_required"
+    # D-12: both or neither; compared after normalization, so "22:00" equals "22:00:00" (Pitfall 11)
+    time_from, time_to = values[CONF_TIME_FROM], values[CONF_TIME_TO]
+    if (time_from is None) != (time_to is None):
+        errors[CONF_TIME_TO if time_to is None else CONF_TIME_FROM] = "time_incomplete"
+    elif time_from is not None and time_from == time_to:
+        errors[CONF_TIME_TO] = "time_equal"
+    # D-13: inclusive bounds, so min == max is a valid exact length
+    minimum, maximum = values[CONF_MIN_DURATION], values[CONF_MAX_DURATION]
+    if minimum is not None and maximum is not None and minimum > maximum:
+        errors[CONF_MAX_DURATION] = "duration_order"
+    # D-21: only allowed plain placeholders; a blank description template means the default description
+    templates = [(CONF_TITLE_TEMPLATE, TITLE_FIELDS)]
+    if values[CONF_DESCRIPTION_TEMPLATE].strip():
+        templates.append((CONF_DESCRIPTION_TEMPLATE, DESCRIPTION_FIELDS))
+    for field, allowed in templates:
+        try:
+            compile_template(values[field], allowed)
+        except TemplateError as err:
+            errors[field] = err.reason
+            placeholders.setdefault("template_error", err.detail)
+    return errors, placeholders
+
+
 def _advanced_suggestions(pending: dict[str, Any]) -> dict[str, Any]:
     """Return the pending advanced values as form suggestions; times in the TimeSelector's "HH:MM:SS" form."""
     suggestions = {key: pending[key] for key in ADVANCED_DEFAULTS if pending.get(key) is not None}
@@ -376,13 +412,24 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
             return self.async_abort(reason="source_not_loaded")
         pending = self._load_pending()
 
+        errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
-            pending.update(_advanced_values(user_input))
-            return await self.async_step_preview()
+            values = _advanced_values(user_input)
+            errors, placeholders = _advanced_errors(values)
+            # Nothing reaches the pending values, and so the preview and storage, until every check passes
+            if not errors:
+                pending.update(values)
+                return await self.async_step_preview()
 
-        schema = self.add_suggested_values_to_schema(_advanced_schema(), _advanced_suggestions(pending))
+        # After an error the form shows exactly what was submitted, cleared fields included
+        suggestions = user_input if user_input is not None else _advanced_suggestions(pending)
+        schema = self.add_suggested_values_to_schema(_advanced_schema(), suggestions)
         return self.async_show_form(
-            step_id="advanced", data_schema=schema, description_placeholders=dict(_ADVANCED_PLACEHOLDERS)
+            step_id="advanced",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=_ADVANCED_PLACEHOLDERS | placeholders,
         )
 
     async def async_step_preview(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
