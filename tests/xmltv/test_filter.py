@@ -2,8 +2,9 @@
 
 import unicodedata
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -16,10 +17,16 @@ from custom_components.xmltv_calendar.xmltv.settings import (
     FIELD_TITLE,
     KEY_CASE_SENSITIVE,
     KEY_CHANNEL_REGEX,
+    KEY_CHANNELS,
     KEY_EXCLUDE,
     KEY_EXCLUDE_FIELDS,
     KEY_INCLUDE,
     KEY_INCLUDE_FIELDS,
+    KEY_MAX_DURATION,
+    KEY_MIN_DURATION,
+    KEY_TIME_FROM,
+    KEY_TIME_TO,
+    KEY_WEEKDAYS,
 )
 
 BASE = datetime(2026, 10, 13, 8, tzinfo=UTC)
@@ -255,3 +262,193 @@ U_EPG = EpgData(
 )
 def test_unicode_matching(include: str, expected: tuple[Programme, ...]) -> None:
     assert FilterSpec.from_mapping({KEY_INCLUDE: include}).apply(U_EPG).matches == expected
+
+
+# --- Time window, weekdays and duration (FLT-08, FLT-09, D-09 to D-14) ---------------------------------------------
+
+BERLIN = ZoneInfo("Europe/Berlin")
+CEST = timezone(timedelta(hours=2))  # the parser's cached fixed offsets
+CET = timezone(timedelta(hours=1))
+
+
+def _timed(
+    start: datetime,
+    stop: datetime | None = None,
+    *,
+    channel: str = "ch.de",
+    title: str = "Show",
+) -> Programme:
+    return Programme(
+        channel_id=channel,
+        start=start,
+        stop=stop if stop is not None else start + timedelta(minutes=30),
+        titles=(title,),
+        sub_titles=(),
+        description=None,
+        categories=(),
+        episode=None,
+    )
+
+
+def _timed_epg(*programmes: Programme) -> EpgData:
+    return EpgData(channels={}, programmes=programmes, stats=ParseStats())
+
+
+def _passes(data: dict[str, Any], programme: Programme) -> bool:
+    return FilterSpec.from_mapping(data).apply(_timed_epg(programme), tz=BERLIN).matches == (programme,)
+
+
+FRIDAY_NIGHT = {KEY_TIME_FROM: "22:00", KEY_TIME_TO: "02:00", KEY_WEEKDAYS: ["fri"]}
+MORNING = {KEY_TIME_FROM: "06:00", KEY_TIME_TO: "09:00"}
+WEEKEND = {KEY_WEEKDAYS: ["sat", "sun"]}
+SATURDAY_LATE = {KEY_TIME_FROM: "22:00", KEY_TIME_TO: "04:00", KEY_WEEKDAYS: ["sat"]}
+
+
+@pytest.mark.parametrize(
+    ("data", "start", "expected"),
+    [
+        # D-11: midnight-crossing window anchored to the day it opened on; half-open end (A2)
+        pytest.param(FRIDAY_NIGHT, datetime(2026, 10, 16, 22, tzinfo=CEST), True, id="fri-night-fri-22:00"),
+        pytest.param(FRIDAY_NIGHT, datetime(2026, 10, 17, 1, tzinfo=CEST), True, id="fri-night-sat-01:00"),
+        pytest.param(FRIDAY_NIGHT, datetime(2026, 10, 17, 1, 59, tzinfo=CEST), True, id="fri-night-sat-01:59"),
+        pytest.param(FRIDAY_NIGHT, datetime(2026, 10, 16, 1, tzinfo=CEST), False, id="fri-night-fri-01:00"),
+        pytest.param(FRIDAY_NIGHT, datetime(2026, 10, 17, 2, tzinfo=CEST), False, id="fri-night-sat-02:00-end-excl"),
+        # Same-day window, every day
+        pytest.param(MORNING, datetime(2026, 10, 16, 5, 59, tzinfo=CEST), False, id="morning-05:59"),
+        pytest.param(MORNING, datetime(2026, 10, 16, 6, tzinfo=CEST), True, id="morning-06:00-start-incl"),
+        pytest.param(MORNING, datetime(2026, 10, 16, 8, 59, tzinfo=CEST), True, id="morning-08:59"),
+        pytest.param(MORNING, datetime(2026, 10, 16, 9, tzinfo=CEST), False, id="morning-09:00-end-excl"),
+        # Weekdays without a window use the local start date
+        pytest.param(WEEKEND, datetime(2026, 10, 16, 23, 30, tzinfo=UTC), True, id="weekend-sat-01:30-local"),
+        pytest.param(WEEKEND, datetime(2026, 10, 16, 21, tzinfo=UTC), False, id="weekend-fri-23:00-local"),
+        # DST fall-back night 2026-10-25: 02:30 happens twice, both count for Saturday
+        pytest.param(SATURDAY_LATE, datetime(2026, 10, 25, 0, 30, tzinfo=UTC), True, id="dst-2026-10-25-02:30-cest"),
+        pytest.param(SATURDAY_LATE, datetime(2026, 10, 25, 1, 30, tzinfo=UTC), True, id="dst-2026-10-25-02:30-cet"),
+        pytest.param(SATURDAY_LATE, datetime(2026, 10, 25, 3, 30, tzinfo=UTC), False, id="dst-2026-10-25-04:30-cet"),
+        # DST spring-forward night 2027-03-28: 02:00-03:00 does not exist, 03:30 CEST still anchors to Saturday
+        pytest.param(SATURDAY_LATE, datetime(2027, 3, 28, 1, 30, tzinfo=UTC), True, id="dst-2027-03-28-03:30-cest"),
+        # D-12: incomplete or equal stored bounds and unknown weekday names never restrict or break the calendar
+        pytest.param(
+            {KEY_TIME_FROM: "22:00", KEY_TIME_TO: None}, datetime(2026, 10, 16, 12, tzinfo=CEST), True, id="from-only"
+        ),
+        pytest.param({KEY_TIME_TO: "02:00"}, datetime(2026, 10, 16, 12, tzinfo=CEST), True, id="to-only"),
+        pytest.param(
+            {KEY_TIME_FROM: "22:00", KEY_TIME_TO: "22:00"},
+            datetime(2026, 10, 16, 12, tzinfo=CEST),
+            True,
+            id="from-eq-to",
+        ),
+        pytest.param({KEY_WEEKDAYS: ["xyz"]}, datetime(2026, 10, 14, 12, tzinfo=CEST), True, id="unknown-weekday"),
+        pytest.param({KEY_WEEKDAYS: []}, datetime(2026, 10, 14, 12, tzinfo=CEST), True, id="empty-weekdays"),
+    ],
+)
+def test_window_and_weekday_table(data: dict[str, Any], start: datetime, *, expected: bool) -> None:
+    assert _passes(data, _timed(start)) is expected
+
+
+START = datetime(2026, 10, 14, 20, tzinfo=CEST)
+
+
+@pytest.mark.parametrize(
+    ("data", "duration", "expected"),
+    [
+        # D-13: inclusive whole-minute bounds, exact timedelta comparison
+        pytest.param({KEY_MIN_DURATION: 30, KEY_MAX_DURATION: 90}, timedelta(minutes=29), False, id="min30-max90-29"),
+        pytest.param({KEY_MIN_DURATION: 30, KEY_MAX_DURATION: 90}, timedelta(minutes=30), True, id="min30-max90-30"),
+        pytest.param({KEY_MIN_DURATION: 30, KEY_MAX_DURATION: 90}, timedelta(minutes=90), True, id="min30-max90-90"),
+        pytest.param({KEY_MIN_DURATION: 30, KEY_MAX_DURATION: 90}, timedelta(minutes=91), False, id="min30-max90-91"),
+        pytest.param({KEY_MIN_DURATION: 60}, timedelta(minutes=59, seconds=59), False, id="min60-59m59s"),
+        pytest.param({KEY_MIN_DURATION: 60}, timedelta(minutes=60), True, id="min60-60"),
+        pytest.param({KEY_MIN_DURATION: 60}, timedelta(days=2), True, id="min-only-no-upper-bound"),
+        pytest.param({KEY_MAX_DURATION: 90}, timedelta(minutes=1), True, id="max-only-no-lower-bound"),
+        pytest.param({KEY_MAX_DURATION: 90}, timedelta(minutes=90, seconds=1), False, id="max90-90m01s"),
+        pytest.param({KEY_MIN_DURATION: None, KEY_MAX_DURATION: None}, timedelta(days=3), True, id="both-empty"),
+        pytest.param({KEY_MIN_DURATION: 0}, timedelta(minutes=1), True, id="min-zero"),
+    ],
+)
+def test_duration_bounds(data: dict[str, Any], duration: timedelta, *, expected: bool) -> None:
+    assert _passes(data, _timed(START, START + duration)) is expected
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        pytest.param({KEY_MIN_DURATION: 120}, True, id="dst-2026-10-25-120min-min120"),
+        pytest.param({KEY_MAX_DURATION: 120}, True, id="dst-2026-10-25-120min-max120"),
+        pytest.param({KEY_MAX_DURATION: 119}, False, id="dst-2026-10-25-120min-max119"),
+        pytest.param({KEY_MIN_DURATION: 121}, False, id="dst-2026-10-25-120min-min121"),
+    ],
+)
+def test_duration_across_dst_fall_back(data: dict[str, Any], *, expected: bool) -> None:
+    # Pitfall 6: stop - start on the parser's fixed offsets is the real duration, not the 60 min wall-clock difference
+    programme = _timed(datetime(2026, 10, 25, 1, 30, tzinfo=CEST), datetime(2026, 10, 25, 2, 30, tzinfo=CET))
+
+    assert _passes(data, programme) is expected
+
+
+def test_absurd_stop_hidden_by_max_duration() -> None:
+    # WR-07: a stop three days after the start is hidden by a max duration
+    programme = _timed(datetime(2026, 10, 13, 10, tzinfo=UTC), datetime(2026, 10, 16, 10, tzinfo=UTC))
+
+    assert not _passes({KEY_MAX_DURATION: 600}, programme)
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        pytest.param({KEY_MIN_DURATION: 10**16}, False, id="huge-min-hides"),
+        pytest.param({KEY_MAX_DURATION: 10**16}, True, id="huge-max-unbounded"),
+    ],
+)
+def test_huge_stored_duration_does_not_raise(data: dict[str, Any], *, expected: bool) -> None:
+    # with_defaults keeps any non-negative int; timedelta(minutes=10**16) would overflow
+    assert _passes(data, _timed(START)) is expected
+
+
+def test_every_constraint_must_pass() -> None:
+    # D-14: channel AND include AND NOT exclude AND duration AND window AND weekday
+    evening = datetime(2026, 10, 16, 20, 15, tzinfo=CEST)  # a Friday
+    hit = _timed(evening, evening + timedelta(minutes=90), title="Tatort")
+    others = (
+        _timed(evening, evening + timedelta(minutes=90), channel="zdf.de", title="Tatort"),  # wrong channel
+        _timed(evening, evening + timedelta(minutes=90), title="Tagesschau"),  # include misses
+        _timed(evening, evening + timedelta(minutes=90), title="Tatort Wiederholung"),  # excluded
+        _timed(evening, evening + timedelta(minutes=10), title="Tatort"),  # too short
+        _timed(evening - timedelta(hours=3), evening - timedelta(hours=1, minutes=30), title="Tatort"),  # before window
+        _timed(evening + timedelta(days=1), evening + timedelta(days=1, minutes=90), title="Tatort"),  # Saturday
+    )
+    data = {
+        KEY_CHANNELS: ["ch.de"],
+        KEY_INCLUDE: "tatort",
+        KEY_EXCLUDE: "wiederholung",
+        KEY_MIN_DURATION: 45,
+        KEY_MAX_DURATION: 120,
+        KEY_TIME_FROM: "20:00",
+        KEY_TIME_TO: "23:00",
+        KEY_WEEKDAYS: ["fri"],
+    }
+
+    result = FilterSpec.from_mapping(data).apply(_timed_epg(hit, *others), tz=BERLIN)
+
+    assert result.matches == (hit,)
+
+
+def test_filtering_keeps_feed_order_for_equal_starts() -> None:
+    start = datetime(2026, 10, 16, 22, tzinfo=CEST)
+    programmes = (
+        _timed(start, channel="a.de", title="Zulu"),
+        _timed(start, channel="b.de", title="Able"),
+        _timed(start, channel="b.de", title="Bravo"),
+        _timed(start + timedelta(hours=1), channel="a.de", title="Alpha"),
+    )
+    data = {**FRIDAY_NIGHT, KEY_MIN_DURATION: 30}
+
+    assert FilterSpec.from_mapping(data).apply(_timed_epg(*programmes), tz=BERLIN).matches == programmes
+
+
+def test_apply_without_tz_evaluates_in_utc() -> None:
+    programme = _timed(datetime(2026, 10, 14, 7, tzinfo=UTC))  # 09:00 in Berlin
+    spec = FilterSpec.from_mapping(MORNING)
+
+    assert spec.apply(_timed_epg(programme)).matches == (programme,)
+    assert spec.apply(_timed_epg(programme), tz=BERLIN).matches == ()
