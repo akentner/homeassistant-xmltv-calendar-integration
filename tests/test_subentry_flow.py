@@ -428,6 +428,38 @@ async def test_preview_shows_feed_urls_as_plain_text(
     hass.config_entries.subentries.async_abort(result["flow_id"])
 
 
+async def test_preview_keeps_one_line_per_match_despite_feed_line_breaks(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    berlin_tz: None,
+) -> None:
+    # WR-05: a line break in a channel name or title must not split the preview list
+    freezer.move_to(NOW)
+    channels = CHANNELS + '  <channel id="sky.de"><display-name>Sky\n1. Liga</display-name></channel>\n'
+    entry = await setup_xmltv(
+        _feed(
+            _programme("sky.de", "20261013120000", "20261013130000", "Sport&#13;1. Bundesliga")
+            + _programme("daserste.de", "20261013180000", "20261013181500", "Sportschau"),
+            channels=channels,
+        ),
+        calendars=(),
+    )
+
+    result = await _submit(hass, entry, {"name": "Sport", "include": "Sport"})
+
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+    assert result["description_placeholders"]["count"] == "2"
+    matches = result["description_placeholders"]["matches"]
+    assert matches == (
+        "- Tue 13.10. 14:00 · Sky 1. Liga · Sky 1. Liga: Sport 1. Bundesliga\n"
+        "- Tue 13.10. 20:00 · Das Erste · Das Erste: Sportschau"
+    )
+    assert len(matches.splitlines()) == 2
+    hass.config_entries.subentries.async_abort(result["flow_id"])
+
+
 async def test_save_on_unloaded_source_aborts(
     hass: HomeAssistant,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],

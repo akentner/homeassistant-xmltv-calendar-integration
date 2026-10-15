@@ -236,6 +236,68 @@ def test_tilde_is_escaped(text: str, expected: str) -> None:
     assert escape_markdown(text) == expected
 
 
+# --- One line per match: whitespace collapsing (WR-05) -------------------------------------------------------------
+
+
+# A line break before '---', '1. ' or '+ ' would start a new Markdown block inside the preview list
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Das\nErste", "Das Erste"),
+        ("Sport\r1. Liga", "Sport 1. Liga"),
+        ("Sport\n1. Liga", "Sport 1. Liga"),
+        ("A\n---", "A ---"),
+        ("Sport\n+ Plus", "Sport + Plus"),
+        ("A\r\n\r\nB", "A B"),
+        ("A\tB\vC\fD", "A B C D"),
+        ("A\x85B\u2028C\u2029D", "A B C D"),
+        ("Das\xa0Erste", "Das Erste"),
+        ("  Das   Erste \n", "Das Erste"),
+        (" \n\r ", ""),
+        ("*A*\n# B", "\\*A\\* \\# B"),
+    ],
+    ids=[
+        "newline",
+        "carriage-return",
+        "newline-ordered-list",
+        "thematic-break",
+        "plus-bullet",
+        "crlf-blank-line",
+        "tab-vt-ff",
+        "unicode-line-separators",
+        "nbsp",
+        "edges-and-runs",
+        "whitespace-only",
+        "with-markdown-escapes",
+    ],
+)
+def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -> None:
+    assert escape_markdown(text) == expected
+
+
+def test_feed_line_breaks_stay_on_one_preview_line() -> None:
+    programme = _programme("x", _at(10), _at(11))
+
+    line = format_line(programme, "Sky\n1. Liga", "Sport\r---", TZ, "en")
+
+    assert line == "Tue 13.10. 12:00 · Sky 1. Liga · Sport ---"
+    assert line.splitlines() == [line]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Das Erste",
+        "Formel 1: Großer Preis von Mexiko – Qualifying",
+        "Tagesschau (Das Erste)",
+        "heute 19:00 Uhr",
+    ],
+    ids=["channel", "title-colon-dash", "parentheses", "clock-time"],
+)
+def test_single_line_text_is_byte_identical(text: str) -> None:
+    assert escape_markdown(text) == text
+
+
 # --- Window and weekdays in the given time zone (FLT-09, D-10) -----------------------------------------------------
 
 

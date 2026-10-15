@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="14" skipped="0" tests="85" time="1.814" timestamp="2026-10-15T21:53:40.804035+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.xmltv.test_preview" name="test_running_programme_is_counted_and_listed_first" time="0.104" /><testcase classname="tests.xmltv.test_preview" name="test_programme_ending_now_is_excluded" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_programme_starting_now_is_included" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[eleven]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[exactly-ten]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[limit-3]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_default_limit_is_ten" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_equal_starts_keep_feed_order" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_the_calendar_filter_path" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_missing_channel_shows_its_id" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[en-Tue]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[de-Di]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[de-CH-Di]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[DE-Di]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[fr-Tue]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_time_is_truncated_to_the_minute" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_day_and_month_are_zero_padded_in_winter_time" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_markdown_and_html_in_feed_text_are_escaped" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_backslash_and_backtick_are_escaped_and_parentheses_kept" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[http]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[https-path]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[upper-case]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[ftp]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[markdown-link]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[plain-colon]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www-in-parentheses]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www-upper]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www-prefixed]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[scheme-and-www]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[email]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[email-underscore]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[mailto]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_tilde_is_escaped[strike-double]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_tilde_is_escaped[strike-single]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[newline]" time="0.005"><failure message="AssertionError: assert 'Das\nErste' == 'Das Erste'&#10;  &#10;  - Das Erste&#10;  + Das&#10;  + Erste">text = 'Das\nErste', expected = 'Das Erste'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'Das\nErste' == 'Das Erste'
+E         
+E         - Das Erste
+E         + Das
+E         + Erste
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[carriage-return]" time="0.005"><failure message="AssertionError: assert 'Sport\r1. Liga' == 'Sport 1. Liga'&#10;  &#10;  - Sport 1. Liga&#10;  + Sport&#10;  + 1. Liga">text = 'Sport\r1. Liga', expected = 'Sport 1. Liga'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'Sport\r1. Liga' == 'Sport 1. Liga'
+E         
+E         - Sport 1. Liga
+E         + Sport
+E         + 1. Liga
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[newline-ordered-list]" time="0.005"><failure message="AssertionError: assert 'Sport\n1. Liga' == 'Sport 1. Liga'&#10;  &#10;  - Sport 1. Liga&#10;  + Sport&#10;  + 1. Liga">text = 'Sport\n1. Liga', expected = 'Sport 1. Liga'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'Sport\n1. Liga' == 'Sport 1. Liga'
+E         
+E         - Sport 1. Liga
+E         + Sport
+E         + 1. Liga
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[thematic-break]" time="0.005"><failure message="AssertionError: assert 'A\n---' == 'A ---'&#10;  &#10;  + A&#10;  - A ---&#10;  ? --&#10;  + ---">text = 'A\n---', expected = 'A ---'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'A\n---' == 'A ---'
+E         
+E         + A
+E         - A ---
+E         ? --
+E         + ---
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[plus-bullet]" time="0.005"><failure message="AssertionError: assert 'Sport\n+ Plus' == 'Sport + Plus'&#10;  &#10;  - Sport + Plus&#10;  + Sport&#10;  + + Plus">text = 'Sport\n+ Plus', expected = 'Sport + Plus'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'Sport\n+ Plus' == 'Sport + Plus'
+E         
+E         - Sport + Plus
+E         + Sport
+E         + + Plus
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[crlf-blank-line]" time="0.005"><failure message="AssertionError: assert 'A\r\n\r\nB' == 'A B'&#10;  &#10;  - A B&#10;  + A&#10;  + &#10;  + B">text = 'A\r\n\r\nB', expected = 'A B'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'A\r\n\r\nB' == 'A B'
+E         
+E         - A B
+E         + A
+E         + 
+E         + B
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[tab-vt-ff]" time="0.005"><failure message="AssertionError: assert 'A\tB\x0bC\x0cD' == 'A B C D'&#10;  &#10;  - A B C D&#10;  + A&#09;B&#10;  &#10;  + C&#10;  &#10;  + D">text = 'A\tB\x0bC\x0cD', expected = 'A B C D'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'A\tB\x0bC\x0cD' == 'A B C D'
+E         
+E         - A B C D
+E         + A	B
+E         
+E         + C
+E         
+E         + D
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[unicode-line-separators]" time="0.005"><failure message="AssertionError: assert 'A\x85B\u2028C\u2029D' == 'A B C D'&#10;  &#10;  - A B C D&#10;  + A&#10;  &#10;  + B&#10;  &#10;  + C&#10;  &#10;  + D">text = 'A\x85B\u2028C\u2029D', expected = 'A B C D'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'A\x85B\u2028C\u2029D' == 'A B C D'
+E         
+E         - A B C D
+E         + A
+E         
+E         + B
+E         
+E         + C
+E         
+E         + D
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[nbsp]" time="0.005"><failure message="AssertionError: assert 'Das\xa0Erste' == 'Das Erste'&#10;  &#10;  - Das Erste&#10;  ?    ^&#10;  + Das Erste&#10;  ?    ^">text = 'Das\xa0Erste', expected = 'Das Erste'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'Das\xa0Erste' == 'Das Erste'
+E         
+E         - Das Erste
+E         ?    ^
+E         + Das Erste
+E         ?    ^
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[edges-and-runs]" time="0.005"><failure message="AssertionError: assert '  Das   Erste \n' == 'Das Erste'&#10;  &#10;  - Das Erste&#10;  +   Das   Erste &#10;  ? ++   ++      ++">text = '  Das   Erste \n', expected = 'Das Erste'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert '  Das   Erste \n' == 'Das Erste'
+E         
+E         - Das Erste
+E         +   Das   Erste 
+E         ? ++   ++      ++
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[whitespace-only]" time="0.005"><failure message="AssertionError: assert ' \n\r ' == ''&#10;  &#10;  Strings contain only whitespace, escaping them using repr()&#10;  - ''&#10;  + ' \n\r '">text = ' \n\r ', expected = ''
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert ' \n\r ' == ''
+E         
+E         Strings contain only whitespace, escaping them using repr()
+E         - ''
+E         + ' \n\r '
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_whitespace_runs_collapse_to_one_space[with-markdown-escapes]" time="0.006"><failure message="AssertionError: assert '\\*A\\*\n\\# B' == '\\*A\\* \\# B'&#10;  &#10;  - \*A\* \# B&#10;  + \*A\*&#10;  + \# B">text = '*A*\n# B', expected = '\\*A\\* \\# B'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("Das\nErste", "Das Erste"),
+            ("Sport\r1. Liga", "Sport 1. Liga"),
+            ("Sport\n1. Liga", "Sport 1. Liga"),
+            ("A\n---", "A ---"),
+            ("Sport\n+ Plus", "Sport + Plus"),
+            ("A\r\n\r\nB", "A B"),
+            ("A\tB\vC\fD", "A B C D"),
+            ("A\x85B\u2028C\u2029D", "A B C D"),
+            ("Das\xa0Erste", "Das Erste"),
+            ("  Das   Erste \n", "Das Erste"),
+            (" \n\r ", ""),
+            ("*A*\n# B", "\\*A\\* \\# B"),
+        ],
+        ids=[
+            "newline",
+            "carriage-return",
+            "newline-ordered-list",
+            "thematic-break",
+            "plus-bullet",
+            "crlf-blank-line",
+            "tab-vt-ff",
+            "unicode-line-separators",
+            "nbsp",
+            "edges-and-runs",
+            "whitespace-only",
+            "with-markdown-escapes",
+        ],
+    )
+    def test_whitespace_runs_collapse_to_one_space(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert '\\*A\\*\n\\# B' == '\\*A\\* \\# B'
+E         
+E         - \*A\* \# B
+E         + \*A\*
+E         + \# B
+
+tests/xmltv/test_preview.py:275: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_feed_line_breaks_stay_on_one_preview_line" time="0.005"><failure message="AssertionError: assert 'Tue 13.10. 1... · Sport\r---' == 'Tue 13.10. 1...a · Sport ---'&#10;  &#10;  - Tue 13.10. 12:00 · Sky 1. Liga · Sport ---&#10;  + Tue 13.10. 12:00 · Sky&#10;  + 1. Liga · Sport&#10;  + ---">def test_feed_line_breaks_stay_on_one_preview_line() -&gt; None:
+        programme = _programme("x", _at(10), _at(11))
+    
+        line = format_line(programme, "Sky\n1. Liga", "Sport\r---", TZ, "en")
+    
+&gt;       assert line == "Tue 13.10. 12:00 · Sky 1. Liga · Sport ---"
+E       AssertionError: assert 'Tue 13.10. 1... · Sport\r---' == 'Tue 13.10. 1...a · Sport ---'
+E         
+E         - Tue 13.10. 12:00 · Sky 1. Liga · Sport ---
+E         + Tue 13.10. 12:00 · Sky
+E         + 1. Liga · Sport
+E         + ---
+
+tests/xmltv/test_preview.py:283: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_single_line_text_is_byte_identical[channel]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_single_line_text_is_byte_identical[title-colon-dash]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_single_line_text_is_byte_identical[parentheses]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_single_line_text_is_byte_identical[clock-time]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_window_in_given_tz" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_title_template" time="0.005" /><testcase classname="tests.test_subentry_flow" name="test_include_calendar_via_form_end_to_end" time="0.088" /><testcase classname="tests.test_subentry_flow" name="test_form_filters_are_applied[exclude]" time="0.046" /><testcase classname="tests.test_subentry_flow" name="test_form_filters_are_applied[channel-regex]" time="0.046" /><testcase classname="tests.test_subentry_flow" name="test_form_filters_are_applied[channels-or-regex]" time="0.049" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[include]" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[exclude]" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[channel-regex]" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[include-repeat-overflow]" time="0.034" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[exclude-repeat-overflow]" time="0.032" /><testcase classname="tests.test_subentry_flow" name="test_invalid_pattern_line_keeps_form_open[channel-regex-repeat-overflow]" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_nested_repetition_rejected_in_form" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[exclude-301-chars]" time="0.034" /><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[include-301-chars]" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[channel-regex-51-lines]" time="0.032" /><testcase classname="tests.test_subentry_flow" name="test_oversized_patterns_are_rejected[include-51-lines-with-blanks]" time="0.030" /><testcase classname="tests.test_subentry_flow" name="test_fifty_patterns_and_300_chars_are_accepted" time="0.035" /><testcase classname="tests.test_subentry_flow" name="test_blank_lines_only_are_ignored" time="0.045" /><testcase classname="tests.test_subentry_flow" name="test_input_is_kept_after_a_validation_error" time="0.034" /><testcase classname="tests.test_subentry_flow" name="test_blank_name_is_rejected" time="0.032" /><testcase classname="tests.test_subentry_flow" name="test_unloaded_source_aborts" time="0.024" /><testcase classname="tests.test_subentry_flow" name="test_channel_picker_lists_sorted_ids" time="0.031" /><testcase classname="tests.test_subentry_flow" name="test_channel_selection_order_does_not_change_matches" time="0.052" /><testcase classname="tests.test_subentry_flow" name="test_back_returns_prefilled_form" time="0.042" /><testcase classname="tests.test_subentry_flow" name="test_empty_preview_still_saves" time="0.045" /><testcase classname="tests.test_subentry_flow" name="test_preview_shows_feed_urls_as_plain_text" time="0.043" /><testcase classname="tests.test_subentry_flow" name="test_preview_keeps_one_line_per_match_despite_feed_line_breaks" time="0.041"><failure message="AssertionError: assert '- Tue 13.10....e: Sportschau' == '- Tue 13.10....e: Sportschau'&#10;  &#10;  Skipping 59 identical trailing characters in diff, use -v to show&#10;  - - Tue 13.10. 14:00 · Sky 1. Liga · Sky 1. Liga: Sport 1. Bundes&#10;  + - Tue 13.10. 14:00 · Sky&#10;  + 1. Liga · Sky 1. Liga: Sport&#10;  + 1. Bundes">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f2af4876da0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f2af4f97250&gt;
+berlin_tz = None
+
+    async def test_preview_keeps_one_line_per_match_despite_feed_line_breaks(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+        berlin_tz: None,
+    ) -&gt; None:
+        # WR-05: a line break in a channel name or title must not split the preview list
+        freezer.move_to(NOW)
+        channels = CHANNELS + '  &lt;channel id="sky.de"&gt;&lt;display-name&gt;Sky\n1. Liga&lt;/display-name&gt;&lt;/channel&gt;\n'
+        entry = await setup_xmltv(
+            _feed(
+                _programme("sky.de", "20261013120000", "20261013130000", "Sport&amp;#13;1. Bundesliga")
+                + _programme("daserste.de", "20261013180000", "20261013181500", "Sportschau"),
+                channels=channels,
+            ),
+            calendars=(),
+        )
+    
+        result = await _submit(hass, entry, {"name": "Sport", "include": "Sport"})
+    
+        assert result["type"] is FlowResultType.MENU
+        assert result["step_id"] == "preview"
+        assert result["description_placeholders"]["count"] == "2"
+        matches = result["description_placeholders"]["matches"]
+&gt;       assert matches == (
+            "- Tue 13.10. 14:00 · Sky 1. Liga · Sky 1. Liga: Sport 1. Bundesliga\n"
+            "- Tue 13.10. 20:00 · Das Erste · Das Erste: Sportschau"
+        )
+E       AssertionError: assert '- Tue 13.10....e: Sportschau' == '- Tue 13.10....e: Sportschau'
+E         
+E         Skipping 59 identical trailing characters in diff, use -v to show
+E         - - Tue 13.10. 14:00 · Sky 1. Liga · Sky 1. Liga: Sport 1. Bundes
+E         + - Tue 13.10. 14:00 · Sky
+E         + 1. Liga · Sky 1. Liga: Sport
+E         + 1. Bundes
+
+tests/test_subentry_flow.py:455: AssertionError</failure></testcase><testcase classname="tests.test_subentry_flow" name="test_save_on_unloaded_source_aborts" time="0.044" /><testcase classname="tests.test_subentry_flow" name="test_form_submit_never_creates_directly[all]" time="0.040" /><testcase classname="tests.test_subentry_flow" name="test_form_submit_never_creates_directly[include]" time="0.041" /><testcase classname="tests.test_subentry_flow" name="test_form_submit_never_creates_directly[no-match]" time="0.041" /><testcase classname="tests.test_subentry_flow" name="test_form_submit_never_creates_directly[channel-exclude]" time="0.041" /></testsuite></testsuites>
