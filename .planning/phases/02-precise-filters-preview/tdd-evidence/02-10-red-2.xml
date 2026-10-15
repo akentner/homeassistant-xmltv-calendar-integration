@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="37" time="0.498" timestamp="2026-10-15T21:25:15.607420+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.xmltv.test_preview" name="test_running_programme_is_counted_and_listed_first" time="0.115" /><testcase classname="tests.xmltv.test_preview" name="test_programme_ending_now_is_excluded" time="0.007" /><testcase classname="tests.xmltv.test_preview" name="test_programme_starting_now_is_included" time="0.007" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[eleven]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[exactly-ten]" time="0.007" /><testcase classname="tests.xmltv.test_preview" name="test_count_and_line_limit[limit-3]" time="0.008" /><testcase classname="tests.xmltv.test_preview" name="test_default_limit_is_ten" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_equal_starts_keep_feed_order" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_the_calendar_filter_path" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_missing_channel_shows_its_id" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[en-Tue]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[de-Di]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[de-CH-Di]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[DE-Di]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_weekday_language[fr-Tue]" time="0.006" /><testcase classname="tests.xmltv.test_preview" name="test_time_is_truncated_to_the_minute" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_day_and_month_are_zero_padded_in_winter_time" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_markdown_and_html_in_feed_text_are_escaped" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_backslash_and_backtick_are_escaped_and_parentheses_kept" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[http]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[https-path]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[upper-case]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[ftp]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[markdown-link]" time="0.004" /><testcase classname="tests.xmltv.test_preview" name="test_url_scheme_separator_is_escaped[plain-colon]" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www]" time="0.005"><failure message="AssertionError: assert 'www.example.de' == 'www\\.example.de'&#10;  &#10;  - www\.example.de&#10;  ?    -&#10;  + www.example.de">text = 'www.example.de', expected = 'www\\.example.de'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'www.example.de' == 'www\\.example.de'
+E         
+E         - www\.example.de
+E         ?    -
+E         + www.example.de
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www-in-parentheses]" time="0.005"><failure message="AssertionError: assert 'Tatort (www.ard.de)' == 'Tatort (www\\.ard.de)'&#10;  &#10;  - Tatort (www\.ard.de)&#10;  ?            -&#10;  + Tatort (www.ard.de)">text = 'Tatort (www.ard.de)', expected = 'Tatort (www\\.ard.de)'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'Tatort (www.ard.de)' == 'Tatort (www\\.ard.de)'
+E         
+E         - Tatort (www\.ard.de)
+E         ?            -
+E         + Tatort (www.ard.de)
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www-upper]" time="0.005"><failure message="AssertionError: assert 'WWW.EXAMPLE.DE' == 'WWW\\.EXAMPLE.DE'&#10;  &#10;  - WWW\.EXAMPLE.DE&#10;  ?    -&#10;  + WWW.EXAMPLE.DE">text = 'WWW.EXAMPLE.DE', expected = 'WWW\\.EXAMPLE.DE'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'WWW.EXAMPLE.DE' == 'WWW\\.EXAMPLE.DE'
+E         
+E         - WWW\.EXAMPLE.DE
+E         ?    -
+E         + WWW.EXAMPLE.DE
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[www-prefixed]" time="0.005"><failure message="AssertionError: assert 'wwww.example.de' == 'wwww\\.example.de'&#10;  &#10;  - wwww\.example.de&#10;  ?     -&#10;  + wwww.example.de">text = 'wwww.example.de', expected = 'wwww\\.example.de'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'wwww.example.de' == 'wwww\\.example.de'
+E         
+E         - wwww\.example.de
+E         ?     -
+E         + wwww.example.de
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[scheme-and-www]" time="0.005"><failure message="AssertionError: assert 'https\\://www.ard.de' == 'https\\://www\\.ard.de'&#10;  &#10;  - https\://www\.ard.de&#10;  ?             -&#10;  + https\://www.ard.de">text = 'https://www.ard.de', expected = 'https\\://www\\.ard.de'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'https\\://www.ard.de' == 'https\\://www\\.ard.de'
+E         
+E         - https\://www\.ard.de
+E         ?             -
+E         + https\://www.ard.de
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[email]" time="0.005"><failure message="AssertionError: assert 'user@example.de' == 'user\\@example.de'&#10;  &#10;  - user\@example.de&#10;  ?     -&#10;  + user@example.de">text = 'user@example.de', expected = 'user\\@example.de'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'user@example.de' == 'user\\@example.de'
+E         
+E         - user\@example.de
+E         ?     -
+E         + user@example.de
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[email-underscore]" time="0.005"><failure message="AssertionError: assert 'first\\_last@example.de' == 'first\\_last\\@example.de'&#10;  &#10;  - first\_last\@example.de&#10;  ?            -&#10;  + first\_last@example.de">text = 'first_last@example.de', expected = 'first\\_last\\@example.de'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'first\\_last@example.de' == 'first\\_last\\@example.de'
+E         
+E         - first\_last\@example.de
+E         ?            -
+E         + first\_last@example.de
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_www_and_email_are_not_autolinked[mailto]" time="0.005"><failure message="AssertionError: assert 'mailto:user@example.de' == 'mailto:user\\@example.de'&#10;  &#10;  - mailto:user\@example.de&#10;  ?            -&#10;  + mailto:user@example.de">text = 'mailto:user@example.de', expected = 'mailto:user\\@example.de'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("www.example.de", "www\\.example.de"),
+            ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+            ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+            ("wwww.example.de", "wwww\\.example.de"),
+            ("https://www.ard.de", "https\\://www\\.ard.de"),
+            ("user@example.de", "user\\@example.de"),
+            ("first_last@example.de", "first\\_last\\@example.de"),
+            ("mailto:user@example.de", "mailto:user\\@example.de"),
+        ],
+        ids=[
+            "www",
+            "www-in-parentheses",
+            "www-upper",
+            "www-prefixed",
+            "scheme-and-www",
+            "email",
+            "email-underscore",
+            "mailto",
+        ],
+    )
+    def test_www_and_email_are_not_autolinked(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert 'mailto:user@example.de' == 'mailto:user\\@example.de'
+E         
+E         - mailto:user\@example.de
+E         ?            -
+E         + mailto:user@example.de
+
+tests/xmltv/test_preview.py:223: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_tilde_is_escaped[strike-double]" time="0.005"><failure message="AssertionError: assert '~~Abgesagt~~' == '\\~\\~Abgesagt\\~\\~'&#10;  &#10;  - \~\~Abgesagt\~\~&#10;  ? - -         - -&#10;  + ~~Abgesagt~~">text = '~~Abgesagt~~', expected = '\\~\\~Abgesagt\\~\\~'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("~~Abgesagt~~", "\\~\\~Abgesagt\\~\\~"),
+            ("~x~", "\\~x\\~"),
+        ],
+        ids=["strike-double", "strike-single"],
+    )
+    def test_tilde_is_escaped(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert '~~Abgesagt~~' == '\\~\\~Abgesagt\\~\\~'
+E         
+E         - \~\~Abgesagt\~\~
+E         ? - -         - -
+E         + ~~Abgesagt~~
+
+tests/xmltv/test_preview.py:236: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_tilde_is_escaped[strike-single]" time="0.005"><failure message="AssertionError: assert '~x~' == '\\~x\\~'&#10;  &#10;  - \~x\~&#10;  ? -  -&#10;  + ~x~">text = '~x~', expected = '\\~x\\~'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("~~Abgesagt~~", "\\~\\~Abgesagt\\~\\~"),
+            ("~x~", "\\~x\\~"),
+        ],
+        ids=["strike-double", "strike-single"],
+    )
+    def test_tilde_is_escaped(text: str, expected: str) -&gt; None:
+&gt;       assert escape_markdown(text) == expected
+E       AssertionError: assert '~x~' == '\\~x\\~'
+E         
+E         - \~x\~
+E         ? -  -
+E         + ~x~
+
+tests/xmltv/test_preview.py:236: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_window_in_given_tz" time="0.005" /><testcase classname="tests.xmltv.test_preview" name="test_preview_uses_title_template" time="0.006" /></testsuite></testsuites>

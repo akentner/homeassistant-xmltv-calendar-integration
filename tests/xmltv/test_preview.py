@@ -195,6 +195,47 @@ def test_url_scheme_separator_is_escaped(text: str, expected: str) -> None:
     assert escape_markdown(text) == expected
 
 
+# G-02-2: marked (GFM) also autolinks 'www.' hosts and e-mail addresses (including mailto:/xmpp:) in plain text
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("www.example.de", "www\\.example.de"),
+        ("Tatort (www.ard.de)", "Tatort (www\\.ard.de)"),
+        ("WWW.EXAMPLE.DE", "WWW\\.EXAMPLE.DE"),
+        ("wwww.example.de", "wwww\\.example.de"),
+        ("https://www.ard.de", "https\\://www\\.ard.de"),
+        ("user@example.de", "user\\@example.de"),
+        ("first_last@example.de", "first\\_last\\@example.de"),
+        ("mailto:user@example.de", "mailto:user\\@example.de"),
+    ],
+    ids=[
+        "www",
+        "www-in-parentheses",
+        "www-upper",
+        "www-prefixed",
+        "scheme-and-www",
+        "email",
+        "email-underscore",
+        "mailto",
+    ],
+)
+def test_www_and_email_are_not_autolinked(text: str, expected: str) -> None:
+    assert escape_markdown(text) == expected
+
+
+# IN-04: GFM strikethrough matches both '~x~' and '~~x~~'
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("~~Abgesagt~~", "\\~\\~Abgesagt\\~\\~"),
+        ("~x~", "\\~x\\~"),
+    ],
+    ids=["strike-double", "strike-single"],
+)
+def test_tilde_is_escaped(text: str, expected: str) -> None:
+    assert escape_markdown(text) == expected
+
+
 # --- Window and weekdays in the given time zone (FLT-09, D-10) -----------------------------------------------------
 
 
