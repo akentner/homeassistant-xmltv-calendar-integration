@@ -180,7 +180,11 @@ def has_nested_repeat(pattern: str) -> bool:
 
 
 def first_invalid_pattern(text: str, *, case_sensitive: bool = False) -> InvalidPattern | None:
-    """Return the first non-blank line that is over a cap, does not compile or nests repetition, or None (FLT-07)."""
+    """
+    Return the first non-blank line that is over a cap, does not compile or nests repetition, or None (FLT-07).
+
+    "Does not compile" means any of PATTERN_ERRORS: re.error keeps its own message, the others use str(err) (CR-01).
+    """
     flags = _flags(case_sensitive=case_sensitive)
     for index, line in enumerate(_lines(text)):
         if index >= MAX_PATTERN_LINES:
@@ -189,8 +193,9 @@ def first_invalid_pattern(text: str, *, case_sensitive: bool = False) -> Invalid
             return InvalidPattern(pattern=line, message=f"pattern longer than {MAX_PATTERN_LENGTH} characters")
         try:
             re.compile(line, flags)
-        except re.error as err:
-            return InvalidPattern(pattern=line, message=err.msg)
+        except PATTERN_ERRORS as err:
+            message = err.msg if isinstance(err, re.error) else str(err)
+            return InvalidPattern(pattern=line, message=message)
         if has_nested_repeat(line):
             return InvalidPattern(pattern=line, message=NESTED_REPETITION_MESSAGE)
     return None
