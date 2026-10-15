@@ -1,5 +1,6 @@
 """Preview of the programmes a calendar's filters match from now on (pure strings, FLT-10)."""
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -23,8 +24,11 @@ WEEKDAY_NAMES: dict[str, tuple[str, ...]] = {
 
 # The menu description is rendered as Markdown with HTML: neutralise entities first, then Markdown syntax.
 # Backslash comes first so the added escapes are not escaped again; parentheses stay readable (no [ ] -> no link).
+# The HA frontend renders it with marked in GFM mode, which autolinks scheme URLs in plain text. A backslash before
+# the ':' of '://' stops that and still renders as the bare ':', so the text reads unchanged (G-02-2).
 _HTML_ESCAPES = (("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"))
 _MARKDOWN_CHARS = ("\\", "`", "*", "_", "[", "]", "#", "|")
+_AUTOLINK_TRIGGERS = re.compile(r":(?=//)")
 
 
 def escape_markdown(text: str) -> str:
@@ -33,7 +37,8 @@ def escape_markdown(text: str) -> str:
         text = text.replace(char, entity)
     for char in _MARKDOWN_CHARS:
         text = text.replace(char, f"\\{char}")
-    return text
+    # After the loop, so the backslash added here is not escaped again
+    return _AUTOLINK_TRIGGERS.sub(lambda match: f"\\{match.group()}", text)
 
 
 @dataclass(frozen=True, slots=True)
