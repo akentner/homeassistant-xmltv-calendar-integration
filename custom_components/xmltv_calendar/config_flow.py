@@ -79,6 +79,7 @@ from .xmltv.settings import (
     DEFAULT_TITLE_TEMPLATE,
     MATCH_FIELDS,
     WEEKDAYS,
+    has_advanced,
     normalize_time,
     with_defaults,
 )
@@ -343,7 +344,9 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 subentry = self._get_reconfigure_subentry()
                 self._pending = with_defaults(dict(subentry.data))
                 self._pending[CONF_NAME] = subentry.title
-            self._show_advanced = False
+            # D-03: starts checked when any advanced value differs from its default; runs once, so Back and
+            # re-submits keep the user's own choice
+            self._show_advanced = has_advanced(self._pending)
         return self._pending
 
     def _calendar_data(self) -> dict[str, Any]:
