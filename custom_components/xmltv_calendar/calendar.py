@@ -1,6 +1,7 @@
 """Calendar platform: one entity (and one device) per calendar subentry."""
 
 import logging
+import re
 from typing import TYPE_CHECKING, override
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
@@ -45,6 +46,15 @@ def _to_event(programme: Programme, channels: Mapping[str, Channel]) -> Calendar
     )
 
 
+def _build_spec(data: Mapping[str, object], name: str) -> FilterSpec | None:
+    """Build the filter from stored subentry data; None when a hand-edited stored pattern does not compile (T-02-01)."""
+    try:
+        return FilterSpec.from_mapping(data)
+    except re.error:
+        _LOGGER.warning("Calendar %s: stored filter pattern is invalid", name)
+        return None
+
+
 def build_events(programmes: Sequence[Programme], channels: Mapping[str, Channel]) -> list[CalendarEvent]:
     """Build calendar events for one requested slice of matches; safe to run in the executor."""
     # A match whose CalendarEvent cannot be built, whether it fails validation or is out of datetime range after the
@@ -85,7 +95,10 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._subentry_id = subentry.subentry_id
+        # The (title, data) the entity was built from: the diff base of differs_from (D-04)
+        self._subentry_title = subentry.title
         self._subentry_data = subentry.data
+        self._spec = _build_spec(subentry.data, subentry.title)
         self._attr_unique_id = subentry.subentry_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},
@@ -115,9 +128,12 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         epg = self.coordinator.data
         if epg is None:
             return
-        subentry = self._entry.subentries.get(self._subentry_id)
-        spec = FilterSpec.from_mapping(subentry.data if subentry is not None else self._subentry_data)
-        result = await self.hass.async_add_executor_job(spec.apply, epg)
+        if self._spec is None:  # stored pattern does not compile: no matches, other calendars unaffected
+            self._epg = epg
+            self._index = MatchIndex(())
+            self.async_write_ha_state()
+            return
+        result = await self.hass.async_add_executor_job(self._spec.apply, epg)
         if generation != self._generation:
             return
         self._epg = epg
@@ -129,6 +145,20 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
                 ", ".join(sorted(result.missing_channels)),
             )
         self.async_write_ha_state()
+
+    def differs_from(self, subentry: ConfigSubentry) -> bool:
+        """Return whether `subentry` has another title or data than the entity was last built from."""
+        return (subentry.title, subentry.data) != (self._subentry_title, self._subentry_data)
+
+    async def async_apply_subentry(self, subentry: ConfigSubentry) -> None:
+        """Apply an edited calendar subentry in place: rebuild the filter and re-filter the current data (D-04)."""
+        # Store the new diff base before awaiting, so a concurrent listener call sees this edit as applied
+        self._spec = _build_spec(subentry.data, self.entity_id or subentry.title)
+        self._subentry_title = subentry.title
+        self._subentry_data = subentry.data
+        if self.hass is None:  # not added yet: async_added_to_hass filters with the stored settings (Pitfall 10)
+            return
+        await self._async_refilter()
 
     @property
     @override

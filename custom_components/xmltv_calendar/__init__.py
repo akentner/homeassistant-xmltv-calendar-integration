@@ -23,7 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> boo
         coordinator=coordinator,
         source_snapshot=(dict(entry.data), dict(entry.options)),
     )
-    # The only update listener: subentry add/remove and title changes must not re-download the source
+    # The only update listener: subentry add, remove and edit (title or data) never re-download the source
     entry.async_on_unload(entry.add_update_listener(_async_entry_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -37,6 +37,11 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
         return
     for subentry_id in set(runtime.calendars) - set(entry.subentries):
         runtime.calendars.pop(subentry_id)  # HA already removed the entity and its device
+    # Edited calendars are applied in place (D-04); listener calls run as concurrent tasks, so iterate over a copy
+    for subentry_id, entity in list(runtime.calendars.items()):
+        subentry = entry.subentries.get(subentry_id)
+        if subentry is not None and entity.differs_from(subentry):
+            await entity.async_apply_subentry(subentry)
     if runtime.add_entities is None:  # platform not set up yet: its setup loop picks the subentries up
         return
     for subentry_id, subentry in entry.subentries.items():
