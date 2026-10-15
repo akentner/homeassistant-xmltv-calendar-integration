@@ -1,14 +1,17 @@
 """Preview: count and lines from now on, edges, local weekday/time format and escaping of feed text (FLT-10)."""
 
+import io
 from datetime import UTC, datetime, timedelta, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
 
 from custom_components.xmltv_calendar.xmltv.filter import FilterSpec
 from custom_components.xmltv_calendar.xmltv.model import Channel, EpgData, ParseStats, Programme
+from custom_components.xmltv_calendar.xmltv.parser import parse
 from custom_components.xmltv_calendar.xmltv.preview import build_preview, format_line
-from custom_components.xmltv_calendar.xmltv.settings import KEY_TIME_FROM, KEY_TIME_TO, KEY_WEEKDAYS
+from custom_components.xmltv_calendar.xmltv.settings import KEY_TIME_FROM, KEY_TIME_TO, KEY_TITLE_TEMPLATE, KEY_WEEKDAYS
 
 TZ = ZoneInfo("Europe/Berlin")
 NOW = datetime(2026, 10, 13, 10, 0, tzinfo=UTC)  # a Tuesday; 12:00 CEST
@@ -197,3 +200,15 @@ def test_preview_uses_window_in_given_tz() -> None:
     assert result.count == 2
     assert result.lines[0].startswith("Fri 16.10. 22:00")
     assert result.lines[1].startswith("Sat 17.10. 01:00")
+
+
+# --- Titles through the calendar's templates (D-17) ----------------------------------------------------------------
+
+
+def test_preview_uses_title_template() -> None:
+    feed = (Path(__file__).parent.parent / "fixtures" / "basic.xml").read_bytes()
+    epg = parse(io.BytesIO(feed), yield_every=0)
+
+    result = build_preview({KEY_TITLE_TEMPLATE: "{title} – {subtitle}"}, epg, datetime(2026, 10, 13, 6, tzinfo=UTC), TZ)
+
+    assert result.lines[0].endswith("· Das Erste · Formel 1: Großer Preis von Mexiko – Qualifying")
