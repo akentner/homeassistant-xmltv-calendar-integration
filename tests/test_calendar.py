@@ -126,11 +126,11 @@ def test_build_events_skips_value_error(monkeypatch: pytest.MonkeyPatch) -> None
     bad = _programme(BUSY_DAY + timedelta(hours=2), BUSY_DAY + timedelta(hours=3), "Bad")
     real = calendar_module._to_event
 
-    def flaky(programme: Programme, channels: Any) -> Any:
+    def flaky(programme: Programme, channels: Any, templates: Any) -> Any:
         if programme.title == "Bad":
             msg = "boom"
             raise ValueError(msg)
-        return real(programme, channels)
+        return real(programme, channels, templates)
 
     monkeypatch.setattr(calendar_module, "_to_event", flaky)
 

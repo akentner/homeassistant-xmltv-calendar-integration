@@ -40,11 +40,11 @@ MAX_EVENTS_PER_QUERY = 5000
 EXECUTOR_BUILD_THRESHOLD = 200
 
 
-def _to_event(programme: Programme, channels: Mapping[str, Channel]) -> CalendarEvent:
+def _to_event(programme: Programme, channels: Mapping[str, Channel], templates: render.EventTemplates) -> CalendarEvent:
     return CalendarEvent(
         start=dt_util.as_local(programme.start),
         end=dt_util.as_local(programme.stop),
-        **render.to_event_fields(programme, channels.get(programme.channel_id)),
+        **render.to_event_fields(programme, channels.get(programme.channel_id), templates),
     )
 
 
@@ -57,14 +57,18 @@ def _build_spec(data: Mapping[str, object], name: str) -> FilterSpec | None:
         return None
 
 
-def build_events(programmes: Sequence[Programme], channels: Mapping[str, Channel]) -> list[CalendarEvent]:
+def build_events(
+    programmes: Sequence[Programme],
+    channels: Mapping[str, Channel],
+    templates: render.EventTemplates = render.DEFAULT_TEMPLATES,
+) -> list[CalendarEvent]:
     """Build calendar events for one requested slice of matches; safe to run in the executor."""
     # A match whose CalendarEvent cannot be built, whether it fails validation or is out of datetime range after the
     # local-time conversion, is skipped, so it cannot break a read or trigger poll (T-01-09, CR-01)
     events: list[CalendarEvent] = []
     for programme in programmes:
         try:
-            events.append(_to_event(programme, channels))
+            events.append(_to_event(programme, channels, templates))
         except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s at %s", programme.channel_id, programme.start)
     return events
@@ -101,6 +105,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         self._subentry_title = subentry.title
         self._subentry_data = subentry.data
         self._spec = _build_spec(subentry.data, subentry.title)
+        self._templates = render.EventTemplates.from_mapping(subentry.data)
         self._attr_unique_id = subentry.subentry_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},
@@ -156,9 +161,14 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         return (subentry.title, subentry.data) != (self._subentry_title, self._subentry_data)
 
     async def async_apply_subentry(self, subentry: ConfigSubentry) -> None:
-        """Apply an edited calendar subentry in place: rename the device, rebuild the filter and re-filter (D-04)."""
+        """Apply an edited calendar subentry in place: rename the device, rebuild filter and templates (D-04)."""
         refilter = False
+        write_state = False
         if subentry.data != self._subentry_data:
+            # Templates only change the event text: rebuilt without a refilter (EVT-03, EVT-04)
+            templates = render.EventTemplates.from_mapping(subentry.data)
+            write_state = templates != self._templates
+            self._templates = templates
             spec = _build_spec(subentry.data, self.entity_id or subentry.title)
             if spec is not None:  # an uncompilable stored pattern keeps the previous filter and matches (T-02-01)
                 self._spec = spec
@@ -179,8 +189,12 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
                 device = registry.async_get_device_by_identifier((DOMAIN, self._subentry_id), self._entry.entry_id)
                 if device is not None:
                     registry.async_update_device(device.id, name=subentry.title)
-        if refilter and self.hass is not None:  # not added yet: async_added_to_hass filters (Pitfall 10)
+        if self.hass is None:  # not added yet: async_added_to_hass filters (Pitfall 10)
+            return
+        if refilter:
             await self._async_refilter()
+        elif write_state:
+            self.async_write_ha_state()
 
     @property
     @override
@@ -190,7 +204,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if programme is None:
             return None
         try:
-            return _to_event(programme, self._epg.channels if self._epg is not None else {})
+            return _to_event(programme, self._epg.channels if self._epg is not None else {}, self._templates)
         except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s", programme.channel_id)
             return None
@@ -215,5 +229,5 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             )
             programmes = programmes[:MAX_EVENTS_PER_QUERY]
         if len(programmes) > EXECUTOR_BUILD_THRESHOLD:
-            return await hass.async_add_executor_job(build_events, programmes, channels)
-        return build_events(programmes, channels)
+            return await hass.async_add_executor_job(build_events, programmes, channels, self._templates)
+        return build_events(programmes, channels, self._templates)
