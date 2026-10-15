@@ -10,6 +10,13 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 
 from custom_components.xmltv_calendar.calendar import XmltvCalendarEntity
+from custom_components.xmltv_calendar.const import (
+    CONF_ADVANCED,
+    CONF_CHANNELS,
+    CONF_NAME,
+    CONF_TITLE_TEMPLATE,
+    CONF_WEEKDAYS,
+)
 from custom_components.xmltv_calendar.xmltv.settings import with_defaults
 
 from .conftest import DOMAIN
@@ -38,6 +45,24 @@ def _suggested(result: Any, name: str) -> Any:
             return (key.description or {}).get("suggested_value")
     msg = f"{name} not in form"
     raise AssertionError(msg)
+
+
+def _default(result: Any, name: str) -> Any:
+    """Return the default of a form field (vol.Optional exposes it through key.default())."""
+    for key in result["data_schema"].schema:
+        if key == name:
+            return key.default()
+    msg = f"{name} not in form"
+    raise AssertionError(msg)
+
+
+def _suggestions(result: Any) -> dict[str, Any]:
+    """Return every suggested value of a form, keyed by field name."""
+    return {
+        str(key): key.description["suggested_value"]
+        for key in result["data_schema"].schema
+        if key.description and "suggested_value" in key.description
+    }
 
 
 def _channel_options(result: Any) -> list[str]:
@@ -395,3 +420,96 @@ async def test_back_in_edit_flow_keeps_edits(
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert entry.subentries[a_id].data["include"] == "formel"
+
+
+SAT_DATA = {CONF_CHANNELS: ["daserste.de"], CONF_WEEKDAYS: ["sat"], CONF_TITLE_TEMPLATE: "{title}"}
+SAT_CALENDARS = (("Sat", SAT_DATA), ("Plain", {CONF_CHANNELS: ["zdf.de"]}))
+
+
+async def test_advanced_checkbox_prechecked_on_edit(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    berlin_tz: None,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=SAT_CALENDARS)
+    sat_id = _subentry_id(entry, "Sat")
+    plain_id = _subentry_id(entry, "Plain")
+    calls = aioclient_mock.call_count
+    runtime = entry.runtime_data
+    epg = runtime.coordinator.data
+    entity_plain = runtime.calendars[plain_id]
+    assert await _summaries(hass, "calendar.sat") == []
+
+    result = await entry.start_subentry_reconfigure_flow(hass, sat_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    # D-03: stored advanced values pre-check the box
+    assert _default(result, CONF_ADVANCED) is True
+
+    # A calendar holding only defaults starts unchecked
+    plain = await entry.start_subentry_reconfigure_flow(hass, plain_id)
+    assert plain["type"] is FlowResultType.FORM
+    assert _default(plain, CONF_ADVANCED) is False
+    hass.config_entries.subentries.async_abort(plain["flow_id"])
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_NAME: "Sat", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: True}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "advanced"
+    suggestions = _suggestions(result)
+    assert suggestions[CONF_WEEKDAYS] == ["sat"]
+    assert suggestions[CONF_TITLE_TEMPLATE] == "{title}"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**suggestions, CONF_WEEKDAYS: ["tue"]}
+    )
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview"
+    assert result["description_placeholders"]["count"] == "2"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    stored = dict(entry.subentries[sat_id].data)
+    assert stored[CONF_WEEKDAYS] == ["tue"]
+    assert stored[CONF_TITLE_TEMPLATE] == "{title}"
+    assert CONF_ADVANCED not in stored
+    assert await _summaries(hass, "calendar.sat") == ["Formel 1: Großer Preis von Mexiko", "Tagesschau"]
+    # D-04, D-19: applied in place, no download, no parse, no reload, sibling untouched
+    assert aioclient_mock.call_count == calls
+    assert entry.runtime_data is runtime
+    assert runtime.coordinator.data is epg
+    assert runtime.calendars[plain_id] is entity_plain
+
+
+async def test_unchecking_advanced_keeps_stored_values(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    berlin_tz: None,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=SAT_CALENDARS)
+    sat_id = _subentry_id(entry, "Sat")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, sat_id)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_NAME: "Sat", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: False}
+    )
+    # Unchecked: no advanced step; the stored Saturday-only window still applies
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "preview_empty"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert dict(entry.subentries[sat_id].data) == with_defaults(SAT_DATA)
+    assert await _summaries(hass, "calendar.sat") == []

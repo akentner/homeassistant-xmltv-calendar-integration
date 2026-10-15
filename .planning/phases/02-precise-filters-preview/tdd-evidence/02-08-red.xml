@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="16" time="0.963" timestamp="2026-10-15T13:37:46.952569+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_reconfigure" name="test_data_change_applies_in_place" time="0.192" /><testcase classname="tests.test_reconfigure" name="test_title_change_renames_device" time="0.045" /><testcase classname="tests.test_reconfigure" name="test_unchanged_update_is_a_no_op" time="0.043" /><testcase classname="tests.test_reconfigure" name="test_two_calendars_changed_together" time="0.053" /><testcase classname="tests.test_reconfigure" name="test_last_of_two_updates_wins" time="0.046" /><testcase classname="tests.test_reconfigure" name="test_apply_before_added_stores_settings" time="0.032" /><testcase classname="tests.test_reconfigure" name="test_corrupt_pattern_keeps_previous_matches" time="0.051" /><testcase classname="tests.test_reconfigure" name="test_reconfigure_flow_end_to_end" time="0.051" /><testcase classname="tests.test_reconfigure" name="test_phase1_calendar_edit_keeps_events" time="0.045" /><testcase classname="tests.test_reconfigure" name="test_missing_channel_stays_selectable" time="0.043" /><testcase classname="tests.test_reconfigure" name="test_rename_via_edit_flow" time="0.049" /><testcase classname="tests.test_reconfigure" name="test_edit_to_empty_filters_shows_all" time="0.046" /><testcase classname="tests.test_reconfigure" name="test_edit_on_unloaded_source_aborts" time="0.030" /><testcase classname="tests.test_reconfigure" name="test_back_in_edit_flow_keeps_edits" time="0.045" /><testcase classname="tests.test_reconfigure" name="test_advanced_checkbox_prechecked_on_edit" time="0.045"><failure message="AssertionError: assert False is True&#10; +  where False = _default({'data_schema': &lt;Schema({'name': &lt;class 'str'&gt;, 'channels': &lt;homeassistant.helpers.selector.SelectSelector object at 0...t at 0x7fbf31c415b0&gt;, 'description_placeholders': {}, 'errors': {}, 'flow_id': 'c48ef842f94e8250b7e2e4295f15fbe2', ...}, 'advanced')">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fbf38216270&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fbf30c60e00&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fbf31cdbcb0&gt;
+berlin_tz = None
+
+    async def test_advanced_checkbox_prechecked_on_edit(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+        berlin_tz: None,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=SAT_CALENDARS)
+        sat_id = _subentry_id(entry, "Sat")
+        plain_id = _subentry_id(entry, "Plain")
+        calls = aioclient_mock.call_count
+        runtime = entry.runtime_data
+        epg = runtime.coordinator.data
+        entity_plain = runtime.calendars[plain_id]
+        assert await _summaries(hass, "calendar.sat") == []
+    
+        result = await entry.start_subentry_reconfigure_flow(hass, sat_id)
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "basic"
+        # D-03: stored advanced values pre-check the box
+&gt;       assert _default(result, CONF_ADVANCED) is True
+E       AssertionError: assert False is True
+E        +  where False = _default({'data_schema': &lt;Schema({'name': &lt;class 'str'&gt;, 'channels': &lt;homeassistant.helpers.selector.SelectSelector object at 0...t at 0x7fbf31c415b0&gt;, 'description_placeholders': {}, 'errors': {}, 'flow_id': 'c48ef842f94e8250b7e2e4295f15fbe2', ...}, 'advanced')
+
+tests/test_reconfigure.py:450: AssertionError</failure></testcase><testcase classname="tests.test_reconfigure" name="test_unchecking_advanced_keeps_stored_values" time="0.047" /></testsuite></testsuites>
