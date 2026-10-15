@@ -9,7 +9,12 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.xmltv_calendar.xmltv import filter as filter_module
-from custom_components.xmltv_calendar.xmltv.filter import FilterSpec, InvalidPattern, first_invalid_pattern
+from custom_components.xmltv_calendar.xmltv.filter import (
+    FilterSpec,
+    InvalidPattern,
+    first_invalid_pattern,
+    has_nested_repeat,
+)
 from custom_components.xmltv_calendar.xmltv.model import Channel, EpgData, ParseStats, Programme
 from custom_components.xmltv_calendar.xmltv.settings import (
     FIELD_CATEGORY,
@@ -478,6 +483,7 @@ def test_nested_repetition_table(pattern: str, *, rejected: bool) -> None:
     expected = InvalidPattern(pattern=pattern, message=NESTED) if rejected else None
 
     assert first_invalid_pattern(pattern) == expected
+    assert has_nested_repeat(pattern) is rejected
 
 
 def test_first_invalid_pattern_rejects_nested_repetition() -> None:
@@ -495,6 +501,7 @@ def test_caps_checked_before_shape() -> None:
 def test_shape_check_fails_open(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(filter_module, "_sre_parse", None, raising=False)
 
+    assert not has_nested_repeat("(a*)*")
     assert first_invalid_pattern("(a*)*") is None
     assert first_invalid_pattern("a" * 301) is not None  # the caps still apply
 
@@ -502,3 +509,4 @@ def test_shape_check_fails_open(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_residual_overlapping_alternation_documented() -> None:
     # Accepted residual risk (T-02-08): overlapping alternation under a repeat is not detected
     assert first_invalid_pattern("(a|aa)+") is None
+    assert not has_nested_repeat("(a|aa)+")

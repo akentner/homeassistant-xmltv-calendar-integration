@@ -4,7 +4,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # The stored keys are owned by settings.py; KEY_* stay importable from here for const.py
 from .settings import (
@@ -29,6 +29,13 @@ from .settings import (
     with_defaults,
 )
 
+try:  # private stdlib regex parser (Pitfall 5): without it the nested-repetition check is skipped, never broken
+    import re._parser as _sre_parse
+    from re import _constants as _sre_c
+except ImportError:  # pragma: no cover - depends on the Python version
+    _sre_parse = None
+    _sre_c = None
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
     from datetime import date, datetime, tzinfo
@@ -40,6 +47,8 @@ _DEFAULT_FIELDS = frozenset(DEFAULT_MATCH_FIELDS)
 # Cheap ReDoS dampener for admin-supplied patterns (T-01-06); matching runs in the executor anyway
 MAX_PATTERN_LENGTH = 300
 MAX_PATTERN_LINES = 50
+
+NESTED_REPETITION_MESSAGE = "nested repetition can be very slow"
 
 # with_defaults keeps any non-negative int; larger stored minutes would overflow timedelta (clamped, never raised)
 _MAX_MINUTES = timedelta.max // timedelta(minutes=1)
@@ -123,8 +132,47 @@ def compile_patterns(text: str, *, case_sensitive: bool = False) -> tuple[re.Pat
     return tuple(re.compile(line, flags) for line in _lines(text))
 
 
+def _nested_repeat(items: Iterable[tuple[Any, Any]], *, inside: bool) -> bool:
+    """Walk a parsed pattern; True when a repeat with max > 1 sits inside another one (catastrophic backtracking)."""
+    c = _sre_c
+    repeats = (c.MAX_REPEAT, c.MIN_REPEAT)
+    for op, av in items:
+        if op in repeats:
+            _low, high, body = av
+            unbounded = high > 1  # MAXREPEAT is a large int constant
+            if (unbounded and inside) or _nested_repeat(body, inside=inside or unbounded):
+                return True
+        elif op is c.SUBPATTERN:
+            if _nested_repeat(av[-1], inside=inside):
+                return True
+        elif op is c.BRANCH:
+            if any(_nested_repeat(branch, inside=inside) for branch in av[1]):
+                return True
+        elif op in (c.ASSERT, c.ASSERT_NOT):
+            if _nested_repeat(av[1], inside=inside):
+                return True
+        elif op is c.GROUPREF_EXISTS:
+            if any(_nested_repeat(branch, inside=inside) for branch in av[1:] if branch is not None):
+                return True
+        # ATOMIC_GROUP and POSSESSIVE_REPEAT bodies are not descended: the engine never backtracks into them
+    return False
+
+
+def has_nested_repeat(pattern: str) -> bool:
+    r"""
+    Return True when `pattern` nests unbounded repetition, such as ^(\w+\s?)+$ (WR-01, T-02-08).
+
+    Best effort and fail-open: if the private parser or its constants change shape, this returns False and only the
+    length and line caps apply. Overlapping alternation such as (a|aa)+ is not detected (documented residual risk).
+    """
+    try:
+        return _nested_repeat(_sre_parse.parse(pattern), inside=False)
+    except ImportError, AttributeError, TypeError, ValueError, RecursionError, re.error:
+        return False
+
+
 def first_invalid_pattern(text: str, *, case_sensitive: bool = False) -> InvalidPattern | None:
-    """Return the first non-blank line that is over a cap or does not compile, or None (FLT-07)."""
+    """Return the first non-blank line that is over a cap, does not compile or nests repetition, or None (FLT-07)."""
     flags = _flags(case_sensitive=case_sensitive)
     for index, line in enumerate(_lines(text)):
         if index >= MAX_PATTERN_LINES:
@@ -135,6 +183,8 @@ def first_invalid_pattern(text: str, *, case_sensitive: bool = False) -> Invalid
             re.compile(line, flags)
         except re.error as err:
             return InvalidPattern(pattern=line, message=err.msg)
+        if has_nested_repeat(line):
+            return InvalidPattern(pattern=line, message=NESTED_REPETITION_MESSAGE)
     return None
 
 
