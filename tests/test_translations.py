@@ -34,6 +34,8 @@ GERMAN_WEEKDAYS = {
 _SINGLE_QUOTED_PLACEHOLDER = re.compile(r"'\{[^{}]*\}'")
 _HTML_TAG = re.compile(r"<[A-Za-z/!]")
 _URL = re.compile(r"\b(?:https?|ftps?|mqtts?)://[\w-]+(?:\.[\w-]+)+|\bwww\.[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
+# English tokens that must survive translation verbatim: regexes, paths, identifiers, numbers, placeholders
+_LITERAL_MARKERS = re.compile(r"[\d\\^$_/{]")
 
 
 def _load(path: Path) -> Any:
@@ -52,6 +54,11 @@ def _flatten(node: Any, prefix: str = "") -> dict[str, Any]:
 def _placeholders(text: str) -> set[str]:
     # The extraction homeassistant.helpers.translation._validate_placeholders uses
     return {name for _, name, _, _ in string.Formatter().parse(text) if name is not None}
+
+
+def _literals(text: str) -> list[str]:
+    tokens = (token.rstrip(".,;:)").lstrip("(") for token in text.split())
+    return [token for token in tokens if _LITERAL_MARKERS.search(token)]
 
 
 async def test_home_assistant_serves_german_strings(hass: HomeAssistant, caplog: Any) -> None:
@@ -98,3 +105,42 @@ def test_de_values_follow_hassfest_rules() -> None:
                 if not all(name.isidentifier() for name in names):
                     violations[key] = f"placeholder is not an identifier: {sorted(names)}"
     assert violations == {}
+
+
+def test_de_has_same_keys_as_en() -> None:
+    en_keys = list(_flatten(_load(EN_JSON)))
+    de_keys = list(_flatten(_load(DE_JSON)))
+
+    assert sorted(set(en_keys) - set(de_keys)) == []  # missing in de.json
+    assert sorted(set(de_keys) - set(en_keys)) == []  # extra in de.json
+    assert de_keys == en_keys  # same order
+
+
+def test_de_keeps_placeholders() -> None:
+    en = _flatten(_load(EN_JSON))
+    de = _flatten(_load(DE_JSON))
+
+    assert any(_placeholders(text) for text in en.values())
+    mismatches = {
+        key: (sorted(_placeholders(text)), sorted(_placeholders(de.get(key, ""))))
+        for key, text in en.items()
+        if _placeholders(text) != _placeholders(de.get(key, ""))
+    }
+    assert mismatches == {}
+
+
+def test_de_keeps_literals() -> None:
+    en = _flatten(_load(EN_JSON))
+    de = _flatten(_load(DE_JSON))
+
+    collected = {token for text in en.values() for token in _literals(text)}
+    assert {"^Tatort$", "formel\\s*1|formula\\s*1"} <= collected
+    problems: dict[str, list[str]] = {}
+    for key, text in en.items():
+        german = de.get(key, "")
+        missing = [token for token in _literals(text) if token not in german]
+        if missing:
+            problems.setdefault(key, []).extend(missing)
+        if german.count("\n") != text.count("\n"):
+            problems.setdefault(key, []).append("newline count")
+    assert problems == {}

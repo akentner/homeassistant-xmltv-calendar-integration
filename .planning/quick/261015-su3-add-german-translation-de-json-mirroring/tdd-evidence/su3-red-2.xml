@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="5" time="0.300" timestamp="2026-10-15T20:57:22.964260+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_translations" name="test_home_assistant_serves_german_strings" time="0.114" /><testcase classname="tests.test_translations" name="test_de_values_follow_hassfest_rules" time="0.019" /><testcase classname="tests.test_translations" name="test_de_has_same_keys_as_en" time="0.018"><failure message="AssertionError: assert ['config.abor...equired', ...] == []&#10;  &#10;  Left contains 79 more items, first extra item: 'config.abort.already_configured'&#10;  Use -v to get more diff">def test_de_has_same_keys_as_en() -&gt; None:
+        en_keys = list(_flatten(_load(EN_JSON)))
+        de_keys = list(_flatten(_load(DE_JSON)))
+    
+&gt;       assert sorted(set(en_keys) - set(de_keys)) == []  # missing in de.json
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert ['config.abor...equired', ...] == []
+E         
+E         Left contains 79 more items, first extra item: 'config.abort.already_configured'
+E         Use -v to get more diff
+
+tests/test_translations.py:114: AssertionError</failure></testcase><testcase classname="tests.test_translations" name="test_de_keeps_placeholders" time="0.014"><failure message="AssertionError: assert {'config_sube...s'], []), ...} == {}&#10;  &#10;  Left contains 6 more items:&#10;  {'config_subentries.calendar.error.invalid_regex': (['error', 'pattern'], []),&#10;   'config_subentries.calendar.error.invalid_template': (['template_error'], []),&#10;   'config_subentries.calendar.error.unknown_placeholder': (['description_fields',&#10;                                                             'template_error',&#10;                                                             'title_fields'],...&#10;  &#10;  ...Full output truncated (9 lines hidden), use '-vv' to show">def test_de_keeps_placeholders() -&gt; None:
+        en = _flatten(_load(EN_JSON))
+        de = _flatten(_load(DE_JSON))
+    
+        assert any(_placeholders(text) for text in en.values())
+        mismatches = {
+            key: (sorted(_placeholders(text)), sorted(_placeholders(de.get(key, ""))))
+            for key, text in en.items()
+            if _placeholders(text) != _placeholders(de.get(key, ""))
+        }
+&gt;       assert mismatches == {}
+E       AssertionError: assert {'config_sube...s'], []), ...} == {}
+E         
+E         Left contains 6 more items:
+E         {'config_subentries.calendar.error.invalid_regex': (['error', 'pattern'], []),
+E          'config_subentries.calendar.error.invalid_template': (['template_error'], []),
+E          'config_subentries.calendar.error.unknown_placeholder': (['description_fields',
+E                                                                    'template_error',
+E                                                                    'title_fields'],...
+E         
+E         ...Full output truncated (9 lines hidden), use '-vv' to show
+
+tests/test_translations.py:129: AssertionError</failure></testcase><testcase classname="tests.test_translations" name="test_de_keeps_literals" time="0.016"><failure message="AssertionError: assert {'config.erro..., '168'], ...} == {}&#10;  &#10;  Left contains 15 more items:&#10;  {'config.error.invalid_url': ['http://', 'https://'],&#10;   'config.error.path_not_allowed': ['allowlist_external_dirs'],&#10;   'config.step.file.data_description.path': ['/media/epg/guide.xml',&#10;                                              'allowlist_external_dirs'],&#10;   'config.step.file.data_description.refresh_hours': ['1', '168'],...&#10;  &#10;  ...Full output truncated (23 lines hidden), use '-vv' to show">def test_de_keeps_literals() -&gt; None:
+        en = _flatten(_load(EN_JSON))
+        de = _flatten(_load(DE_JSON))
+    
+        collected = {token for text in en.values() for token in _literals(text)}
+        assert {"^Tatort$", "formel\\s*1|formula\\s*1"} &lt;= collected
+        problems: dict[str, list[str]] = {}
+        for key, text in en.items():
+            german = de.get(key, "")
+            missing = [token for token in _literals(text) if token not in german]
+            if missing:
+                problems.setdefault(key, []).extend(missing)
+            if german.count("\n") != text.count("\n"):
+                problems.setdefault(key, []).append("newline count")
+&gt;       assert problems == {}
+E       AssertionError: assert {'config.erro..., '168'], ...} == {}
+E         
+E         Left contains 15 more items:
+E         {'config.error.invalid_url': ['http://', 'https://'],
+E          'config.error.path_not_allowed': ['allowlist_external_dirs'],
+E          'config.step.file.data_description.path': ['/media/epg/guide.xml',
+E                                                     'allowlist_external_dirs'],
+E          'config.step.file.data_description.refresh_hours': ['1', '168'],...
+E         
+E         ...Full output truncated (23 lines hidden), use '-vv' to show
+
+tests/test_translations.py:146: AssertionError</failure></testcase></testsuite></testsuites>
