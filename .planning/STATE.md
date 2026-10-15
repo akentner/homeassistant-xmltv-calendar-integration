@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: Precise Filters & Preview
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-10-15T10:51:57.716Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-10-15T11:01:48.964Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 02 execution started
-state_head: c885a68decedd0fa9a8ccf6e6340fe63233b7a97
+state_head: f04896273fc5d35920108f263eb44a85539323b9
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 19
-  completed_plans: 13
+  completed_plans: 14
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 02 (Precise Filters & Preview) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 02 execution started
 
@@ -69,6 +69,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 01 P11 | 6min | 3 tasks | 7 files |
 | Phase 02 P01 | 4 min | 2 tasks | 5 files |
 | Phase 02 P02 | 7 min | 3 tasks | 8 files |
+| Phase 02 P03 | 7 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,10 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-02 Task 2: flat. Stored calendar keys sit beside the Phase 1 keys: include_fields, exclude_fields, case_sensitive, time_from, time_to, weekdays, min_duration, max_duration, title_template, description_template; field values title/subtitle/description/category; weekdays mon..sun (== homeassistant.const.WEEKDAYS); times "HH:MM", durations int minutes, templates plain strings; Advanced checkbox never stored (has_advanced derives it)
 - [Phase 02]: 02-02: normalize_time checks HH:MM[:SS] by ASCII pattern, not time.fromisoformat (Python 3.14 accepts 24:00 as 00:00, bare hours and offsets)
 - [Phase 02]: 02-02: with_defaults returns exactly the 14 contract keys (unknown keys dropped); whitespace-only templates read as defaults; NaN/inf durations read as None; large int durations are kept (clamp in 02-04)
+- [Phase 02]: 02-03: preview_empty is a separate menu step id (translatable warning); its handler aliases async_step_preview because HA requires a handler for every shown step id
+- [Phase 02]: 02-03: the calendar subentry still stores only the four Phase 1 keys; later plans extend _pending/_filter_data
+- [Phase 02]: 02-03: preview weekday names keyed by the primary subtag of hass.config.language (de -> Mo..So, else Mon..Sun), no locale
+- [Phase 02]: 02-03: escape_markdown turns & < > into entities, then backslash-escapes backslash, backtick, * _ [ ] # and pipe; parentheses stay
 
 ### Pending Todos
 
@@ -143,6 +148,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T10:51:57.640Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-10-15T11:01:48.882Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
