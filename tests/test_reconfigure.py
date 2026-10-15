@@ -9,6 +9,7 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.translation import async_get_translations
 
 from custom_components.xmltv_calendar.calendar import XmltvCalendarEntity
 from custom_components.xmltv_calendar.const import (
@@ -568,3 +569,57 @@ async def test_unchecking_advanced_keeps_stored_values(
 
     assert dict(entry.subentries[sat_id].data) == with_defaults(SAT_DATA)
     assert await _summaries(hass, "calendar.sat") == []
+
+
+async def test_cleared_field_stays_cleared_after_error(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    """A field cleared in a submit that fails validation is not suggested again (WR-01)."""
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau", "exclude": "heute"}),))
+    a_id = _subentry_id(entry, "A")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, a_id)
+    assert _suggested(result, "include") == "tagesschau"
+
+    # include cleared (key absent, as the frontend sends it) while the blank name fails validation
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"name": " ", "exclude": "heute"})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "basic"
+    assert result["errors"] == {"name": "name_required"}
+    assert _suggested(result, "include") is None
+    assert _suggested(result, "exclude") == "heute"
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"name": "A", "exclude": "heute"})
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert entry.subentries[a_id].data["include"] == ""
+    assert entry.subentries[a_id].data["exclude"] == "heute"
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        pytest.param("en", "The calendar was updated.", id="en"),
+        pytest.param("de", "Der Kalender wurde aktualisiert.", id="de"),
+    ],
+)
+async def test_edit_flow_abort_reason_is_translated(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    language: str,
+    expected: str,
+) -> None:
+    """The success dialog after "Edit calendar" -> Save shows the integration's own text (WR-02)."""
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
+    result = await _edit(hass, entry, _subentry_id(entry, "A"), {"name": "A", "include": "formel"})
+
+    served = await async_get_translations(hass, language, "config_subentries", [DOMAIN])
+    assert served.get(f"component.{DOMAIN}.config_subentries.calendar.abort.{result['reason']}") == expected
