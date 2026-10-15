@@ -23,6 +23,7 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.util import dt as dt_util
 from yarl import URL
 
 from .const import (
@@ -56,6 +57,7 @@ from .source import (
     source_unique_id,
 )
 from .xmltv.filter import first_invalid_pattern
+from .xmltv.preview import build_preview
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -187,9 +189,17 @@ _PATTERN_FIELDS = (CONF_CHANNEL_REGEX, CONF_INCLUDE, CONF_EXCLUDE)
 
 
 class CalendarSubentryFlow(ConfigSubentryFlow):
-    """Add a calendar to a loaded source."""
+    """Add a calendar to a loaded source: basic form -> preview -> save | back (D-01)."""
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+    def __init__(self) -> None:
+        """Initialize the pending calendar values; they survive Back (D-15)."""
+        self._pending: dict[str, Any] = {}
+
+    def _filter_data(self) -> dict[str, Any]:
+        """Return the stored filter keys from the pending values."""
+        return {key: self._pending[key] for key in (CONF_CHANNELS, *_PATTERN_FIELDS)}
+
+    async def async_step_basic(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         """Ask for name, channels (sorted IDs, D-03), channel regex, include and exclude (D-02, D-05)."""
         entry: XmltvConfigEntry = self._get_entry()
         if entry.state is not ConfigEntryState.LOADED:
@@ -208,15 +218,17 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                     placeholders.setdefault("pattern", bad.pattern)
                     placeholders.setdefault("error", bad.message)
             if not errors:
-                data: dict[str, Any] = {CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))}
-                data.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
-                return self.async_create_entry(title=name, data=data)
+                # A missing key means the field was cleared
+                self._pending = {CONF_NAME: name, CONF_CHANNELS: list(user_input.get(CONF_CHANNELS, []))}
+                self._pending.update({field: str(user_input.get(field, "")) for field in _PATTERN_FIELDS})
+                return await self.async_step_preview()
 
         channel_ids = sorted(entry.runtime_data.coordinator.data.channels)
+        # No default=: optional fields must stay clearable; values come back as suggested values (Pattern 6)
         schema = vol.Schema(
             {
                 vol.Required(CONF_NAME): str,
-                vol.Optional(CONF_CHANNELS, default=[]): SelectSelector(
+                vol.Optional(CONF_CHANNELS): SelectSelector(
                     SelectSelectorConfig(
                         options=channel_ids,
                         multiple=True,
@@ -224,14 +236,45 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                         sort=True,
                     )
                 ),
-                **{
-                    vol.Optional(field, default=""): TextSelector(TextSelectorConfig(multiline=True))
-                    for field in _PATTERN_FIELDS
-                },
+                **{vol.Optional(field): TextSelector(TextSelectorConfig(multiline=True)) for field in _PATTERN_FIELDS},
             }
         )
-        if user_input is not None:
-            schema = self.add_suggested_values_to_schema(schema, user_input)
+        schema = self.add_suggested_values_to_schema(schema, self._pending | (user_input or {}))
         return self.async_show_form(
-            step_id="user", data_schema=schema, errors=errors, description_placeholders=placeholders
+            step_id="basic", data_schema=schema, errors=errors, description_placeholders=placeholders
         )
+
+    async_step_user = async_step_basic
+
+    async def async_step_preview(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
+        """Show the match count from now on and the next matches, then offer Save or Back (FLT-10, D-15..D-17)."""
+        entry: XmltvConfigEntry = self._get_entry()
+        if entry.state is not ConfigEntryState.LOADED:
+            return self.async_abort(reason="source_not_loaded")
+        # A full feed scan takes up to a second: never on the event loop (T-02-06)
+        result = await self.hass.async_add_executor_job(
+            build_preview,
+            self._filter_data(),
+            entry.runtime_data.coordinator.data,
+            dt_util.utcnow(),
+            dt_util.get_default_time_zone(),
+            self.hass.config.language,
+        )
+        return self.async_show_menu(
+            step_id="preview",
+            menu_options=["save", "back"],
+            description_placeholders={
+                "count": str(result.count),
+                "matches": "\n".join(f"- {line}" for line in result.lines),
+            },
+        )
+
+    async def async_step_save(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
+        """Create the calendar; only reachable from the preview (D-01)."""
+        if self._get_entry().state is not ConfigEntryState.LOADED:
+            return self.async_abort(reason="source_not_loaded")
+        return self.async_create_entry(title=self._pending[CONF_NAME], data=self._filter_data())
+
+    async def async_step_back(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:  # noqa: ARG002
+        """Return to the form, pre-filled with the pending values (D-15)."""
+        return await self.async_step_basic()

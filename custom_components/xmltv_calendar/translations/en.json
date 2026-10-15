@@ -61,8 +61,8 @@
       },
       "entry_type": "Calendar",
       "step": {
-        "user": {
-          "title": "Add calendar",
+        "basic": {
+          "title": "Calendar",
           "data": {
             "name": "Name",
             "channels": "Channels",
@@ -76,6 +76,14 @@
             "channel_regex": "Regular expressions matched against the channel ID, one per line, for example ^sky or \\.de$. Combined with the picked channels (either one is enough). Leave both empty to include all channels.",
             "include": "Regular expressions, one per line. A programme is shown if any of them matches its title or sub-title (case-insensitive), for example formel\\s*1|formula\\s*1 or ^Tatort$. Leave empty to show every programme of the selected channels.",
             "exclude": "Regular expressions, one per line. A programme is hidden if any of them matches its title or sub-title (case-insensitive), for example Wiederholung. Blank lines are ignored."
+          }
+        },
+        "preview": {
+          "title": "Preview",
+          "description": "{count} matching programmes from now on. Next:\n\n{matches}",
+          "menu_options": {
+            "save": "Save",
+            "back": "Back"
           }
         }
       },
