@@ -1,6 +1,6 @@
 """Preview: count and lines from now on, edges, local weekday/time format and escaping of feed text (FLT-10)."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -8,6 +8,7 @@ import pytest
 from custom_components.xmltv_calendar.xmltv.filter import FilterSpec
 from custom_components.xmltv_calendar.xmltv.model import Channel, EpgData, ParseStats, Programme
 from custom_components.xmltv_calendar.xmltv.preview import build_preview, format_line
+from custom_components.xmltv_calendar.xmltv.settings import KEY_TIME_FROM, KEY_TIME_TO, KEY_WEEKDAYS
 
 TZ = ZoneInfo("Europe/Berlin")
 NOW = datetime(2026, 10, 13, 10, 0, tzinfo=UTC)  # a Tuesday; 12:00 CEST
@@ -172,3 +173,27 @@ def test_backslash_and_backtick_are_escaped_and_parentheses_kept() -> None:
     line = format_line(programme, "Das Erste", "`code` C:\\path Tagesschau (Das Erste)", TZ, "en")
 
     assert line == "Tue 13.10. 12:00 · Das Erste · \\`code\\` C:\\\\path Tagesschau (Das Erste)"
+
+
+# --- Window and weekdays in the given time zone (FLT-09, D-10) -----------------------------------------------------
+
+
+def test_preview_uses_window_in_given_tz() -> None:
+    cest = timezone(timedelta(hours=2))  # the parser's fixed offset for "+0200"
+
+    def berlin(day: int, hour: int) -> datetime:
+        return datetime(2026, 10, day, hour, tzinfo=cest)
+
+    epg = _epg(
+        _programme("Freitag früh", berlin(16, 1), berlin(16, 1) + timedelta(minutes=30)),
+        _programme("Freitag spät", berlin(16, 22), berlin(16, 22) + timedelta(minutes=30)),
+        _programme("Samstag Nacht", berlin(17, 1), berlin(17, 1) + timedelta(minutes=30)),
+        _programme("Samstag zwei", berlin(17, 2), berlin(17, 2) + timedelta(minutes=30)),
+    )
+    data = {KEY_TIME_FROM: "22:00", KEY_TIME_TO: "02:00", KEY_WEEKDAYS: ["fri"]}
+
+    result = build_preview(data, epg, datetime(2026, 10, 15, tzinfo=UTC), ZoneInfo("Europe/Berlin"))
+
+    assert result.count == 2
+    assert result.lines[0].startswith("Fri 16.10. 22:00")
+    assert result.lines[1].startswith("Sat 17.10. 01:00")

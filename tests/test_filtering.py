@@ -14,6 +14,9 @@ from custom_components.xmltv_calendar.xmltv.settings import (
     FIELD_TITLE,
     KEY_INCLUDE,
     KEY_INCLUDE_FIELDS,
+    KEY_TIME_FROM,
+    KEY_TIME_TO,
+    KEY_WEEKDAYS,
 )
 
 if TYPE_CHECKING:
@@ -157,3 +160,55 @@ async def test_two_calendars_different_fields_same_refresh(
 
 def test_weekday_vocabulary_matches_home_assistant() -> None:
     assert tuple(HA_WEEKDAYS) == settings.WEEKDAYS
+
+
+def _friday_night_feed(offset: str) -> bytes:
+    """Four 30-minute programmes on Das Erste, every timestamp carrying the zone's October offset."""
+    rows = (
+        ("Freitag früh", "20261016010000", "20261016013000"),
+        ("Freitag spät", "20261016220000", "20261016223000"),
+        ("Samstag Nacht", "20261017010000", "20261017013000"),
+        ("Samstag zwei", "20261017020000", "20261017023000"),
+    )
+    programmes = "".join(
+        f'<programme channel="daserste.de" start="{start} {offset}" stop="{stop} {offset}"><title>{title}</title>'
+        "</programme>"
+        for title, start, stop in rows
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<tv><channel id="daserste.de"><display-name>Das Erste</display-name></channel>{programmes}</tv>'
+    ).encode()
+
+
+@pytest.mark.parametrize(
+    ("zone", "offset"),
+    [pytest.param("Europe/Berlin", "+0200", id="berlin"), pytest.param("America/New_York", "-0400", id="new-york")],
+)
+async def test_friday_night_window_end_to_end(
+    hass: HomeAssistant,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[Any]],
+    zone: str,
+    offset: str,
+) -> None:
+    # D-09..D-11: start time inside [22:00, 02:00) local, the after-midnight part counts for Friday
+    await hass.config.async_set_time_zone(zone)
+    freezer.move_to("2026-10-15T00:00:00+00:00")
+    data = {KEY_TIME_FROM: "22:00", KEY_TIME_TO: "02:00", KEY_WEEKDAYS: ["fri"]}
+    await setup_xmltv(_friday_night_feed(offset), calendars=(("Friday night", data),))
+
+    response = await hass.services.async_call(
+        "calendar",
+        "get_events",
+        {
+            "entity_id": "calendar.friday_night",
+            "start_date_time": "2026-10-15T00:00:00+00:00",
+            "duration": {"hours": 96},
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    summaries = [event["summary"] for event in response["calendar.friday_night"]["events"]]
+    assert summaries == ["Das Erste: Freitag spät", "Das Erste: Samstag Nacht"]
