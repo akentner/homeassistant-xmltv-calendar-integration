@@ -68,12 +68,17 @@ created: "2026-10-16"
 | T-03-23 | Info disclosure | diagnostics content | low | mitigate | diagnostics.py:108-130 fixed key set; no programme text | closed |
 | T-03-24 | Tampering | XmltvOptionsFlow inputs | low | mitigate | config_flow.py:407-426 shared selectors, `normalize_time`, `_options_to_store` | closed |
 | T-03-25 | Tampering | source identity | medium | mitigate | options schemas have no URL/path field; entry.data unchanged (test) | closed |
+| T-03-26 | DoS | refresh target near a daily slot (CR-01) | medium | mitigate | schedule.py:60,180-190 `refresh_base` + `EARLY_FIRE_TOLERANCE`; coordinator.py:142-146 success and :205-207 failure cap; test_schedule_refresh.py:68,98 | closed |
+| T-03-27 | DoS | unexpected exceptions during refresh (CR-02) | high | mitigate | coordinator.py:163-178 one `_async_handle_failure` (:199-207) for `UpdateFailed` and `Exception`, re-raises `UpdateFailed(unable_to_fetch)`; test_schedule_refresh.py:298, test_repairs.py:127,158 | closed |
+| T-03-28 | Info disclosure | WARNING log for unexpected exceptions | low | mitigate | coordinator.py:172-177 title + exception class only, traceback DEBUG; test_schedule_refresh.py:340-341 | closed |
+| T-03-29 | Repudiation | setup-flow health seed | low | mitigate | config_flow.py:357-366 one `fetched_at`, seed only if `async_write` returned True; test_config_flow.py:189-227 | closed |
+| T-03-30 | Tampering | concurrent setup flows for one source (IN-02) | low | accept | see Accepted Risks Log AR-03-03 | closed |
 
 *Status: open · closed · open — below high threshold (non-blocking)*
 *Severity: critical > high > medium > low — only open threats at or above workflow.security_block_on count toward threats_open*
 *Disposition: mitigate (implementation required) · accept (documented risk) · transfer (third-party)*
 
-T-03-SC appears in every plan's register (8 rows); it is listed once above. Audit total: 33 register rows, 26 distinct threat IDs.
+T-03-SC appears in every plan's register (10 rows); it is listed once above. Audit total: 40 register rows, 31 distinct threat IDs (03-09/03-10 gap closure added T-03-26..T-03-30 and two T-03-SC rows, no dependency-file diff).
 
 ### Audit notes (non-blocking)
 
@@ -81,6 +86,8 @@ T-03-SC appears in every plan's register (8 rows); it is listed once above. Audi
 - T-03-20 / T-03-04: `config_flow.py:353` builds `FeedCache(hass, self.unique_id)` directly instead of via `cache_key()`. Safe while unique_id is the SHA-256 hex from `source_unique_id`; route through `cache_key()` if that scheme changes.
 - T-03-10: escaping-symlink case is tested in the flow only; at refresh it relies on `is_allowed_path` resolving symlinks.
 - T-03-12: the entry title is user-typed; a user who names the source with the full URL will see it in the Repairs issue.
+- T-03-27: `_async_handle_failure` awaits `_async_record_failure` before setting the backoff target (coordinator.py:202 then :207); a Store error other than OSError/HomeAssistantError would leave the target unmoved. Unreachable today; setting the target first would be more robust.
+- T-03-28: same user-typed-title caveat as T-03-12.
 
 ---
 
@@ -90,6 +97,7 @@ T-03-SC appears in every plan's register (8 rows); it is listed once above. Audi
 |---------|------------|-----------|-------------|------|
 | AR-03-01 | T-03-11 | The coordinator debouncer (10 s cooldown) collapses bursts; each request is conditional, so a burst costs small 304 answers, not downloads (03-03-PLAN) | plan threat model (03-03), verified by gsd-security-auditor | 2026-10-16 |
 | AR-03-02 | T-03-15 | Small JSON Store saves per refresh outcome (in practice two per success: cache meta and health); refreshes are at most hourly or follow the backoff (03-04-PLAN) | plan threat model (03-04), verified by gsd-security-auditor | 2026-10-16 |
+| AR-03-03 | T-03-30 | A second setup flow for the same source seeds the same cache key, then aborts as already_configured; the seeded success is a real download of the same normalized URL. Since 03-10 the losing flow also overwrites the live entry's stored health, so a restart before the live entry's next refresh resets its failure streak; the next refresh outcome overwrites it (03-10-PLAN, review IN-02) | plan threat model (03-10), verified by gsd-security-auditor | 2026-10-16 |
 
 *Accepted risks do not resurface in future audit runs.*
 
@@ -100,6 +108,7 @@ T-03-SC appears in every plan's register (8 rows); it is listed once above. Audi
 | Audit Date | Threats Total | Closed | Open | Run By |
 |------------|---------------|--------|------|--------|
 | 2026-10-16 | 33 | 33 | 0 | gsd-security-auditor (ASVS L1, block_on: high) |
+| 2026-10-16 | 40 | 40 | 0 | gsd-security-auditor (ASVS L1, block_on: high), gap closure 03-09/03-10: T-03-26..T-03-30 |
 
 ---
 
@@ -111,3 +120,11 @@ T-03-SC appears in every plan's register (8 rows); it is listed once above. Audi
 - [x] `status: verified` set in frontmatter
 
 **Approval:** verified 2026-10-16
+
+## Security Audit 2026-10-16
+
+| Metric | Count |
+|---|---|
+| Threats found | 7 |
+| Closed | 7 |
+| Open | 0 |
