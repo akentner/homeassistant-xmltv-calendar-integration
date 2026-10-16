@@ -62,6 +62,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             self._source_id = source_unique_id(SOURCE_TYPE_FILE, entry.data[CONF_PATH])
         else:
             self._source_id = source_unique_id(SOURCE_TYPE_URL, entry.data[CONF_URL])
+        # (st_mtime_ns, st_size) of the local file behind the data in memory; file sources only (D-11, Pitfall 10)
+        self._file_signature: tuple[int, int] | None = None
         now = dt_util.utcnow()
         # Wall-clock target of the next refresh (aware UTC); turned into update_interval when HA arms its timer
         self._next_refresh_at: datetime = next_regular(now, self._schedule())
@@ -247,16 +249,21 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         return epg
 
     async def _async_update_file(self) -> EpgData:
-        """Check and read the local file in one executor job; the allowed-path check runs on every refresh."""
+        """
+        Check and read the local file in one executor job; the allowed-path check runs on every refresh.
+
+        With data in memory, a file whose mtime and size are unchanged is not parsed again: the same data object is
+        returned and counts as a successful refresh (D-11). File sources have no payload cache, so a reload parses.
+        """
         try:
             with _feed_errors(self.config_entry.title):
-                return await self.hass.async_add_executor_job(
+                result = await self.hass.async_add_executor_job(
                     partial(
                         read_and_parse_file,
                         self.hass.config,
                         self.config_entry.data[CONF_PATH],
-                        keep_after=dt_util.utcnow() - KEEP_PAST,
-                        default_duration=DEFAULT_DURATION,
+                        parser=self._parser(),
+                        known=self._file_signature if self.data is not None else None,
                     )
                 )
         except PathNotAllowedError as err:
@@ -268,6 +275,14 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         except SourceError as err:
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
+        if result.epg is not None:
+            self._file_signature = result.signature
+            return result.epg
+        if self.data is not None:
+            _LOGGER.debug("Source %s: file unchanged", self.config_entry.title)
+            return self.data
+        # Unreachable: a known signature is only passed while data is in memory
+        raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch")
 
 
 @contextmanager

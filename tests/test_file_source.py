@@ -9,7 +9,6 @@ from homeassistant.config_entries import ConfigEntryState, ConfigSubentryData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.xmltv_calendar import coordinator as coordinator_module
-from custom_components.xmltv_calendar import source as source_module
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -21,10 +20,10 @@ pytestmark = [pytest.mark.freeze_time(NOW), pytest.mark.usefixtures("forbid_loop
 
 
 class ParseCounter:
-    """Counts feed parses, whichever module the file read looks `parse` up in."""
+    """Counts calls of the coordinator's feed parser (passed to the file read) while delegating to the real one."""
 
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Wrap the real parser in the coordinator and source modules."""
+        """Wrap the coordinator-module `parse` (looked up at call time by `_parser`)."""
         self.calls = 0
         real = coordinator_module.parse
 
@@ -33,7 +32,6 @@ class ParseCounter:
             return real(*args, **kwargs)
 
         monkeypatch.setattr(coordinator_module, "parse", counting)
-        monkeypatch.setattr(source_module, "parse", counting)
 
 
 @pytest.fixture

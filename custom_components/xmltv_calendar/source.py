@@ -16,10 +16,11 @@ import aiohttp
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from yarl import URL
 
-from .xmltv.parser import GZIP_MAGIC, parse
+from .xmltv.parser import GZIP_MAGIC
 
 if TYPE_CHECKING:
-    from datetime import datetime, timedelta
+    from collections.abc import Callable
+    from typing import BinaryIO
 
     from homeassistant.core import HomeAssistant
     from homeassistant.core_config import Config
@@ -194,18 +195,35 @@ def probe_file(path: str) -> None:
         raise InvalidFeedError(msg)
 
 
-def read_and_parse_file(
-    config: Config, path: str, *, keep_after: datetime | None, default_duration: timedelta
-) -> EpgData:
-    """
-    Check the path against the allowed directories, then parse the file. Executor only (blocking IO).
+@dataclass(frozen=True, slots=True)
+class FileRead:
+    """The outcome of a file read: its (st_mtime_ns, st_size) signature and the parsed feed, None when unchanged."""
 
-    The allowed-path check runs on every read, not only in the flow: the allowlist or the file may have changed.
+    signature: tuple[int, int]
+    epg: EpgData | None
+
+
+def read_and_parse_file(
+    config: Config,
+    path: str,
+    *,
+    parser: Callable[[BinaryIO], EpgData],
+    known: tuple[int, int] | None = None,
+) -> FileRead:
+    """
+    Check the path against the allowed directories, then parse the file unless it is unchanged. Executor only.
+
+    The allowed-path check runs on every read, not only in the flow: the allowlist or the file may have changed (D-11).
+    A file whose (st_mtime_ns, st_size) equals `known` is not opened; the result then carries no feed.
     """
     real_path = check_file(config, path)
     try:
+        stat = Path(real_path).stat()
+        signature = (stat.st_mtime_ns, stat.st_size)
+        if signature == known:
+            return FileRead(signature, None)
         with open(real_path, "rb") as file:  # noqa: PTH123 - see probe_file
-            return parse(file, keep_after=keep_after, default_duration=default_duration)
+            return FileRead(signature, parser(file))
     except OSError as err:
         msg = f"cannot read file: {type(err).__name__}"
         raise SourceUnavailableError(msg) from None
