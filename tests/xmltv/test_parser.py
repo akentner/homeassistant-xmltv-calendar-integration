@@ -3,16 +3,18 @@
 import gzip
 import io
 import unicodedata
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from custom_components.xmltv_calendar.xmltv import parser
 from custom_components.xmltv_calendar.xmltv.model import Channel
 from custom_components.xmltv_calendar.xmltv.parser import FeedError, parse
+from custom_components.xmltv_calendar.xmltv.render import event_uid
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 BASIC = (FIXTURES / "basic.xml").read_bytes()
@@ -281,3 +283,125 @@ def test_text_is_nfc_and_ids_are_untouched() -> None:
     # Channel IDs are identifiers, never normalized
     assert programme.channel_id.encode() == channel_id.encode()
     assert list(data.channels) == [channel_id]
+
+
+# SRC-10: naive timezone and offset correction (D-14, D-15)
+BERLIN = ZoneInfo("Europe/Berlin")
+
+
+def _channel_feed(*programmes: tuple[str, str | None, str]) -> bytes:
+    """Return a feed with the given (start, stop or None, title) programmes on a.de."""
+    elements = "".join(
+        f'<programme channel="a.de" start="{start}"{f' stop="{stop}"' if stop else ""}><title>{title}</title>'
+        "</programme>"
+        for start, stop, title in programmes
+    )
+    return (
+        f'<?xml version="1.0" encoding="UTF-8"?><tv><channel id="a.de"><display-name>A</display-name></channel>'
+        f"{elements}</tv>"
+    ).encode()
+
+
+def _times(data: Any) -> list[tuple[str, datetime, datetime]]:
+    return [(p.title, p.start.astimezone(UTC), p.stop.astimezone(UTC)) for p in data.programmes]
+
+
+@pytest.mark.parametrize("payload", [BASIC, EDGE_CASES], ids=["basic", "edge_cases"])
+def test_default_arguments_unchanged(payload: bytes) -> None:
+    default = _parse(payload)
+    explicit = _parse(payload, naive_tz=UTC, shift=timedelta(0))
+
+    assert default.programmes == explicit.programmes
+    assert [(p.start.tzinfo, p.stop.tzinfo) for p in default.programmes] == [
+        (p.start.tzinfo, p.stop.tzinfo) for p in explicit.programmes
+    ]
+    assert dict(default.channels) == dict(explicit.channels)
+    assert default.stats == explicit.stats
+
+
+@pytest.mark.parametrize(
+    ("start", "stop"),
+    [
+        pytest.param("20261013200000 +0200", "20261013210000 +0200", id="numeric-offset"),
+        pytest.param("20261013180000", "20261013190000", id="offset-less"),
+    ],
+)
+def test_shift_moves_start_and_stop_by_absolute_minutes(start: str, stop: str) -> None:
+    data = _parse(_channel_feed((start, stop, "X")), shift=timedelta(minutes=-60))
+
+    assert _times(data) == [("X", datetime(2026, 10, 13, 17, tzinfo=UTC), datetime(2026, 10, 13, 18, tzinfo=UTC))]
+
+
+def test_shift_applies_before_stop_inference() -> None:
+    data = _parse(
+        _channel_feed(
+            ("20261013200000 +0200", None, "A"),
+            ("20261013210000", "20261013220000", "B"),
+        ),
+        shift=timedelta(minutes=-60),
+    )
+
+    # A's missing stop is inferred from B's shifted start (20:00Z), not from its unshifted 21:00Z
+    assert _times(data) == [
+        ("A", datetime(2026, 10, 13, 17, tzinfo=UTC), datetime(2026, 10, 13, 20, tzinfo=UTC)),
+        ("B", datetime(2026, 10, 13, 20, tzinfo=UTC), datetime(2026, 10, 13, 21, tzinfo=UTC)),
+    ]
+
+
+def test_shift_across_dst_end_2026_10_25() -> None:
+    data = _parse(_channel_feed(("20261025013000 +0200", "20261025033000 +0100", "Night")), shift=timedelta(minutes=60))
+
+    assert _times(data) == [
+        ("Night", datetime(2026, 10, 25, 0, 30, tzinfo=UTC), datetime(2026, 10, 25, 3, 30, tzinfo=UTC))
+    ]
+
+
+def test_naive_local_duration_across_dst_end_2026_10_25() -> None:
+    data = _parse(_channel_feed(("20261025013000", "20261025033000", "Night")), naive_tz=BERLIN)
+
+    (programme,) = data.programmes
+    assert programme.stop - programme.start == timedelta(hours=3)
+    assert programme.start == datetime(2026, 10, 24, 23, 30, tzinfo=UTC)
+    assert type(programme.start.tzinfo) is timezone
+    assert type(programme.stop.tzinfo) is timezone
+
+
+def test_naive_local_inferred_stop_across_dst_start_2026_03_29() -> None:
+    data = _parse(_channel_feed(("20260329013000", None, "A"), ("20260329033000", None, "B")), naive_tz=BERLIN)
+
+    # 01:30 CET to 03:30 CEST is one hour of absolute time
+    first = data.programmes[0]
+    assert first.stop - first.start == timedelta(hours=1)
+    assert first.stop == datetime(2026, 3, 29, 1, 30, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("minutes", [-720, 720])
+def test_shift_extremes_parse(minutes: int) -> None:
+    data = _parse(
+        _channel_feed(("20261013120000 +0000", "20261013130000 +0000", "X")), shift=timedelta(minutes=minutes)
+    )
+
+    assert _times(data) == [
+        (
+            "X",
+            datetime(2026, 10, 13, 12, tzinfo=UTC) + timedelta(minutes=minutes),
+            datetime(2026, 10, 13, 13, tzinfo=UTC) + timedelta(minutes=minutes),
+        )
+    ]
+    assert data.stats.skipped_malformed == 0
+
+
+def test_explicit_offsets_ignore_naive_timezone() -> None:
+    data = _parse(_channel_feed(("20261013200000 +0000", "20261013210000 UTC", "X")), naive_tz=BERLIN)
+
+    assert _times(data) == [("X", datetime(2026, 10, 13, 20, tzinfo=UTC), datetime(2026, 10, 13, 21, tzinfo=UTC))]
+
+
+def test_parse_is_idempotent_with_options() -> None:
+    options = {"naive_tz": BERLIN, "shift": timedelta(minutes=-60)}
+    first = _parse(EDGE_CASES, **options)
+    second = _parse(EDGE_CASES, **options)
+
+    assert first.programmes == second.programmes
+    assert [event_uid(p) for p in first.programmes] == [event_uid(p) for p in second.programmes]
+    assert first.programmes != _parse(EDGE_CASES).programmes
