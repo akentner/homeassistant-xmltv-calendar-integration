@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 BASIC_FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
+# fixtures/basic.xml holds programmes on 2026-10-13; on the real clock they expire and setup fails (WR-03)
+NOW = "2026-10-13T06:00:00+00:00"
+pytestmark = pytest.mark.freeze_time(NOW)
 
 
 def test_normalize_url_canonical_form() -> None:
