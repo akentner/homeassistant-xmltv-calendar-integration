@@ -520,7 +520,7 @@ if shift:  # D-15: shift the instant, never the wall clock
 ### Pitfall 2: Existing tests encode Phase 1 behaviour that Phase 3 changes
 These must be updated deliberately. Budget the work in the plans.
 - `tests/test_init.py::test_options_change_reloads_once` asserts `aioclient_mock.call_count == calls + 1` and `update_interval == timedelta(hours=12)` after an options change [VERIFIED: tests/test_init.py:121-138]. With a fresh cache a reload downloads nothing, and `update_interval` becomes dynamic.
-- `tests/test_calendar.py::test_calendar_with_no_matches[feed-without-programmes]` sets up `NO_PROGRAMMES_FEED` [VERIFIED: tests/test_calendar.py:30-35, 266-281]. Under D-20 the first refresh without a cache fails, so the entry is NOT LOADED (see Open Question 2).
+- `tests/test_calendar.py::test_calendar_with_no_matches[feed-without-programmes]` sets up `NO_PROGRAMMES_FEED` [VERIFIED: tests/test_calendar.py:30-35, 266-281]. Under D-20 the first refresh without a cache fails, so the entry is NOT LOADED (Open Question 2, RESOLVED: 03-04 Task 3 removes this parameter and covers the case in `tests/test_empty_feed.py`).
 - `tests/test_config_flow.py`: the `url`/`file` step payloads `{"url"/"path", "refresh_hours": 24}` and the probe tests (`test_probe_reads_at_most_probe_bytes`) change with the new step chain (mode/timezone, then download progress, then schedule) [VERIFIED: tests/test_config_flow.py:153-185, 196-199].
 - Keep green: `tests/test_ingestion.py::test_refresh_with_truncated_gzip_keeps_previous_data` expects `last_update_success is False` and `last_exception.translation_key == "invalid_feed"` [VERIFIED: tests/test_ingestion.py:57-77]. This is why later failures still raise `UpdateFailed`.
 
@@ -538,7 +538,7 @@ These must be updated deliberately. Budget the work in the plans.
 
 ### Pitfall 6: Persistent-failure threshold vs long intervals (D-17 wording)
 **What goes wrong:** read literally ("no success for > 24 h"), a daily or 48 h schedule raises the issue at the *first* failed attempt, because the last success is already ≥ 24 h old.
-**How to avoid:** measure from `failing_since` (the first failure of the current streak). This is the recommended interpretation; confirm it (Open Question 1).
+**How to avoid:** measure from `failing_since` (the first failure of the current streak). The user confirmed this interpretation in plan review (Open Question 1, RESOLVED).
 
 ### Pitfall 7: Coordinator scheduling needs listeners
 **What goes wrong:** `_schedule_refresh` runs only when listeners exist [VERIFIED: update_coordinator.py:182-188, 600-601]. A source with zero calendars never refreshes, and Repairs is never evaluated. That is acceptable (nothing to show), but don't write a test expecting refreshes with zero calendars. Adding the first calendar arms the schedule through the `_schedule_refresh` override with a fresh delay.
@@ -639,21 +639,51 @@ Options-step sections translate as `options.step.<step>.sections.<section>.{name
 | A8 | Real feeds (the user's 18:00 feed) send ETag and/or Last-Modified | Summary | Medium: without validators, SRC-07 degrades to "re-download every time". An optional sha256 compare of the new payload against the cached one still avoids the re-parse. Needs a real-feed check (STATE.md Phase 3 concern) |
 | A9 | A nonexistent local daily time (spring-forward gap) fires at the shifted instant (03:30 CEST for 02:30) | Pattern 1 | Low. Pinned by test |
 
-## Open Questions
+**Planning status (2026-10-16):**
+- A2 is locked in 03-01 Task 2 exactly as proposed: `refresh_mode` (`interval` | `daily`), `refresh_hours`, `refresh_time` (`HH:MM`), `naive_timezone` (`utc` | `local`), `offset_minutes`. The task carries a `costly` reversibility rating (D-06).
+- A3 is fixed as `empty_feed` (03-04) and `feed_too_large` (03-06).
+- A4 was confirmed by the user (Open Question 1).
+- A8 remains a manual UAT check (03-08). 03-03 adds the SHA-256 skip, so either outcome is covered.
 
-1. **D-17 threshold reference point.**
+## Open Questions (RESOLVED)
+
+All four questions are resolved. The resolutions below match what the Phase 3 plans implement. The stored option key names (A2) were never an open question; see the planning status under the Assumptions Log.
+
+1. **D-17 threshold reference point.** RESOLVED (user decision, plan review 2026-10-16)
    - What we know: the literal wording is "no successful refresh for more than 24 h". With a daily or 48 h schedule, the last success is always ≥ 24 h old at the next regular attempt.
    - What's unclear: whether the issue may appear at the first failed daily attempt.
    - Recommendation: measure from `failing_since` (A4) and confirm with the user in plan review.
-2. **D-20 at first setup without cache.**
+   - **Resolution:**
+     - The 24 h count from `failing_since`, the first failure of the current streak, not from `last_success`. The issue appears only when a failure happens strictly more than 24 h after `failing_since`.
+     - A daily source whose first failure comes 24 h after its last success raises no issue at that first failure.
+     - A 304 or an unchanged local file counts as success and ends the streak.
+     - 03-01 Task 2 implements `is_persistently_failing(failing_since, now)` with `PERSISTENT_FAILURE = timedelta(hours=24)`.
+     - 03-04 persists `SourceHealth.failing_since`. Its tests `test_persistent_failure_raises_and_clears_issue` and `test_daily_first_failure_after_24h_raises_no_issue` pin the behaviour.
+2. **D-20 at first setup without cache.** RESOLVED (user decision, plan review 2026-10-16)
    - What we know: 0 programmes = failure, and the last good data is kept.
    - What's unclear: with no last good data, should setup fail (`ConfigEntryNotReady`) or load an empty calendar?
    - Recommendation: treat it as failure (`ConfigEntryNotReady`, entry retries, health tracked, Repairs after 24 h), and change `test_calendar_with_no_matches[feed-without-programmes]` to a feed with one non-matching programme. Alternative: accept an empty first load. Decide in the plan.
-3. **Do real feeds send validators?** (A8)
+   - **Resolution:**
+     - The rule: first setup, no cache and a feed that yields 0 programmes raise `UpdateFailed(translation_key="empty_feed")`. Home Assistant turns this into `ConfigEntryNotReady`: the entry state is SETUP_RETRY, with `error_reason_translation_key` `empty_feed`.
+     - Nothing is cached. The failure is recorded in `SourceHealth`, so setup retries count toward the 24 h issue.
+     - The empty-first-load alternative is rejected.
+     - 03-04 Task 3 implements this and adjusts the existing tests. It removes the `feed-without-programmes` parameter from `test_calendar_with_no_matches` instead of rewriting it; the `channel-not-in-feed` parameter keeps covering a loaded calendar without matches.
+     - 03-04 Task 3 moves the empty-feed case to `tests/test_empty_feed.py::test_first_setup_with_empty_feed_retries` and `test_feed_with_only_past_programmes_retries`.
+     - 03-04 Task 3 gives `tests/test_subentry_flow.py::test_channel_picker_lists_sorted_ids` one programme, so its source still loads.
+     - 03-01 Task 3 pins the clock of the fixture-dated test modules, so they do not hit the new failure by accident.
+3. **Do real feeds send validators?** (A8) RESOLVED (planner, both outcomes handled)
    - Recommendation: add a manual UAT step with `curl -sI <feed-url>` on the user's feed. Optionally implement the payload-hash skip so an unchanged 200 is not re-parsed.
-4. **File-source progress indicator.**
+   - **Resolution:** both parts of the recommendation are planned.
+     - With validators: 03-03 Task 1 sends If-None-Match / If-Modified-Since and handles 304.
+     - Without validators: 03-03 Task 2 implements the SHA-256 payload-hash skip. A 200 whose body hash equals `CacheMeta.sha256` is not re-parsed (`test_identical_body_is_not_reparsed`), so only the download remains.
+     - The real-feed check is step 8 of the 03-08 Task 2 human-check (`curl -sI <feed URL>`). Step 7 watches `update_entity` on the same feed.
+     - The answer only changes network cost, not the design, so A8 stays an assumption until UAT.
+4. **File-source progress indicator.** RESOLVED (planner, recommendation adopted)
    - CFG-03 says "while a source is downloaded". Local files are not downloaded.
    - Recommendation: no progress step for files (parsing happens at setup, as today).
+   - **Resolution:**
+     - Local files get no progress step. 03-06 Task 2 sends the file step straight to the schedule step and seeds no cache (D-11).
+     - The progress step (CFG-03, D-13) exists only in the URL chain (03-06 Task 1).
 
 ## Environment Availability
 
