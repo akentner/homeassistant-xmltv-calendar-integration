@@ -60,6 +60,36 @@ async def test_daily_slot_refreshes_at_local_time(
     assert aioclient_mock.call_count == 3
 
 
+async def test_daily_slot_served_once_when_timer_fires_early(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    berlin_tz: None,
+    freezer: Any,
+) -> None:
+    freezer.move_to("2026-10-13T16:00:00+00:00")
+    entry = await setup_xmltv(FEED, options=DAILY_18_15)
+    coordinator = entry.runtime_data.coordinator
+    assert aioclient_mock.call_count == 1
+    assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-13T16:15:00+00:00")
+
+    # HA arms its timer at int(loop.time()) + 0.05..0.5 s + interval, so it can fire up to ~0.95 s before the slot;
+    # the coordinator cannot tell that refresh from this direct call. The host answers with the same body.
+    freezer.move_to("2026-10-13T16:14:59.400000+00:00")
+    await coordinator.async_refresh()
+    assert aioclient_mock.call_count == 2
+    assert coordinator.last_update_success is True
+    assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-14T16:15:00+00:00")
+
+    # The slot was served: no second request one second later
+    await _step_to(hass, freezer, "2026-10-13T16:15:01+00:00")
+    assert aioclient_mock.call_count == 2
+
+    await _step_to(hass, freezer, "2026-10-14T16:15:01+00:00")
+    assert aioclient_mock.call_count == 3
+    assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-15T16:15:00+00:00")
+
+
 async def test_interval_source_refreshes_every_interval(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,

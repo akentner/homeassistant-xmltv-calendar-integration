@@ -158,6 +158,39 @@ def test_backoff_delay(failures: int, regular_in: timedelta, expected: timedelta
     assert S.backoff_delay(failures, NOW, NOW + regular_in) == expected
 
 
+# ---- refresh base (CR-01: a timer that fires just before its target serves it) -------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("now", "target", "expected"),
+    [
+        pytest.param("2026-10-13T16:15:01Z", "2026-10-13T16:15:00Z", "2026-10-13T16:15:01Z", id="late-fire"),
+        pytest.param("2026-10-13T16:15:00Z", "2026-10-13T16:15:00Z", "2026-10-13T16:15:00Z", id="on-time"),
+        pytest.param("2026-10-13T16:14:59.400Z", "2026-10-13T16:15:00Z", "2026-10-13T16:15:00Z", id="early-fire"),
+        pytest.param("2026-10-13T16:14:58Z", "2026-10-13T16:15:00Z", "2026-10-13T16:15:00Z", id="at-tolerance"),
+        pytest.param(
+            "2026-10-13T16:14:57.999Z", "2026-10-13T16:15:00Z", "2026-10-13T16:14:57.999Z", id="beyond-tolerance"
+        ),
+        pytest.param("2026-10-13T16:10:00Z", "2026-10-13T16:15:00Z", "2026-10-13T16:10:00Z", id="manual-before-slot"),
+    ],
+)
+def test_refresh_base(now: str, target: str, expected: str) -> None:
+    assert S.refresh_base(_utc(now), _utc(target)) == _utc(expected)
+
+
+def test_early_fire_tolerance() -> None:
+    assert timedelta(seconds=2) == S.EARLY_FIRE_TOLERANCE
+    assert S.EARLY_FIRE_TOLERANCE >= S.MIN_DELAY
+
+
+def test_early_fire_serves_daily_slot() -> None:
+    slot = _utc("2026-10-13T16:15:00Z")
+    assert S.next_regular(S.refresh_base(_utc("2026-10-13T16:14:59.400Z"), slot), _daily()) == _utc(
+        "2026-10-14T16:15:00Z"
+    )
+    assert S.next_regular(S.refresh_base(_utc("2026-10-13T16:10:00Z"), slot), _daily()) == slot
+
+
 # ---- persistent failure (D-17, measured from failing_since) ---------------------------------------------------------
 
 
