@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="11" time="0.427" timestamp="2026-10-16T15:35:21.884329+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_identity" name="test_normalize_url_canonical_form" time="0.124" /><testcase classname="tests.test_identity" name="test_normalize_url_keeps_query_order" time="0.015" /><testcase classname="tests.test_identity" name="test_normalize_url_rejects[ftp://h/x]" time="0.014" /><testcase classname="tests.test_identity" name="test_normalize_url_rejects[file:///etc/passwd]" time="0.015" /><testcase classname="tests.test_identity" name="test_normalize_url_rejects[https:///nohost]" time="0.014" /><testcase classname="tests.test_identity" name="test_normalize_url_rejects[not a url]" time="0.014" /><testcase classname="tests.test_identity" name="test_normalize_url_rejects[data:text/xml,&lt;a/&gt;]" time="0.015" /><testcase classname="tests.test_identity" name="test_source_unique_id_is_sha256_of_typed_locator" time="0.015" /><testcase classname="tests.test_identity" name="test_url_variant_identity_invariant" time="0.037"><failure message="AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;&#10; +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M52ES9J4D0RSCAMJZ2EQ06DY version=1 domain=xmltv_calendar title=EPG state=ConfigEntryState.SETUP_RETRY unique_id=c94e5c9913da0b2054d4516811a61ef0841ee91554e4340fb0dbdb5adf974c15&gt;.state&#10; +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f5f11a5b620&gt;
+forbid_loop_io = None
+
+    async def test_url_variant_identity_invariant(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+        result = await add_url_source(hass, FEED_URL)
+        assert result["step_id"] == "name"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "EPG"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+        entry = result["result"]
+&gt;       assert entry.state is ConfigEntryState.LOADED
+E       AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;
+E        +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M52ES9J4D0RSCAMJZ2EQ06DY version=1 domain=xmltv_calendar title=EPG state=ConfigEntryState.SETUP_RETRY unique_id=c94e5c9913da0b2054d4516811a61ef0841ee91554e4340fb0dbdb5adf974c15&gt;.state
+E        +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED
+
+tests/test_identity.py:63: AssertionError</failure></testcase><testcase classname="tests.test_identity" name="test_url_entry_stores_normalized_url_and_hashed_id" time="0.027"><failure message="AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;&#10; +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M52ES9MTRMY9QS5XQFM02ZQ0 version=1 domain=xmltv_calendar title=EPG state=ConfigEntryState.SETUP_RETRY unique_id=b3f3279694e4a1ac8b24ee22616dda8484910ca0a5509168a80e7220324c77f6&gt;.state&#10; +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f5f11a88690&gt;
+forbid_loop_io = None
+
+    async def test_url_entry_stores_normalized_url_and_hashed_id(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        token_url = "https://epg.example.com/guide.xml?apikey=s3cret"  # noqa: S105 - fake token
+        aioclient_mock.get(token_url, content=BASIC_FEED)
+        result = await add_url_source(hass, "HTTPS://EPG.example.com/guide.xml?apikey=s3cret#top")
+        assert result["step_id"] == "name"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "EPG"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"] == {"source_type": "url", "url": token_url}
+        assert "s3cret" not in result["result"].unique_id
+        await hass.async_block_till_done()
+&gt;       assert result["result"].state is ConfigEntryState.LOADED
+E       AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;
+E        +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M52ES9MTRMY9QS5XQFM02ZQ0 version=1 domain=xmltv_calendar title=EPG state=ConfigEntryState.SETUP_RETRY unique_id=b3f3279694e4a1ac8b24ee22616dda8484910ca0a5509168a80e7220324c77f6&gt;.state
+E        +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED
+
+tests/test_identity.py:87: AssertionError</failure></testcase><testcase classname="tests.test_identity" name="test_file_variant_identity_invariant" time="0.023"><failure message="AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;&#10; +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M52ES9NVRRY824N7WXTD8RMD version=1 domain=xmltv_calendar title=Local state=ConfigEntryState.SETUP_RETRY unique_id=2cd21f1b164269e28a4124082b65189ca693f8064a258b0e201843ba4f1c8ecc&gt;.state&#10; +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED">hass = &lt;HomeAssistant RUNNING&gt;
+allowed_dir = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-295/test_file_variant_identity_inv0')
+forbid_loop_io = None
+
+    async def test_file_variant_identity_invariant(hass: HomeAssistant, allowed_dir: Path, forbid_loop_io: None) -&gt; None:
+        feed = allowed_dir / "guide.xml"
+        feed.write_bytes(BASIC_FEED)
+        link = allowed_dir / "alias.xml"
+        link.symlink_to(feed)
+        hass.config.allowlist_external_dirs = {str(allowed_dir)}
+    
+        result = await add_file_source(hass, str(feed))
+        assert result["step_id"] == "name"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Local"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+&gt;       assert result["result"].state is ConfigEntryState.LOADED
+E       AssertionError: assert &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; is &lt;ConfigEntryState.LOADED: 'loaded'&gt;
+E        +  where &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = &lt;ConfigEntry entry_id=01M52ES9NVRRY824N7WXTD8RMD version=1 domain=xmltv_calendar title=Local state=ConfigEntryState.SETUP_RETRY unique_id=2cd21f1b164269e28a4124082b65189ca693f8064a258b0e201843ba4f1c8ecc&gt;.state
+E        +  and   &lt;ConfigEntryState.LOADED: 'loaded'&gt; = ConfigEntryState.LOADED
+
+tests/test_identity.py:108: AssertionError</failure></testcase></testsuite></testsuites>

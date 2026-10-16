@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.xmltv_calendar import source
@@ -59,6 +60,8 @@ async def test_url_variant_identity_invariant(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     entry = result["result"]
+    assert entry.state is ConfigEntryState.LOADED
+    assert aioclient_mock.call_count == 1  # loaded from the seeded cache, one download
     assert entry.unique_id == source.source_unique_id("url", FEED_URL)
 
     # Same source, different spelling: upper-case scheme and host, default port, dot segment, fragment
@@ -81,6 +84,7 @@ async def test_url_entry_stores_normalized_url_and_hashed_id(
     assert result["data"] == {"source_type": "url", "url": token_url}
     assert "s3cret" not in result["result"].unique_id
     await hass.async_block_till_done()
+    assert result["result"].state is ConfigEntryState.LOADED
 
 
 @pytest.fixture
@@ -101,6 +105,7 @@ async def test_file_variant_identity_invariant(hass: HomeAssistant, allowed_dir:
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Local"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
+    assert result["result"].state is ConfigEntryState.LOADED
     assert result["result"].unique_id == source.source_unique_id("file", str(feed))
 
     # Same file through a symlink resolves to the same real path
