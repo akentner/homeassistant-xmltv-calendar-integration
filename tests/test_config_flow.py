@@ -99,6 +99,99 @@ async def test_file_source_end_to_end(
     assert len(events) == 4
 
 
+# --- URL source: download progress, schedule step, seeded cache (CFG-03, D-01, D-13) ---------------------
+
+
+async def test_url_source_end_to_end_with_progress_and_seeded_cache(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+) -> None:
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+
+    # 1. Menu -> url form: URL, refresh mode (default interval) and the collapsed timezone section
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "url"
+    _schema_key(result, "url")
+    assert _schema_key(result, "refresh_mode").default() == "interval"
+    _schema_key(result, "timezone")
+
+    # 2. Submitting starts the download behind a progress step
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"url": FEED_URL, "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+    )
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    assert result["progress_action"] == "download"
+
+    # 3. Download done -> schedule step with only the interval field
+    await hass.async_block_till_done()
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "schedule"
+    assert _schema_key(result, "refresh_hours").default() == 24
+    assert "refresh_time" not in result["data_schema"].schema
+
+    # 4. schedule -> name, pre-filled with the host (D-09)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"refresh_hours": 24})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "name"
+    assert _schema_key(result, "name").description["suggested_value"] == "epg.example.com"
+
+    # 5. name -> entry with the unchanged data and the complete option contract
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Test EPG"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {"source_type": "url", "url": FEED_URL}
+    assert result["options"] == {
+        "refresh_mode": "interval",
+        "refresh_hours": 24,
+        "naive_timezone": "utc",
+        "offset_minutes": 0,
+    }
+    await hass.async_block_till_done()
+    entry = result["result"]
+    assert entry.state is ConfigEntryState.LOADED
+
+    # 6. The setup download seeded the cache: the first refresh parsed it, nothing was downloaded twice (D-13)
+    assert Path(hass.config.cache_path(DOMAIN, f"{entry.unique_id}.feed")).is_file()
+    assert aioclient_mock.call_count == 1
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(data=MappingProxyType({}), subentry_type="calendar", title="All", unique_id=None),
+    )
+    await hass.async_block_till_done()
+    events = await _get_events(hass, "calendar.all", "2026-10-13T00:00:00+00:00", 24)
+    assert len(events) == 4
+    assert aioclient_mock.call_count == 1
+
+
+async def test_daily_mode_asks_only_for_a_time(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+) -> None:
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"url": FEED_URL, "refresh_mode": "daily", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+    )
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    await hass.async_block_till_done()
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "schedule"
+    _schema_key(result, "refresh_time")
+    assert "refresh_hours" not in result["data_schema"].schema
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"refresh_time": "18:15:00"})
+    assert result["step_id"] == "name"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Daily EPG"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["options"]["refresh_mode"] == "daily"
+    assert result["options"]["refresh_time"] == "18:15"
+    await hass.async_block_till_done()
+
+
 # --- URL step validation -------------------------------------------------------------------------------
 
 
