@@ -100,6 +100,7 @@ from .xmltv.settings import (
 
 if TYPE_CHECKING:
     import asyncio
+    from collections.abc import Mapping
 
     from homeassistant.config_entries import ConfigEntry
 
@@ -372,6 +373,19 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         return {SUBENTRY_TYPE_CALENDAR: CalendarSubentryFlow}
 
 
+def _options_to_store(options: Mapping[str, Any]) -> dict[str, Any]:
+    """
+    Return the complete option contract of `options`, keeping a valid daily time while interval mode is active.
+
+    D-01 shows one schedule field at a time but does not erase the other: the kept time pre-fills a later switch back
+    to daily. The refresh hours are always part of the contract.
+    """
+    stored = SourceOptions.from_mapping(options).as_options()
+    if (kept := normalize_time(options.get(CONF_REFRESH_TIME))) is not None:
+        stored.setdefault(CONF_REFRESH_TIME, kept)
+    return stored
+
+
 class XmltvOptionsFlow(OptionsFlow):
     """
     Edit a source's schedule and timezone settings: init (mode + timezone section) -> schedule (D-04, D-05).
@@ -388,7 +402,7 @@ class XmltvOptionsFlow(OptionsFlow):
         """Ask for the refresh mode and the timezone settings, pre-filled from the stored options (D-06)."""
         defaults = SourceOptions.from_mapping(self.config_entry.options)
         if user_input is not None:
-            self._pending = {**defaults.as_options(), **_settings_from_input(user_input)}
+            self._pending = {**_options_to_store(self.config_entry.options), **_settings_from_input(user_input)}
             return await self.async_step_schedule()
         return self.async_show_form(step_id="init", data_schema=vol.Schema(_settings_fields(defaults)))
 
@@ -407,7 +421,7 @@ class XmltvOptionsFlow(OptionsFlow):
                 # The NumberSelector sends float; stored as whole hours
                 self._pending[CONF_REFRESH_HOURS] = int(user_input[CONF_REFRESH_HOURS])
             if not errors:
-                return self.async_create_entry(data=SourceOptions.from_mapping(self._pending).as_options())
+                return self.async_create_entry(data=_options_to_store(self._pending))
 
         schema = _schedule_schema(SourceOptions.from_mapping(self._pending), mode)
         return self.async_show_form(step_id="schedule", data_schema=schema, errors=errors)
