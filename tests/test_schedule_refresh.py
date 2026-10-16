@@ -8,6 +8,13 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.config_entries import ConfigSubentry
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
+from custom_components.xmltv_calendar.const import (
+    CONF_REFRESH_HOURS,
+    CONF_REFRESH_MODE,
+    CONF_REFRESH_TIME,
+    REFRESH_MODE_DAILY,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
@@ -16,7 +23,7 @@ if TYPE_CHECKING:
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
-DAILY_18_15 = {"refresh_mode": "daily", "refresh_time": "18:15"}
+DAILY_18_15 = {CONF_REFRESH_MODE: REFRESH_MODE_DAILY, CONF_REFRESH_TIME: "18:15"}
 
 
 async def _step_to(hass: HomeAssistant, freezer: Any, iso: str) -> None:
@@ -56,7 +63,7 @@ async def test_interval_source_refreshes_every_interval(
     freezer: Any,
 ) -> None:
     freezer.move_to("2026-10-13T06:00:00+00:00")
-    await setup_xmltv(FEED, options={"refresh_hours": 2})
+    await setup_xmltv(FEED, options={CONF_REFRESH_HOURS: 2})
     assert aioclient_mock.call_count == 1
 
     await _step_to(hass, freezer, "2026-10-13T07:59:00+00:00")
