@@ -136,7 +136,8 @@ async def test_options_change_reloads_once(
 
     assert entry.state is ConfigEntryState.LOADED
     assert entry.runtime_data is not runtime
-    assert aioclient_mock.call_count == calls + 1
+    # The reload re-parses the disk cache, which is still fresh for the new 12 h interval: no download (D-08, D-16)
+    assert aioclient_mock.call_count == calls
     assert entry.runtime_data.coordinator.next_refresh_at == datetime.fromisoformat(NOW) + timedelta(hours=12)
     assert hass.states.get("calendar.a") is not None
     assert hass.states.get("calendar.b") is not None

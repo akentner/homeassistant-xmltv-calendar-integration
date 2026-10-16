@@ -7,6 +7,7 @@ Logs and errors name only the host: path and query may carry credentials. File h
 
 import hashlib
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -33,6 +34,31 @@ _HTTP_ERROR_MIN = 400
 PROBE_BYTES = 64 * 1024  # flow-time sniff of a source; the full read happens at setup
 _UTF8_BOM = b"\xef\xbb\xbf"
 _URL_SCHEMES = frozenset({"http", "https"})
+# Upper bound for a stored ETag or Last-Modified value; longer values are dropped (RESEARCH Pitfall 9)
+MAX_VALIDATOR_LENGTH = 1024
+
+
+@dataclass(frozen=True, slots=True)
+class Fetched:
+    """A downloaded feed body, exactly as received, with its cleaned cache validators."""
+
+    payload: bytes
+    etag: str | None = None
+    last_modified: str | None = None
+
+
+def clean_validator(value: str | None) -> str | None:
+    """
+    Return an ETag or Last-Modified value when it is safe to store and echo back, else None.
+
+    Safe means non-empty, at most `MAX_VALIDATOR_LENGTH` characters and printable ASCII only (0x20..0x7E), so CR,
+    LF and other control or non-ASCII characters never reach the Store or a request header.
+    """
+    if not value or len(value) > MAX_VALIDATOR_LENGTH:
+        return None
+    if all(" " <= char <= "~" for char in value):
+        return value
+    return None
 
 
 class SourceError(Exception):
@@ -172,8 +198,8 @@ def read_and_parse_file(
         raise SourceUnavailableError(msg) from None
 
 
-async def async_fetch_url(hass: HomeAssistant, url: str) -> bytes:
-    """Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`."""
+async def async_fetch_url(hass: HomeAssistant, url: str) -> Fetched:
+    """Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators."""
     host = URL(url).host
     max_bytes = MAX_DOWNLOAD_BYTES
     session = async_get_clientsession(hass)
@@ -185,6 +211,8 @@ async def async_fetch_url(hass: HomeAssistant, url: str) -> bytes:
                 _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
                 msg = f"HTTP {response.status} from {host}"
                 raise SourceUnavailableError(msg)
+            etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+            last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
             stream = response.content  # bind once: some readers build a new stream per attribute access
             async for chunk in stream.iter_chunked(_CHUNK_SIZE):
                 received += len(chunk)
@@ -199,4 +227,4 @@ async def async_fetch_url(hass: HomeAssistant, url: str) -> bytes:
         msg = f"cannot fetch from {host}: {type(err).__name__}"
         raise SourceUnavailableError(msg) from None
     _LOGGER.debug("Downloaded %s bytes from source host %s", received, host)
-    return b"".join(chunks)
+    return Fetched(b"".join(chunks), etag, last_modified)
