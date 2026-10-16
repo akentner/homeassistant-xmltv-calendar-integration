@@ -1,4 +1,4 @@
-"""Config flow: source entries (menu -> source step -> name) and calendar subentries."""
+"""Config flow: source entries (menu -> source step [-> download] -> schedule -> name) and calendar subentries."""
 
 from pathlib import PurePath
 from typing import TYPE_CHECKING, Any
@@ -13,6 +13,7 @@ from homeassistant.config_entries import (
     SubentryFlowResult,
 )
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import (
     BooleanSelector,
     NumberSelector,
@@ -29,6 +30,7 @@ from homeassistant.helpers.selector import (
 from homeassistant.util import dt as dt_util
 from yarl import URL
 
+from .cache import FeedCache
 from .const import (
     CONF_ADVANCED,
     CONF_CASE_SENSITIVE,
@@ -41,9 +43,13 @@ from .const import (
     CONF_INCLUDE_FIELDS,
     CONF_MAX_DURATION,
     CONF_MIN_DURATION,
+    CONF_NAIVE_TIMEZONE,
     CONF_NAME,
+    CONF_OFFSET_MINUTES,
     CONF_PATH,
     CONF_REFRESH_HOURS,
+    CONF_REFRESH_MODE,
+    CONF_REFRESH_TIME,
     CONF_SOURCE_TYPE,
     CONF_TIME_FROM,
     CONF_TIME_TO,
@@ -53,19 +59,23 @@ from .const import (
     DEFAULT_REFRESH_HOURS,
     DOMAIN,
     MAX_DURATION_MINUTES,
+    MAX_OFFSET_MINUTES,
     MAX_REFRESH_HOURS,
+    MIN_OFFSET_MINUTES,
     MIN_REFRESH_HOURS,
+    REFRESH_MODE_DAILY,
     SOURCE_TYPE_FILE,
     SOURCE_TYPE_URL,
     SUBENTRY_TYPE_CALENDAR,
 )
 from .source import (
+    Fetched,
     FileMissingError,
     InvalidFeedError,
     InvalidUrlError,
     PathNotAllowedError,
     SourceError,
-    async_probe_url,
+    async_fetch_url,
     check_file,
     normalize_url,
     probe_file,
@@ -74,6 +84,7 @@ from .source import (
 from .xmltv.filter import first_invalid_pattern
 from .xmltv.preview import build_preview
 from .xmltv.render import DESCRIPTION_FIELDS, TITLE_FIELDS, TemplateError, compile_template
+from .xmltv.schedule import NAIVE_TIMEZONES, REFRESH_MODES, SourceOptions
 from .xmltv.settings import (
     ADVANCED_DEFAULTS,
     DEFAULT_TITLE_TEMPLATE,
@@ -85,9 +96,12 @@ from .xmltv.settings import (
 )
 
 if TYPE_CHECKING:
+    import asyncio
+
     from homeassistant.config_entries import ConfigEntry
 
     from .data import XmltvConfigEntry
+    from .source import NotModified
 
 
 def _refresh_selector() -> NumberSelector:
@@ -103,6 +117,68 @@ def _refresh_selector() -> NumberSelector:
     )
 
 
+# Form-only key of the collapsed timezone section; its values are stored flat in the options (D-06)
+SECTION_TIMEZONE = "timezone"
+
+
+def _offset_selector() -> NumberSelector:
+    """Return the offset correction selector (D-15: -720 to 720 minutes)."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=MIN_OFFSET_MINUTES,
+            max=MAX_OFFSET_MINUTES,
+            step=1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement="min",
+        )
+    )
+
+
+def _choice_selector(options: tuple[str, ...], *, translation_key: str) -> SelectSelector:
+    """Return a single-choice list over a fixed vocabulary with translated option labels."""
+    return SelectSelector(
+        SelectSelectorConfig(options=list(options), mode=SelectSelectorMode.LIST, translation_key=translation_key)
+    )
+
+
+def _settings_fields(defaults: SourceOptions) -> dict[Any, Any]:
+    """Return the source settings shared by the url, file and options steps (D-05): mode plus timezone section."""
+    timezone = vol.Schema(
+        {
+            vol.Required(CONF_NAIVE_TIMEZONE, default=defaults.naive_timezone): _choice_selector(
+                NAIVE_TIMEZONES, translation_key="naive_timezone"
+            ),
+            vol.Required(CONF_OFFSET_MINUTES, default=defaults.offset_minutes): _offset_selector(),
+        }
+    )
+    return {
+        vol.Required(CONF_REFRESH_MODE, default=defaults.refresh_mode): _choice_selector(
+            REFRESH_MODES, translation_key="refresh_mode"
+        ),
+        vol.Required(SECTION_TIMEZONE): section(timezone, {"collapsed": True}),
+    }
+
+
+def _settings_from_input(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Flatten the submitted settings fields; the section key itself is never stored."""
+    timezone = user_input[SECTION_TIMEZONE]
+    return {
+        CONF_REFRESH_MODE: user_input[CONF_REFRESH_MODE],
+        CONF_NAIVE_TIMEZONE: timezone[CONF_NAIVE_TIMEZONE],
+        # The NumberSelector sends float; stored as whole minutes
+        CONF_OFFSET_MINUTES: int(timezone[CONF_OFFSET_MINUTES]),
+    }
+
+
+def _schedule_schema(options: SourceOptions, mode: str) -> vol.Schema:
+    """Return the schedule form with exactly the one field `mode` needs (D-01, D-02)."""
+    if mode == REFRESH_MODE_DAILY:
+        # The TimeSelector works with "HH:MM:SS"; a stored "HH:MM" is offered back as a suggestion
+        suggested = {"suggested_value": f"{options.refresh_time}:00"} if options.refresh_time else None
+        return vol.Schema({vol.Required(CONF_REFRESH_TIME, description=suggested): TimeSelector()})
+    return vol.Schema({vol.Required(CONF_REFRESH_HOURS, default=options.refresh_hours): _refresh_selector()})
+
+
 class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
     """Add an XMLTV source; calendars are added afterwards as subentries."""
 
@@ -113,13 +189,19 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._data: dict[str, Any] = {}
         self._options: dict[str, Any] = {}
         self._suggested_name = ""
+        # Flattened settings of the url/file step, completed by the schedule step
+        self._pending: dict[str, Any] = {}
+        self._url_input: dict[str, Any] | None = None
+        self._download_task: asyncio.Task[Fetched | NotModified] | None = None
+        # The setup download; written to the cache only when the entry is created (D-13)
+        self._fetched: Fetched | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
         """Let the user choose the source type."""
         return self.async_show_menu(step_id="user", menu_options=[SOURCE_TYPE_URL, SOURCE_TYPE_FILE])
 
     async def async_step_url(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Ask for the feed URL and the refresh interval; reject bad URLs, duplicates and non-feeds."""
+        """Ask for the feed URL and the source settings; reject bad URLs and duplicates before any download."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
@@ -129,27 +211,59 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 await self.async_set_unique_id(source_unique_id(SOURCE_TYPE_URL, url))
                 self._abort_if_unique_id_configured()
-                try:
-                    await async_probe_url(self.hass, url)
-                except InvalidFeedError:
-                    errors["base"] = "invalid_feed"
-                except SourceError:
-                    errors["base"] = "cannot_connect"
-                else:
-                    self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_URL, CONF_URL: url}
-                    self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
-                    self._suggested_name = URL(url).host or url
-                    return await self.async_step_name()
+                self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_URL, CONF_URL: url}
+                self._pending = _settings_from_input(user_input)
+                self._url_input = user_input
+                self._suggested_name = URL(url).host or url
+                return await self.async_step_download()
 
         schema = vol.Schema(
             {
                 vol.Required(CONF_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
-                vol.Required(CONF_REFRESH_HOURS, default=DEFAULT_REFRESH_HOURS): _refresh_selector(),
+                **_settings_fields(SourceOptions()),
             }
         )
         if user_input is not None:
             schema = self.add_suggested_values_to_schema(schema, user_input)
         return self.async_show_form(step_id="url", data_schema=schema, errors=errors)
+
+    async def async_step_download(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+        """Download the full, bounded feed behind a progress indicator (CFG-03); the flow continues by itself."""
+        if self._download_task is None:
+            # eager_start=False: the first call always shows the progress step
+            self._download_task = self.hass.async_create_task(
+                async_fetch_url(self.hass, self._data[CONF_URL]), eager_start=False
+            )
+        if not self._download_task.done():
+            return self.async_show_progress(
+                step_id="download", progress_action="download", progress_task=self._download_task
+            )
+        task, self._download_task = self._download_task, None
+        fetched = task.result()
+        if isinstance(fetched, Fetched):
+            self._fetched = fetched
+        return self.async_show_progress_done(next_step_id="schedule")
+
+    async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Ask for the one schedule field the chosen refresh mode needs (D-01, D-02)."""
+        errors: dict[str, str] = {}
+        mode = self._pending[CONF_REFRESH_MODE]
+        if user_input is not None:
+            if mode == REFRESH_MODE_DAILY:
+                refresh_time = normalize_time(user_input.get(CONF_REFRESH_TIME))
+                if refresh_time is None:
+                    errors[CONF_REFRESH_TIME] = "invalid_time"
+                else:
+                    self._pending[CONF_REFRESH_TIME] = refresh_time
+            else:
+                # The NumberSelector sends float; stored as whole hours
+                self._pending[CONF_REFRESH_HOURS] = int(user_input[CONF_REFRESH_HOURS])
+            if not errors:
+                self._options = SourceOptions.from_mapping(self._pending).as_options()
+                return await self.async_step_name()
+
+        schema = _schedule_schema(SourceOptions.from_mapping(self._pending), mode)
+        return self.async_show_form(step_id="schedule", data_schema=schema, errors=errors)
 
     async def async_step_file(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for the local file path and the refresh interval; only allowed directories can be read."""
@@ -193,6 +307,7 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             name = str(user_input[CONF_NAME]).strip()
             if name:
+                await self._async_seed_cache()
                 return self.async_create_entry(title=name, data=self._data, options=self._options)
             errors[CONF_NAME] = "name_required"
 
@@ -201,6 +316,25 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
             user_input if user_input is not None else {CONF_NAME: self._suggested_name},
         )
         return self.async_show_form(step_id="name", data_schema=schema, errors=errors)
+
+    async def _async_seed_cache(self) -> None:
+        """
+        Write the setup download to the disk cache, so the first refresh parses it instead of downloading (D-13).
+
+        Only done at the last step, so an abandoned flow leaves no file. A failed write is logged by FeedCache;
+        the coordinator then simply downloads.
+        """
+        if self._fetched is None or self.unique_id is None:
+            return
+        cache = FeedCache(self.hass, self.unique_id)
+        await cache.async_load()
+        await cache.async_write(
+            self._fetched.payload,
+            source_id=self.unique_id,
+            fetched_at=dt_util.utcnow(),
+            etag=self._fetched.etag,
+            last_modified=self._fetched.last_modified,
+        )
 
     @classmethod
     @callback

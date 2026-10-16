@@ -13,11 +13,25 @@
         "description": "The feed is downloaded once per refresh and shared by all calendars of this source.",
         "data": {
           "url": "URL",
-          "refresh_hours": "Refresh interval"
+          "refresh_mode": "Refresh"
         },
         "data_description": {
           "url": "HTTP or HTTPS address of the XMLTV file.",
-          "refresh_hours": "How often the feed is downloaded again, in hours (1 to 168)."
+          "refresh_mode": "Download the feed again at a fixed interval or once a day at a fixed time."
+        },
+        "sections": {
+          "timezone": {
+            "name": "Timezone",
+            "description": "How the times in the feed are read. Only needed when the feed's times are off.",
+            "data": {
+              "naive_timezone": "Times without offset",
+              "offset_minutes": "Offset correction"
+            },
+            "data_description": {
+              "naive_timezone": "Time zone for feed times that carry no UTC offset: UTC (the XMLTV default) or the Home Assistant time zone.",
+              "offset_minutes": "Minutes added to every programme time, from -720 to 720. Use it when a feed is off by a fixed amount."
+            }
+          }
         }
       },
       "file": {
@@ -30,6 +44,17 @@
         "data_description": {
           "path": "Absolute path of the XMLTV file (plain or gzip), for example /media/epg/guide.xml. Only directories Home Assistant allows can be read: the media folders and those listed under allowlist_external_dirs.",
           "refresh_hours": "How often the file is read again, in hours (1 to 168)."
+        }
+      },
+      "schedule": {
+        "title": "Refresh schedule",
+        "data": {
+          "refresh_hours": "Refresh interval",
+          "refresh_time": "Refresh time"
+        },
+        "data_description": {
+          "refresh_hours": "How often the source is refreshed, in hours (1 to 168).",
+          "refresh_time": "Time of day of the daily refresh, in the local Home Assistant time zone."
         }
       },
       "name": {
@@ -48,10 +73,15 @@
       "invalid_feed": "The source is neither an XML nor a gzip-compressed XMLTV file.",
       "path_not_allowed": "Enter an absolute path inside a directory Home Assistant allows (media folders or allowlist_external_dirs).",
       "file_not_found": "The file does not exist, is not a regular file or cannot be read.",
-      "name_required": "Enter a name."
+      "name_required": "Enter a name.",
+      "feed_too_large": "The feed is larger than the download limit of 256 MiB.",
+      "invalid_time": "Enter a valid time of day."
     },
     "abort": {
       "already_configured": "This source is already configured."
+    },
+    "progress": {
+      "download": "Downloading the XMLTV feed. Large feeds can take a minute."
     }
   },
   "config_subentries": {
@@ -205,6 +235,18 @@
         "fri": "Friday",
         "sat": "Saturday",
         "sun": "Sunday"
+      }
+    },
+    "refresh_mode": {
+      "options": {
+        "interval": "Interval",
+        "daily": "Daily at a fixed time"
+      }
+    },
+    "naive_timezone": {
+      "options": {
+        "utc": "UTC",
+        "local": "Home Assistant time zone"
       }
     }
   }

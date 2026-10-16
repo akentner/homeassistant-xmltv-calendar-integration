@@ -36,6 +36,11 @@ def _schema_key(result: Any, name: str) -> Any:
     raise AssertionError(msg)
 
 
+def _cache_file(hass: HomeAssistant, key: str) -> Path:
+    """Return the cached payload file of a source (the 64-hex unique_id is used as the key unchanged)."""
+    return Path(hass.config.cache_path(DOMAIN, f"{key}.feed"))
+
+
 async def _get_events(hass: HomeAssistant, entity_id: str, start: str, hours: float) -> list[dict[str, Any]]:
     response = await hass.services.async_call(
         "calendar",
@@ -153,7 +158,7 @@ async def test_url_source_end_to_end_with_progress_and_seeded_cache(
     assert entry.state is ConfigEntryState.LOADED
 
     # 6. The setup download seeded the cache: the first refresh parsed it, nothing was downloaded twice (D-13)
-    assert Path(hass.config.cache_path(DOMAIN, f"{entry.unique_id}.feed")).is_file()
+    assert _cache_file(hass, entry.unique_id).is_file()
     assert aioclient_mock.call_count == 1
     hass.config_entries.async_add_subentry(
         entry,

@@ -113,7 +113,7 @@ def _schedule_input(refresh_mode: str, refresh_hours: float, refresh_time: str |
     return {CONF_REFRESH_HOURS: refresh_hours}
 
 
-async def add_url_source(  # noqa: PLR0913 - mirrors every field of the source flow
+async def add_url_source(
     hass: HomeAssistant,
     url: str = FEED_URL,
     *,
