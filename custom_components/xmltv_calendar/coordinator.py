@@ -45,6 +45,7 @@ from .xmltv.schedule import (
     is_fresh,
     is_persistently_failing,
     next_regular,
+    refresh_base,
 )
 
 if TYPE_CHECKING:
@@ -139,7 +140,10 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         await self._cache.async_load()
 
     def _set_regular_target(self) -> None:
-        self._next_refresh_at = next_regular(dt_util.utcnow(), self._schedule())
+        """Target the regular refresh after the one just served; an early-fired timer serves its target (CR-01)."""
+        now = dt_util.utcnow()
+        base = refresh_base(now, self._next_refresh_at)
+        self._next_refresh_at = next_regular(base, self._schedule())
 
     @override
     async def _async_update_data(self) -> EpgData:

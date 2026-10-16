@@ -55,6 +55,10 @@ PERSISTENT_FAILURE = timedelta(hours=24)
 # update_interval must never be zero: Home Assistant treats a falsy interval as "no polling"
 MIN_DELAY = timedelta(seconds=1)
 
+# A coordinator timer may fire slightly before its target (Home Assistant truncates loop.time(), up to about 1 s
+# early); a refresh that ends this close before its target stands for that target (CR-01)
+EARLY_FIRE_TOLERANCE = timedelta(seconds=2)
+
 
 @dataclass(frozen=True, slots=True)
 class Schedule:
@@ -171,6 +175,19 @@ def next_regular(now: datetime, schedule: Schedule) -> datetime:
     if schedule.interval is not None:
         return now.astimezone(UTC) + schedule.interval
     return next_slot(now, schedule)
+
+
+def refresh_base(now: datetime, target: datetime) -> datetime:
+    """
+    Return the instant a refresh at `now` stands for, given the refresh `target` it was armed for.
+
+    Late or on time: `now`. Early fire, at most `EARLY_FIRE_TOLERANCE` before the target: the target, so the slot or
+    interval being served is not scheduled again. More than the tolerance early (e.g. a manual refresh): `now`, so the
+    target is not consumed.
+    """
+    if now < target <= now + EARLY_FIRE_TOLERANCE:
+        return target
+    return now
 
 
 def is_fresh(fetched_at: datetime, now: datetime, schedule: Schedule) -> bool:
