@@ -3,6 +3,34 @@ phase: 03
 review: 03-REVIEW.md
 titles: json
 findings:
+  - id: WR-01
+    severity: warning
+    disposition: open
+    title: "\"Unchanged\" shortcuts skip the empty-feed check, so a feed that stops updating is never reported (carried forward, still open)"
+  - id: WR-04
+    severity: warning
+    disposition: open
+    title: "A swallowed `CancelledError` on a timer-fired refresh still retries every second, unrecorded (CR-02 residual)"
+  - id: WR-05
+    severity: warning
+    disposition: open
+    title: "An unexpected exception while parsing the disk cache keeps the cache, so the source never downloads and stays in SETUP_RETRY"
+  - id: IN-02
+    severity: info
+    disposition: open
+    title: "Cache seeding runs before the final duplicate check, and now also overwrites the Store's health (carried forward, still open)"
+  - id: IN-04
+    severity: info
+    disposition: open
+    title: "A 304 without data in memory reads the cache without the source check (carried forward, still open)"
+  - id: IN-06
+    severity: info
+    disposition: open
+    title: "The seeded `fetched_at` and `last_success` are the time of the name step, not of the download"
+  - id: IN-07
+    severity: info
+    disposition: open
+    title: "Test hygiene in the new tests"
   - id: CR-01
     severity: critical
     disposition: open
@@ -11,10 +39,6 @@ findings:
     severity: critical
     disposition: open
     title: "An unexpected exception retries every second with a full download, unrecorded"
-  - id: WR-01
-    severity: warning
-    disposition: open
-    title: "\"Unchanged\" shortcuts skip the empty-feed check, so a feed that stops updating is never reported"
   - id: WR-02
     severity: warning
     disposition: open
@@ -27,41 +51,37 @@ findings:
     severity: info
     disposition: open
     title: "Repairs issue survives unload and disable of the entry"
-  - id: IN-02
-    severity: info
-    disposition: open
-    title: "Cache seeding writes before the duplicate check of `async_create_entry`"
   - id: IN-03
     severity: info
     disposition: open
     title: "`sha256` is stored but never verified on read"
-  - id: IN-04
-    severity: info
-    disposition: open
-    title: "304 path without data reads the cache without the source check"
   - id: IN-05
     severity: info
     disposition: open
     title: "Diagnostics report `next_refresh` even when no timer is armed"
-open: 10
-total: 10
-recorded: 2026-10-16T11:43:40.178Z
+open: 14
+total: 14
+recorded: 2026-10-16T17:50:08.718Z
 ---
 
 # Phase 03: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| CR-01 | critical | open | - |
-| CR-02 | critical | open | - |
 | WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
-| IN-01 | info | open | - |
+| WR-04 | warning | open | - |
+| WR-05 | warning | open | - |
 | IN-02 | info | open | - |
-| IN-03 | info | open | - |
 | IN-04 | info | open | - |
-| IN-05 | info | open | - |
+| IN-06 | info | open | - |
+| IN-07 | info | open | - |
+| CR-01 | critical | open | - (not in the current review) |
+| CR-02 | critical | open | - (not in the current review) |
+| WR-02 | warning | open | - (not in the current review) |
+| WR-03 | warning | open | - (not in the current review) |
+| IN-01 | info | open | - (not in the current review) |
+| IN-03 | info | open | - (not in the current review) |
+| IN-05 | info | open | - (not in the current review) |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
