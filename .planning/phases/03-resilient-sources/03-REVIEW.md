@@ -1,194 +1,184 @@
 ---
 phase: 03-resilient-sources
-reviewed: 2026-10-16T11:42:21Z
+reviewed: 2026-10-16T17:48:42Z
 depth: standard
-files_reviewed: 35
+files_reviewed: 8
 files_reviewed_list:
-  - custom_components/xmltv_calendar/__init__.py
-  - custom_components/xmltv_calendar/cache.py
-  - custom_components/xmltv_calendar/calendar.py
   - custom_components/xmltv_calendar/config_flow.py
-  - custom_components/xmltv_calendar/const.py
   - custom_components/xmltv_calendar/coordinator.py
-  - custom_components/xmltv_calendar/diagnostics.py
-  - custom_components/xmltv_calendar/source.py
-  - custom_components/xmltv_calendar/translations/de.json
-  - custom_components/xmltv_calendar/translations/en.json
-  - custom_components/xmltv_calendar/xmltv/parser.py
   - custom_components/xmltv_calendar/xmltv/schedule.py
-  - custom_components/xmltv_calendar/xmltv/timeparse.py
-  - tests/conftest.py
-  - tests/test_cache.py
-  - tests/test_calendar.py
   - tests/test_config_flow.py
-  - tests/test_diagnostics.py
-  - tests/test_empty_feed.py
-  - tests/test_file_source.py
-  - tests/test_filtering.py
   - tests/test_identity.py
-  - tests/test_init.py
-  - tests/test_options_flow.py
-  - tests/test_reconfigure.py
-  - tests/test_refresh.py
   - tests/test_repairs.py
   - tests/test_schedule_refresh.py
-  - tests/test_source.py
-  - tests/test_subentry_flow.py
-  - tests/test_timezone_options.py
-  - tests/test_tracer.py
-  - tests/xmltv/test_parser.py
   - tests/xmltv/test_schedule.py
-  - tests/xmltv/test_timeparse.py
 findings:
-  critical: 2
+  critical: 0
   warning: 3
-  info: 5
-  total: 10
+  info: 4
+  total: 7
 status: issues_found
 ---
 
-# Phase 3: Code Review Report
+# Phase 3: Code Review Report (incremental re-review after 03-09 / 03-10)
 
-**Reviewed:** 2026-10-16T11:42:21Z
+**Reviewed:** 2026-10-16T17:48:42Z
 **Depth:** standard
-**Files Reviewed:** 35
+**Files Reviewed:** 8
 **Status:** issues_found
 
 ## Summary
 
-I reviewed the Phase 3 changes since `bfcd455`: refresh schedule, disk cache, conditional refresh, failure health with Repairs and backoff, timezone options, the setup flow with download progress, diagnostics and the options flow. Integration code was checked against the installed HA 2026.10.1 sources (`helpers/update_coordinator.py`, `config_entries.py`, `util/file.py`, `helpers/redact.py`). The full suite passes (794 passed).
+This is an incremental re-review of the gap-closure plans 03-09 (CR-01, CR-02) and 03-10 (WR-02, WR-03). Scope is `git diff 3687254..1a2fcca` over the 8 listed files. I read the changed files in full, together with the code they call: `cache.py` (`FeedCache.async_write`, `async_save_health`) and HA 2026.10.1 `helpers/update_coordinator.py` (`_schedule_refresh`, `_async_refresh`) and `config_entries.py` (`async_finish_flow`).
 
-Parsing, file IO and hashing stay off the event loop. Logs and diagnostics name only the host. Translations are complete and consistent between `en.json` and `de.json`.
+- Ruff is clean on all 8 files.
+- The 5 touched test modules pass: 165 tests.
+- I confirmed each new finding with a throwaway test against the real coordinator and HA's real timer, run in a scratch copy of the repo. The repo was not modified.
 
-Two scheduling defects are confirmed with throwaway tests run against the real coordinator. Neither is covered by the existing suite:
+### Status of the previous findings in these files
 
-- **CR-01:** a daily source often refreshes twice per slot, because HA's coordinator timer can fire up to about 1 s before the target.
-- **CR-02:** any unexpected exception in `_async_update_data` makes the coordinator re-download the feed every second. The failure is never recorded, so no backoff and no Repairs issue follow.
+| Prior finding | Status | Evidence |
+|---|---|---|
+| CR-01 early timer fire, slot served twice | **Resolved** | `refresh_base()` (`schedule.py:180-190`) is used in both `_set_regular_target` (`coordinator.py:142-146`) and `_async_handle_failure` (`coordinator.py:199-207`). Re-run of the original repro with HA's real timer: step to `16:14:59.99Z`, then `16:15:01Z`, then `16:15:03Z` gives exactly 1 extra download, and `next_refresh_at` moves to the next day. A manual refresh earlier than the 2 s tolerance still keeps the slot (`test_manual_refresh_before_slot_keeps_the_slot`). |
+| CR-02 unexpected exception, 1 s retry loop, unrecorded | **Resolved for `Exception` subclasses** | `except Exception` at `coordinator.py:169-178` records the failure, backs off and re-raises it as `UpdateFailed`. One gap remains for `CancelledError`, see WR-04. |
+| WR-01 "unchanged" shortcuts skip the empty-feed check | **Still open**, carried forward below | Not in the scope of 03-09 or 03-10. |
+| WR-02 flow-seeded source has `last_success: None` | **Resolved** | `config_flow.py:357-366` saves `SourceHealth(last_success=fetched_at)` after a successful seed write. Covered by `test_config_flow.py:189-227`. Remaining nit: see IN-06. |
+| WR-03 `test_identity.py` ran on the real clock | **Resolved** | `pytestmark = freeze_time(NOW)` (`test_identity.py:24-26`), plus `ConfigEntryState.LOADED` and single-download asserts. |
+| IN-02 seeding before the duplicate check | **Still open** (Info), carried forward | The seed now also overwrites the Store's health. |
+| IN-04 304 without data reads the cache without the source check | **Still open** (Info), carried forward | |
+| IN-01, IN-03, IN-05 | **Not re-assessed** | They are in `__init__.py`, `cache.py` and `diagnostics.py`, which are outside this re-review's file scope. Their disposition stays as recorded. |
 
-There are also three warnings:
+### New findings
 
-- **WR-01:** a source that stops updating is never reported, because the "unchanged" shortcuts skip the empty-feed check.
-- **WR-02:** a source set up through the flow reports `last_success: None`.
-- **WR-03:** the clock has already passed the fixture dates, so `test_identity.py` now silently tests an entry stuck in SETUP_RETRY.
+Neither new warning is a regression introduced by the diff. Both are gaps that the CR-02 fix left open, and the new tests encode them as intended behaviour:
 
-## Critical Issues
-
-### CR-01: Daily refresh fires before its slot and runs twice (and burns a backoff step on failure)
-
-**File:** `custom_components/xmltv_calendar/coordinator.py:313-317, 324-325, 349-355`
-**Issue:** `_schedule_refresh` turns the wall-clock target into `update_interval`. HA then arms the timer at `int(loop.time()) + self._microsecond + interval` (`helpers/update_coordinator.py:283`). Because `int()` truncates and `_microsecond` is only 0.05–0.5 s, the timer fires up to about 0.95 s **before** `_next_refresh_at` in most cases.
-
-- **Interval mode:** harmless.
-- **Daily mode, success:** `_set_regular_target()` calls `next_slot(utcnow())`, which returns the first slot strictly after now. If the refresh finishes before the slot (a 304, an unchanged file or a fast download), that is the **same** slot, less than 1 s ahead. `_schedule_refresh` clamps it to `MIN_DELAY`, and a second refresh follows one second later.
-- **Daily mode, failure:** a fast failure (DNS error, connection refused, missing file) gets `regular_next - now < 1 s`, so the backoff is `MIN_DELAY`. The source fails twice within a second. `consecutive_failures` goes up by 2, and the first backoff step (5 min) is skipped.
-
-Reproduced with HA's real timer: daily 18:15 Berlin, step to `16:14:59.99Z`. The refresh runs, `next_refresh_at` stays `16:15:00Z`, and stepping to `16:15:01Z` downloads a second time (`call_count` 1 → 2 → 3). `tests/test_schedule_refresh.py` always steps 1 s **past** each target, which hides this.
-**Fix:** Derive the next target from the slot that was due, not from the slightly-early `now`:
-```python
-def _set_regular_target(self) -> None:
-    now = dt_util.utcnow()
-    # The HA timer may fire up to ~1 s early; never re-target the slot that is being served
-    self._next_refresh_at = next_regular(max(now, self._next_refresh_at), self._schedule())
-
-# failure path in _async_update_data
-base = max(now, self._next_refresh_at)
-self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
-```
-Add a test that steps to `slot - 0.01 s` and asserts there is exactly one download for the slot.
-
-### CR-02: An unexpected exception retries every second with a full download, unrecorded
-
-**File:** `custom_components/xmltv_calendar/coordinator.py:346-357`
-**Issue:** Only `UpdateFailed` updates `_next_refresh_at`, the health and the Repairs issue. Any other exception falls through to HA's generic `except Exception` in `_async_refresh`, which logs a traceback and then calls `_schedule_refresh()`. `_next_refresh_at` still holds the target that was just served (now in the past), so `update_interval = MIN_DELAY` and the source is downloaded again every second, indefinitely.
-
-The parser documents that "other exceptions propagate unchanged". `MemoryError` on a large feed on small hardware is a realistic trigger, and so is any latent bug in `normalize`. Reproduced by patching `coordinator.parse` to raise `MemoryError`: one download per second, `consecutive_failures` stays 0, no backoff, no Repairs issue, and a stack trace every second. That hammers the EPG provider.
-**Fix:** Treat every exception as a failure for scheduling and health purposes, and re-raise it as `UpdateFailed`:
-```python
-try:
-    epg = await (self._async_update_file() if is_file else self._async_update_url())
-except Exception as err:  # noqa: BLE001 - every failure must back off (D-10)
-    now = dt_util.utcnow()
-    key = err.translation_key if isinstance(err, UpdateFailed) else _DEFAULT_REASON
-    await self._async_record_failure(now, key)
-    failures = self._cache.health.consecutive_failures
-    self._next_refresh_at = now + backoff_delay(failures, now, next_regular(now, self._schedule()))
-    if isinstance(err, UpdateFailed):
-        raise
-    _LOGGER.debug("Source %s: unexpected %s", self.config_entry.title, type(err).__name__)
-    raise UpdateFailed(translation_domain=DOMAIN, translation_key=_DEFAULT_REASON) from err
-```
-Do not catch `asyncio.CancelledError`: it is not an `Exception` subclass, so the code above already leaves it alone.
+- **WR-04:** a `CancelledError` that HA swallows still produces the 1 s retry loop from CR-02.
+- **WR-05:** an unexpected exception while parsing the disk cache never drops the cache, so the source never downloads and stays in SETUP_RETRY.
 
 ## Warnings
 
-### WR-01: "Unchanged" shortcuts skip the empty-feed check, so a feed that stops updating is never reported
+### WR-01: "Unchanged" shortcuts skip the empty-feed check, so a feed that stops updating is never reported (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/coordinator.py:505-509, 520-529, 571-573`
-**Issue:** D-20 says a feed without current programmes fails. That check (`_require_programmes`) runs only after a fresh parse. A 304, an identical body or an unchanged file returns the old `self.data` object and is recorded as a **success**.
+**File:** `custom_components/xmltv_calendar/coordinator.py:355-359, 361-364, 370-379, 421-423`
+**Issue:** This is unchanged since the previous review. `_require_programmes` (D-20) runs only after a fresh parse. A 304, an identical body, or an unchanged file returns the old `self.data` (or the re-parsed cache) and counts as a success.
 
-A very common real-world failure is a grabber or provider that stops updating: the file keeps its mtime and size, or the server keeps answering 304 for the old ETag. The source then reports success forever and `consecutive_failures` stays 0. No Repairs issue is ever raised, while every calendar quietly runs out of events once the last programme ends.
-**Fix:** Before returning the unchanged data, check that it still holds a current programme, using the same cut-off the parser uses:
+A grabber or provider that stops updating therefore reports success forever:
+
+- `consecutive_failures` stays 0.
+- No Repairs issue is raised.
+- Calendars silently run out of events once the last programme ends.
+
+**Fix:** Before returning unchanged data, check that it still holds a current programme, using the parser's cut-off:
 ```python
 def _still_current(epg: EpgData) -> bool:
     cutoff = dt_util.utcnow() - KEEP_PAST
-    return any(p.stop >= cutoff for p in reversed(epg.programmes))  # sorted by start: the tail ends last
+    return any(p.stop >= cutoff for p in epg.programmes)
 
-# in each unchanged branch
+# in each unchanged branch (304, identical body, unchanged file)
 if not _still_current(self.data):
     raise UpdateFailed(translation_domain=DOMAIN, translation_key="empty_feed")
 ```
 Alternatively, store the feed's maximum `stop` on `EpgData` at parse time and compare against it.
 
-### WR-02: Setup from the flow-seeded cache never records a success (`last_success` stays None)
+### WR-04: A swallowed `CancelledError` on a timer-fired refresh still retries every second, unrecorded (CR-02 residual)
 
-**File:** `custom_components/xmltv_calendar/coordinator.py:340-345` (with `config_flow.py:344-361`)
-**Issue:** The flow downloads the feed and seeds the cache. The first refresh then takes `_async_start_from_cache`, which returns the data without calling `_async_record_success`.
+**File:** `custom_components/xmltv_calendar/coordinator.py:162-178` (test gap: `tests/test_schedule_refresh.py:590-613`)
+**Issue:** The CR-02 fix deliberately lets `asyncio.CancelledError` pass. HA's `_async_refresh` (`update_coordinator.py:575-580`) only re-raises it when `asyncio.current_task().cancelling() > 0`. Otherwise it swallows the error, and its `finally` calls `_schedule_refresh()`.
 
-Verified: right after the flow, `coordinator.health` is `SourceHealth(last_success=None, ...)`, and diagnostics report `"last_success": null` with 4 programmes loaded. If the first scheduled refresh (up to 168 h or a day later) starts a failure streak, the Repairs issue shows "Last successful refresh: -" even though the setup download succeeded. Diagnostics also look like a source that has never worked.
-**Fix:** Record the seeded fetch as a success. Either have `_async_seed_cache` write `SourceHealth(last_success=fetched_at)` along with the payload, or have `_async_start_from_cache` set `last_success = meta.fetched_at` when `health.last_success is None` or is older than `meta.fetched_at`.
+On a timer-fired refresh, `_next_refresh_at` still holds the target that was just served, which is now in the past. `_schedule_refresh` then clamps the interval to `MIN_DELAY`, so the coordinator retries once per second indefinitely. That is the same loop CR-02 described: no failure is recorded, there is no backoff, and no Repairs issue is raised.
 
-### WR-03: `test_identity.py` is unfrozen and its fixtures have expired, so it tests an entry in SETUP_RETRY
+The trigger is a `CancelledError` that does not come from cancelling the refresh task itself, for example a cancelled inner future or executor job, or a library that raises it internally. That is rare, but the consequence is exactly the provider-hammering loop this phase set out to remove.
 
-**File:** `tests/test_identity.py:52-121`
-**Issue:** These are the only fixture-based integration tests without `freeze_time`. `fixtures/basic.xml` holds programmes on 2026-10-13, and today (2026-10-16) the parser's `keep_after = now - 1 day` drops all of them. The seeded cache is dropped and re-downloaded, and setup fails with `empty_feed`.
+Verified with a throwaway test. `async_fetch_url` was patched to raise `CancelledError`, then time was stepped past the 24 h target in 2 s steps:
 
-Verified: after `test_url_variant_identity_invariant`'s flow, `entry.state` is `SETUP_RETRY` and the feed was downloaded twice. The tests still pass because they only assert on flow results, but they no longer exercise a loaded source, and they leave a setup retry pending.
-**Fix:** Add `pytestmark = pytest.mark.freeze_time("2026-10-13T06:00:00+00:00")`, as the other modules do. Optionally assert `entry.state is ConfigEntryState.LOADED` so the suite fails loudly the next time time-dependent data expires.
+- 6 fetch attempts in 11 s.
+- `consecutive_failures == 0`.
+- `next_refresh_at` stayed at the past target `2026-10-14 06:00Z`.
+
+`test_cancelled_refresh_records_no_failure` hides this. It runs a manual refresh at +1 h, when the target is still in the future, so asserting `next_refresh_at == target` looks safe there.
+**Fix:** Make the default exit path safe. At the start of each refresh, set a provisional target, and pass the served target explicitly to the success and failure paths:
+```python
+async def _async_update_data(self) -> EpgData:
+    served = self._next_refresh_at
+    now = dt_util.utcnow()
+    # Any exit that sets no target (a swallowed CancelledError) retries after the first backoff step, never every second
+    self._next_refresh_at = max(served, now + BACKOFF_STEPS[0])
+    ...
+    # success:  self._next_refresh_at = next_regular(refresh_base(dt_util.utcnow(), served), self._schedule())
+    # failure:  _async_handle_failure(reason, served) uses refresh_base(now, served)
+```
+`_async_start_from_cache` still overwrites the provisional target, so the stale-cache-at-start behaviour (`MIN_DELAY`) is unchanged. Also extend the cancellation test to a timer-fired refresh (`_step_to(target + 1 s)` and a few more steps), and assert that only one fetch happens.
+
+### WR-05: An unexpected exception while parsing the disk cache keeps the cache, so the source never downloads and stays in SETUP_RETRY
+
+**File:** `custom_components/xmltv_calendar/coordinator.py:193-196, 308-326` (behaviour encoded by `tests/test_repairs.py:356-378`)
+**Issue:** `_async_parse_cached` drops the cache only on `UpdateFailed` or on an empty result. Any other exception propagates through `_async_start_from_cache`. CR-02's `except Exception` now records it and raises `UpdateFailed`, so setup ends in SETUP_RETRY.
+
+Each setup retry builds a new coordinator with `self.data is None`. `_async_read_source` therefore goes back to the same cache every time, and the network path is never reached. The source stays stuck until someone deletes the cache file by hand:
+
+- This happens even when the upstream feed has since changed.
+- It also happens after a fixed transient condition.
+- It defeats T-03-05, "a poisoned cache is never retried".
+
+The setup-retry message also says "Unable to download the XMLTV feed", although no download was attempted.
+
+Verified with a throwaway test: entry loaded, then unloaded, `parse` patched to raise `RuntimeError`, then three HA setup retries. Result: 4 cache parses, 0 downloads, state `SETUP_RETRY`. `test_unexpected_cache_parse_failure_is_recorded` asserts `call_count == 0`, which makes this the intended behaviour.
+
+The behaviour existed before 03-09, because HA turned the raw exception into `ConfigEntryNotReady`. The new test now locks it in.
+**Fix:** Treat an unexpected exception while parsing the cache as an unusable cache and fall through to the download. The download path then records a real failure if the bug persists:
+```python
+try:
+    epg = await self._async_parse_payload(payload)
+except UpdateFailed:
+    epg = None
+except MemoryError:
+    raise  # transient: keep the offline fallback, retry later
+except Exception:  # noqa: BLE001 - a cache that crashes the parser is poisoned (T-03-05)
+    _LOGGER.debug("Source %s: the disk cache crashed the parser", self.config_entry.title, exc_info=True)
+    epg = None
+```
+Trade-off: dropping on every exception, `MemoryError` included, is simpler. The cost is losing the offline fallback on a transient memory spike. Then update `test_unexpected_cache_parse_failure_is_recorded` to expect one download and a recorded failure from the parse of the downloaded body.
 
 ## Info
 
-### IN-01: Repairs issue survives unload and disable of the entry
+### IN-02: Cache seeding runs before the final duplicate check, and now also overwrites the Store's health (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/__init__.py:56-58`
-**Issue:** `async_unload_entry` keeps the `source_failing_<entry_id>` issue. A user who disables a failing source keeps seeing "keeps failing" until HA restarts (the issue is non-persistent). Only `async_remove_entry` deletes it.
-**Fix:** Call `ir.async_delete_issue(hass, DOMAIN, issue_id(entry.entry_id))` after a successful unload. `_sync_issue` re-creates it on the next failure after setup or restart anyway.
+**File:** `custom_components/xmltv_calendar/config_flow.py:333-335, 355-366`
+**Issue:** `_async_seed_cache` writes the payload and Store under `self.unique_id` before `async_create_entry`.
 
-### IN-02: Cache seeding writes before the duplicate check of `async_create_entry`
+- The window is small. HA's `async_finish_flow` (`config_entries.py:1846-1856`) aborts other in-progress flows with the same unique_id once one flow creates its entry. So only a second flow whose seed is already awaiting while the first one finishes can overwrite the live entry's files.
+- In that case the WR-02 change also replaces the live entry's stored health with `SourceHealth(last_success=...)`, which wipes `failing_since` and `consecutive_failures` on disk until the live coordinator saves again.
+- The key is still the raw unique_id, not `cache_key()`.
 
-**File:** `custom_components/xmltv_calendar/config_flow.py:333-335, 353`
-**Issue:** `_async_seed_cache` runs before `async_create_entry`. The duplicate check at url-step time can be outdated by then: the download can take up to 5 min and the user can wait at the schedule/name steps. If a second flow for the same source finishes first, this flow overwrites that entry's payload and Store (same key) and is then aborted as `already_configured`. The live coordinator's in-memory meta then disagrees with disk. The seed also builds the key directly from `self.unique_id` instead of going through `cache_key()`, which bypasses the file-name safety check (safe today only because the unique_id is always SHA-256 hex).
-**Fix:** Call `self._abort_if_unique_id_configured()` again right before seeding, and derive the key through a shared helper (e.g. `cache_key_for(unique_id)`) instead of passing the raw unique_id.
+**Fix:** Call `self._abort_if_unique_id_configured()` again right before seeding. Derive the key through a shared helper (`cache_key_for(unique_id)`).
 
-### IN-03: `sha256` is stored but never verified on read
+### IN-04: A 304 without data in memory reads the cache without the source check (carried forward, still open)
 
-**File:** `custom_components/xmltv_calendar/cache.py:218-231`
-**Issue:** The module docstring presents the size check as the integrity guarantee. `_read` checks only the length, and `CacheMeta.sha256` is used only for the identical-body shortcut. A same-size corrupted or foreign payload is accepted and parsed, and `_async_parse_cached` only drops it if parsing fails or finds no programmes.
-**Fix:** Verify `payload_sha256(payload) == meta.sha256` in `_read` (already in the executor), or document that the hash serves only the identical-body comparison.
+**File:** `custom_components/xmltv_calendar/coordinator.py:360-364`
+**Issue:** This is unchanged. `_async_parse_cached()` reads whatever `self._cache.meta` points to without checking `valid_meta(self._source_id)`. The branch is reachable only when a server answers 304 to a request that carried no validators.
+**Fix:** Guard with `if self._cache.valid_meta(self._source_id) is not None`, or treat a 304 to an unconditional request as `unable_to_fetch` right away.
 
-### IN-04: 304 path without data reads the cache without the source check
+### IN-06: The seeded `fetched_at` and `last_success` are the time of the name step, not of the download
 
-**File:** `custom_components/xmltv_calendar/coordinator.py:510-514`
-**Issue:** `_async_parse_cached()` reads whatever `self._cache.meta` refers to. Unlike `_async_start_from_cache`, it never checks `valid_meta(self._source_id)`. The branch can only be reached when a server answers 304 to an unconditional request (`meta` was None, so no validators were sent). In that case a cache from a different source would be adopted and touched.
-**Fix:** Guard with `if self._cache.valid_meta(self._source_id) is not None` before parsing the cache, or treat a 304 to a request without validators as `unable_to_fetch` right away.
+**File:** `custom_components/xmltv_calendar/config_flow.py:357`
+**Issue:** `fetched_at = dt_util.utcnow()` is taken when the user submits the name step. The download finished earlier, before the schedule and name steps, possibly minutes before. Two effects:
 
-### IN-05: Diagnostics report `next_refresh` even when no timer is armed
+- Diagnostics and the Repairs text show a slightly late "last success".
+- In daily mode, a slot that passes between the download and the name step counts as served. `is_fresh(fetched_at)` treats data downloaded before the slot as fetched after it, so that day's refresh is skipped until the next slot.
 
-**File:** `custom_components/xmltv_calendar/diagnostics.py:331`
-**Issue:** `coordinator.next_refresh_at` is reported unconditionally. A source with no calendars has no listeners, so HA never arms the refresh timer, yet diagnostics show a concrete next-refresh time. That is misleading in a bug report.
-**Fix:** Report `None` (or add `"polling": False`) when `not coordinator._listeners`, or expose a public `is_polling` property on the coordinator.
+**Fix:** Record the time when the download task completes, for example `self._fetched_at = dt_util.utcnow()` next to `self._fetched = fetched` in `async_step_download` (`config_flow.py:271`). Use it for both the cache meta and the health.
+
+### IN-07: Test hygiene in the new tests
+
+**File:** `tests/test_repairs.py:122-124`, `tests/test_schedule_refresh.py:293-295`, `tests/xmltv/test_schedule.py:642-644`
+**Issue:**
+- `_raise_runtime_error` is duplicated in two test modules.
+- `test_early_fire_tolerance` asserts that the constant equals its own literal (`timedelta(seconds=2) == S.EARLY_FIRE_TOLERANCE`). It adds no behavioural coverage. The parametrized `test_refresh_base` boundary cases already pin the tolerance.
+
+**Fix:** Move the helper to `tests/conftest.py`. Drop the literal assert and keep only `EARLY_FIRE_TOLERANCE >= MIN_DELAY`, or drop the test entirely.
 
 ---
 
-_Reviewed: 2026-10-16T11:42:21Z_
+_Reviewed: 2026-10-16T17:48:42Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
