@@ -296,7 +296,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
 
     async def _async_update_url(self) -> EpgData:
         """
-        Download the feed, parse it in the executor and cache the body when it holds programmes.
+        Download the feed, parse it in the executor and cache the body; a feed without programmes fails (D-20).
 
         With a usable cache the stored validators are sent (SRC-07); a 304 keeps the data in memory as the identical
         object, without a body or a parse, and counts as a successful refresh.
@@ -330,15 +330,14 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             _LOGGER.debug("Source %s unchanged (identical body)", self.config_entry.title)
             await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
             return self.data
-        epg = await self._async_parse_payload(fetched.payload)
-        if epg.programmes:
-            await self._cache.async_write(
-                fetched.payload,
-                source_id=self._source_id,
-                fetched_at=now,
-                etag=fetched.etag,
-                last_modified=fetched.last_modified,
-            )
+        epg = _require_programmes(await self._async_parse_payload(fetched.payload), self.config_entry.title)
+        await self._cache.async_write(
+            fetched.payload,
+            source_id=self._source_id,
+            fetched_at=now,
+            etag=fetched.etag,
+            last_modified=fetched.last_modified,
+        )
         return epg
 
     async def _async_update_file(self) -> EpgData:
@@ -369,13 +368,27 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
         if result.epg is not None:
+            epg = _require_programmes(result.epg, self.config_entry.title)
             self._file_signature = result.signature
-            return result.epg
+            return epg
         if self.data is not None:
             _LOGGER.debug("Source %s: file unchanged", self.config_entry.title)
             return self.data
         # Unreachable: a known signature is only passed while data is in memory
         raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch")
+
+
+def _require_programmes(epg: EpgData, title: str) -> EpgData:
+    """
+    Return `epg` when it holds programmes, else fail with `empty_feed` (D-20).
+
+    A feed that parses but has no current programmes never replaces the last good data or the cache; on a first
+    setup without cache the entry retries. A feed with fewer programmes than before is accepted as it is.
+    """
+    if not epg.programmes:
+        _LOGGER.debug("Source %s returned a feed without current programmes", title)
+        raise UpdateFailed(translation_domain=DOMAIN, translation_key="empty_feed")
+    return epg
 
 
 @contextmanager
