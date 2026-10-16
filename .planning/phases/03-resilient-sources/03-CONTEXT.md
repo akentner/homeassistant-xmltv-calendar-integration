@@ -47,10 +47,10 @@ Not in this phase: next-match sensor, new-match event, past retention, blueprint
 - **D-16:** A timezone option change reloads the entry (D-07) and re-parses from the disk cache, with no download. Shifting data in memory is rejected. Because event UIDs use the UTC start (EVT-06), changed UIDs after a correction change are expected and acceptable.
 
 ### Failure visibility
-- **D-17:** A source counts as persistently failing when it has had **no successful refresh for more than 24 h**. The count of failed attempts does not matter. A `304` and a successful local-file mtime check both count as success. Then a Repairs issue is raised. It clears automatically after the next successful refresh.
+- **D-17:** A source counts as persistently failing when it has had **no successful refresh for more than 24 h**. The count of failed attempts does not matter. A `304` and a successful local-file mtime check both count as success. Then a Repairs issue is raised. It clears automatically after the next successful refresh. *Clarified during plan-phase (2026-10-16, user decision):* the 24 h are counted from the first failure of the current failure streak (`failing_since`), not from the last success, so a daily or 48 h schedule does not raise the issue on its first failed attempt.
 - **D-18:** The Repairs issue is **info only** (not fixable). It names the source, the last success time and the failure reason (translated reason key, never the URL or credentials).
 - **D-19:** During failures the calendars stay **available** and show the last good data (SRC-08), so calendar triggers keep working. There are no extra stale attributes on the calendar. The failure state is visible in Repairs and diagnostics.
-- **D-20:** A feed that parses but yields **0 programmes** counts as a failure. The last good data is kept and failure tracking runs. A feed that merely has fewer programmes than before is accepted.
+- **D-20:** A feed that parses but yields **0 programmes** counts as a failure. The last good data is kept and failure tracking runs. A feed that merely has fewer programmes than before is accepted. *Clarified during plan-phase (2026-10-16, user decision):* on first setup with no cache, a 0-programme feed raises `ConfigEntryNotReady` (HA retries with backoff); the existing `feed-without-programmes` test case is adjusted.
 - **D-21:** Diagnostics per source (SRC-12) show:
   - source type and redacted URL/path (`async_redact_data`, no credentials or query secrets)
   - schedule and timezone options
