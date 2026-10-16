@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
 status: executing
-stopped_at: Completed 03-06-PLAN.md
-last_updated: "2026-10-16T11:10:58.007Z"
+stopped_at: Completed 03-07-PLAN.md
+last_updated: "2026-10-16T11:17:17.227Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: c1f3e9447b24d61eaf97ac3d29f928e059ccc8ae
+state_head: 83cd920b5826d9a086e992e2efb18e17a6e5cec3
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 29
-  completed_plans: 27
+  completed_plans: 28
   percent: 50
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 03 (Resilient Sources) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-10-16 — Phase 03 execution started
 
@@ -84,6 +84,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P04 | 9 min | 3 tasks | 11 files |
 | Phase 03 P05 | 7 min | 3 tasks | 6 files |
 | Phase 03 P06 | 9 min | 3 tasks | 8 files |
+| Phase 03 P07 | 4 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -178,6 +179,8 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-06: setup download runs behind async_show_progress (eager_start=False) and is written to FeedCache(unique_id) only in the name step; errors return via progress_done(next_step_id='url') with input kept
 - [Phase 03]: 03-06: schedule step reads the mode from the pending settings (from_mapping turns daily-without-time into interval); NotModified at setup = cannot_connect
 - [Phase 03]: 03-06: async_probe_url removed; flow sniffs PROBE_BYTES of the full bounded download; tests use conftest add_url_source/add_file_source
+- [Phase 03]: 03-07: diagnostics keys fixed: loaded, source (URL scheme+host / file name), options, health {last_success, failing_since, last_failure {time, reason}, consecutive_failures}, cache {fetched_at, size, has_etag, has_last_modified}, stats (ParseStats), calendars [{title, matches}] sorted by title, next_refresh
+- [Phase 03]: 03-07: not-loaded entries read options from entry.options and health/cache presence from the Store (FeedCache(cache_key(entry))); diagnostics never refresh or download
 
 ### Pending Todos
 
@@ -211,6 +214,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T11:10:57.836Z
-Stopped at: Completed 03-06-PLAN.md
+Last session: 2026-10-16T11:17:17.052Z
+Stopped at: Completed 03-07-PLAN.md
 Resume file: None

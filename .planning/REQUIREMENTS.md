@@ -18,7 +18,7 @@
 - [x] **SRC-09**: Large feeds (50+ MB) are parsed without blocking the HA event loop and with bounded memory
 - [ ] **SRC-10**: User can configure per source that timestamps without offset are local time, and/or apply a time offset correction
 - [x] **SRC-11**: User sees a Repairs issue when a source fails persistently; it clears on success
-- [ ] **SRC-12**: User can download diagnostics for a source (URL/credentials redacted; programme/channel/match counts, last success/failure)
+- [x] **SRC-12**: User can download diagnostics for a source (URL/credentials redacted; programme/channel/match counts, last success/failure)
 - [x] **SRC-13**: Duplicate sources (same normalized URL/path) are rejected during setup
 
 ### Filter
@@ -112,7 +112,7 @@
 | SRC-09 | Phase 1 | Complete |
 | SRC-10 | Phase 3 | Pending |
 | SRC-11 | Phase 3 | Complete |
-| SRC-12 | Phase 3 | Pending |
+| SRC-12 | Phase 3 | Complete |
 | SRC-13 | Phase 1 | Complete |
 | FLT-01 | Phase 1 | Complete |
 | FLT-02 | Phase 1 | Complete |
