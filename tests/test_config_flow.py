@@ -3,7 +3,7 @@
 import asyncio
 import gzip
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
@@ -12,9 +12,11 @@ import aiohttp
 import pytest
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState, ConfigSubentry
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
+from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.xmltv_calendar import source
+from custom_components.xmltv_calendar.diagnostics import async_get_config_entry_diagnostics
 
 from .conftest import DOMAIN, FEED_URL, add_file_source, add_url_source
 
@@ -183,6 +185,46 @@ async def test_url_source_end_to_end_with_progress_and_seeded_cache(
     events = await _get_events(hass, "calendar.all", "2026-10-13T00:00:00+00:00", 24)
     assert len(events) == 4
     assert aioclient_mock.call_count == 1
+
+    # 7. The setup download is the source's last success (WR-02)
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator.health.last_success == datetime.fromisoformat(NOW)
+    assert coordinator.health.consecutive_failures == 0
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert diagnostics["health"]["last_success"] == NOW
+    assert diagnostics["cache"]["fetched_at"] == NOW
+    assert aioclient_mock.call_count == 1
+
+
+async def test_seeded_source_issue_names_setup_download(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    berlin_tz: None,
+    forbid_loop_io: None,
+) -> None:
+    """A failure streak after a flow-created source names the setup download, not '-' (WR-02, D-18)."""
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await add_url_source(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Test EPG"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    entry = result["result"]
+    assert entry.state is ConfigEntryState.LOADED
+    coordinator = entry.runtime_data.coordinator
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+    freezer.move_to(NOW)
+    freezer.tick(timedelta(hours=1))
+    await coordinator.async_refresh()
+    freezer.move_to(NOW)
+    freezer.tick(timedelta(hours=25, seconds=1))
+    await coordinator.async_refresh()
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"source_failing_{entry.entry_id}")
+    assert issue is not None
+    assert issue.translation_placeholders == {"source": "Test EPG", "last_success": "2026-10-13 08:00"}
 
 
 async def test_daily_mode_asks_only_for_a_time(

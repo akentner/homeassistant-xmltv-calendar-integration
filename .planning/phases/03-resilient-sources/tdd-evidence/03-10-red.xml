@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="38" time="1.658" timestamp="2026-10-16T15:34:02.415356+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_config_flow" name="test_file_source_end_to_end" time="0.181" /><testcase classname="tests.test_config_flow" name="test_url_source_end_to_end_with_progress_and_seeded_cache" time="0.055"><failure message="AssertionError: assert None == HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc)&#10; +  where None = SourceHealth(last_success=None, failing_since=None, last_failure_at=None, last_failure_reason=None, consecutive_failures=0).last_success&#10; +    where SourceHealth(last_success=None, failing_since=None, last_failure_at=None, last_failure_reason=None, consecutive_failures=0) = &lt;custom_components.xmltv_calendar.coordinator.XmltvCoordinator object at 0x7fdae09cf250&gt;.health&#10; +  and   HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc) = &lt;built-in method fromisoformat of HAFakeDatetimeMeta object at 0x55f39b27fa60&gt;('2026-10-13T06:00:00+00:00')&#10; +    where &lt;built-in method fromisoformat of HAFakeDatetimeMeta object at 0x55f39b27fa60&gt; = datetime.fromisoformat">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fdae2ef06e0&gt;
+forbid_loop_io = None
+
+    async def test_url_source_end_to_end_with_progress_and_seeded_cache(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    
+        # 1. Menu -&gt; url form: URL, refresh mode (default interval) and the collapsed timezone section
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "url"
+        _schema_key(result, "url")
+        assert _schema_key(result, "refresh_mode").default() == "interval"
+        _schema_key(result, "timezone")
+    
+        # 2. Submitting starts the download behind a progress step
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"url": FEED_URL, "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+        )
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        assert result["progress_action"] == "download"
+    
+        # 3. Download done -&gt; schedule step with only the interval field
+        await hass.async_block_till_done()
+        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "schedule"
+        assert _schema_key(result, "refresh_hours").default() == 24
+        assert "refresh_time" not in result["data_schema"].schema
+    
+        # 4. schedule -&gt; name, pre-filled with the host (D-09)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"refresh_hours": 24})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "name"
+        assert _schema_key(result, "name").description["suggested_value"] == "epg.example.com"
+    
+        # 5. name -&gt; entry with the unchanged data and the complete option contract
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Test EPG"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"] == {"source_type": "url", "url": FEED_URL}
+        assert result["options"] == {
+            "refresh_mode": "interval",
+            "refresh_hours": 24,
+            "naive_timezone": "utc",
+            "offset_minutes": 0,
+        }
+        await hass.async_block_till_done()
+        entry = result["result"]
+        assert entry.state is ConfigEntryState.LOADED
+    
+        # 6. The setup download seeded the cache: the first refresh parsed it, nothing was downloaded twice (D-13)
+        assert _cache_file(hass, entry.unique_id).is_file()
+        assert aioclient_mock.call_count == 1
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(data=MappingProxyType({}), subentry_type="calendar", title="All", unique_id=None),
+        )
+        await hass.async_block_till_done()
+        events = await _get_events(hass, "calendar.all", "2026-10-13T00:00:00+00:00", 24)
+        assert len(events) == 4
+        assert aioclient_mock.call_count == 1
+    
+        # 7. The setup download is the source's last success (WR-02)
+        coordinator = entry.runtime_data.coordinator
+&gt;       assert coordinator.health.last_success == datetime.fromisoformat(NOW)
+E       AssertionError: assert None == HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc)
+E        +  where None = SourceHealth(last_success=None, failing_since=None, last_failure_at=None, last_failure_reason=None, consecutive_failures=0).last_success
+E        +    where SourceHealth(last_success=None, failing_since=None, last_failure_at=None, last_failure_reason=None, consecutive_failures=0) = &lt;custom_components.xmltv_calendar.coordinator.XmltvCoordinator object at 0x7fdae09cf250&gt;.health
+E        +  and   HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc) = &lt;built-in method fromisoformat of HAFakeDatetimeMeta object at 0x55f39b27fa60&gt;('2026-10-13T06:00:00+00:00')
+E        +    where &lt;built-in method fromisoformat of HAFakeDatetimeMeta object at 0x55f39b27fa60&gt; = datetime.fromisoformat
+
+tests/test_config_flow.py:191: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_seeded_source_issue_names_setup_download" time="0.051"><failure message="AssertionError: assert {'last_succes...': 'Test EPG'} == {'last_succes...': 'Test EPG'}&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing items:&#10;  {'last_success': '-'} != {'last_success': '2026-10-13 08:00'}&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fdae2d25e50&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fdae2d24050&gt;
+berlin_tz = None, forbid_loop_io = None
+
+    async def test_seeded_source_issue_names_setup_download(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        berlin_tz: None,
+        forbid_loop_io: None,
+    ) -&gt; None:
+        """A failure streak after a flow-created source names the setup download, not '-' (WR-02, D-18)."""
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+        result = await add_url_source(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Test EPG"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+        entry = result["result"]
+        assert entry.state is ConfigEntryState.LOADED
+        coordinator = entry.runtime_data.coordinator
+    
+        aioclient_mock.clear_requests()
+        aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+        freezer.move_to(NOW)
+        freezer.tick(timedelta(hours=1))
+        await coordinator.async_refresh()
+        freezer.move_to(NOW)
+        freezer.tick(timedelta(hours=25, seconds=1))
+        await coordinator.async_refresh()
+    
+        issue = ir.async_get(hass).async_get_issue(DOMAIN, f"source_failing_{entry.entry_id}")
+        assert issue is not None
+&gt;       assert issue.translation_placeholders == {"source": "Test EPG", "last_success": "2026-10-13 08:00"}
+E       AssertionError: assert {'last_succes...': 'Test EPG'} == {'last_succes...': 'Test EPG'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'last_success': '-'} != {'last_success': '2026-10-13 08:00'}
+E         Use -v to get more diff
+
+tests/test_config_flow.py:227: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_daily_mode_asks_only_for_a_time" time="0.052" /><testcase classname="tests.test_config_flow" name="test_url_and_file_steps_share_settings_fields[url]" time="0.026" /><testcase classname="tests.test_config_flow" name="test_url_and_file_steps_share_settings_fields[file]" time="0.026" /><testcase classname="tests.test_config_flow" name="test_timezone_section_is_stored_flat" time="0.047" /><testcase classname="tests.test_config_flow" name="test_offset_out_of_bounds_is_rejected[-721]" time="0.027" /><testcase classname="tests.test_config_flow" name="test_offset_out_of_bounds_is_rejected[721]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_url_with_other_scheme_is_invalid" time="0.028" /><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[client-error]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[timeout]" time="0.030" /><testcase classname="tests.test_config_flow" name="test_http_error_cannot_connect[404]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_http_error_cannot_connect[500]" time="0.030" /><testcase classname="tests.test_config_flow" name="test_non_feed_body_is_invalid_feed" time="0.035" /><testcase classname="tests.test_config_flow" name="test_bom_and_whitespace_before_xml_pass" time="0.030" /><testcase classname="tests.test_config_flow" name="test_too_large_download_shows_feed_too_large" time="0.035" /><testcase classname="tests.test_config_flow" name="test_retry_after_download_error_downloads_again" time="0.047" /><testcase classname="tests.test_config_flow" name="test_abandoned_download_writes_no_cache" time="0.041" /><testcase classname="tests.test_config_flow" name="test_duplicate_source_aborts_before_download" time="0.030" /><testcase classname="tests.test_config_flow" name="test_flow_download_logs_host_only" time="0.032" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[relative]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[outside]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[symlink-escape]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[traversal]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[missing]" time="0.033" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[directory]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[not-xml]" time="0.030" /><testcase classname="tests.test_config_flow" name="test_blank_name_is_rejected[]" time="0.030" /><testcase classname="tests.test_config_flow" name="test_blank_name_is_rejected[   ]" time="0.031" /><testcase classname="tests.test_config_flow" name="test_same_name_different_urls_both_created" time="0.060" /><testcase classname="tests.test_config_flow" name="test_minimum_refresh_is_one_hour" time="0.047" /><testcase classname="tests.test_config_flow" name="test_refresh_out_of_bounds_is_rejected[0]" time="0.030" /><testcase classname="tests.test_config_flow" name="test_refresh_out_of_bounds_is_rejected[169]" time="0.030" /><testcase classname="tests.test_config_flow" name="test_refresh_default_is_24_hours" time="0.030" /><testcase classname="tests.test_config_flow" name="test_missing_refresh_option_means_24_hours" time="0.050" /><testcase classname="tests.test_config_flow" name="test_truncated_file_retries_setup" time="0.029" /><testcase classname="tests.test_config_flow" name="test_file_outside_allowlist_is_refused_at_setup" time="0.030" /></testsuite></testsuites>
