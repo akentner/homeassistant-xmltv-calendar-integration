@@ -22,7 +22,8 @@ DAILY_18_15 = {"refresh_mode": "daily", "refresh_time": "18:15"}
 async def _step_to(hass: HomeAssistant, freezer: Any, iso: str) -> None:
     freezer.move_to(iso)
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    # Scheduled refreshes run as background tasks (download, then parse in the executor)
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 async def test_daily_slot_refreshes_at_local_time(

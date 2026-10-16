@@ -1,6 +1,6 @@
 """Several calendars per source: shared download, live add/remove, rename without refetch (FLT-01)."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -122,7 +122,9 @@ async def test_options_change_reloads_once(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
 ) -> None:
+    freezer.move_to(NOW)
     entry = await setup_xmltv(FEED, calendars=(("A", {}), ("B", {})))
     calls = aioclient_mock.call_count
     runtime = entry.runtime_data
@@ -133,7 +135,7 @@ async def test_options_change_reloads_once(
     assert entry.state is ConfigEntryState.LOADED
     assert entry.runtime_data is not runtime
     assert aioclient_mock.call_count == calls + 1
-    assert entry.runtime_data.coordinator.update_interval == timedelta(hours=12)
+    assert entry.runtime_data.coordinator.next_refresh_at == datetime.fromisoformat(NOW) + timedelta(hours=12)
     assert hass.states.get("calendar.a") is not None
     assert hass.states.get("calendar.b") is not None
 
