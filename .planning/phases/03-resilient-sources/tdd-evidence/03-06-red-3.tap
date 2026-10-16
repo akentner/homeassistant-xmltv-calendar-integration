@@ -1,0 +1,39 @@
+TAP version 13
+1..37
+ok 1 - test_file_source_end_to_end
+ok 2 - test_url_source_end_to_end_with_progress_and_seeded_cache
+ok 3 - test_daily_mode_asks_only_for_a_time
+ok 4 - test_url_and_file_steps_share_settings_fields[url]
+ok 5 - test_url_and_file_steps_share_settings_fields[file]
+ok 6 - test_timezone_section_is_stored_flat
+ok 7 - test_offset_out_of_bounds_is_rejected[-721]
+ok 8 - test_offset_out_of_bounds_is_rejected[721]
+ok 9 - test_url_with_other_scheme_is_invalid
+not ok 10 - test_unreachable_url_cannot_connect[client-error]
+not ok 11 - test_unreachable_url_cannot_connect[timeout]
+not ok 12 - test_http_error_cannot_connect[404]
+not ok 13 - test_http_error_cannot_connect[500]
+not ok 14 - test_non_feed_body_is_invalid_feed
+ok 15 - test_bom_and_whitespace_before_xml_pass
+not ok 16 - test_too_large_download_shows_feed_too_large
+not ok 17 - test_retry_after_download_error_downloads_again
+ok 18 - test_abandoned_download_writes_no_cache
+ok 19 - test_duplicate_source_aborts_before_download
+not ok 20 - test_flow_download_logs_host_only
+ok 21 - test_file_step_errors[relative]
+ok 22 - test_file_step_errors[outside]
+ok 23 - test_file_step_errors[symlink-escape]
+ok 24 - test_file_step_errors[traversal]
+ok 25 - test_file_step_errors[missing]
+ok 26 - test_file_step_errors[directory]
+ok 27 - test_file_step_errors[not-xml]
+ok 28 - test_blank_name_is_rejected[]
+ok 29 - test_blank_name_is_rejected[   ]
+ok 30 - test_same_name_different_urls_both_created
+ok 31 - test_minimum_refresh_is_one_hour
+ok 32 - test_refresh_out_of_bounds_is_rejected[0]
+ok 33 - test_refresh_out_of_bounds_is_rejected[169]
+ok 34 - test_refresh_default_is_24_hours
+ok 35 - test_missing_refresh_option_means_24_hours
+ok 36 - test_truncated_file_retries_setup
+ok 37 - test_file_outside_allowlist_is_refused_at_setup

@@ -1,0 +1,793 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="8" skipped="0" tests="37" time="2.914" timestamp="2026-10-16T13:07:49.536627+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_config_flow" name="test_file_source_end_to_end" time="0.198" /><testcase classname="tests.test_config_flow" name="test_url_source_end_to_end_with_progress_and_seeded_cache" time="0.056" /><testcase classname="tests.test_config_flow" name="test_daily_mode_asks_only_for_a_time" time="0.046" /><testcase classname="tests.test_config_flow" name="test_url_and_file_steps_share_settings_fields[url]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_url_and_file_steps_share_settings_fields[file]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_timezone_section_is_stored_flat" time="0.062" /><testcase classname="tests.test_config_flow" name="test_offset_out_of_bounds_is_rejected[-721]" time="0.027" /><testcase classname="tests.test_config_flow" name="test_offset_out_of_bounds_is_rejected[721]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_url_with_other_scheme_is_invalid" time="0.028" /><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[client-error]" time="0.027"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f86328b0&gt;
+forbid_loop_io = None, mock_kwargs = {'exc': ClientError()}
+
+    @pytest.mark.parametrize(
+        "mock_kwargs", [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}], ids=["client-error", "timeout"]
+    )
+    async def test_unreachable_url_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, **mock_kwargs)
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "cannot_connect")
+
+tests/test_config_flow.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR0V42N6XFJKRR2P375', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'cannot_connect', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[client-error]" time="0.007"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceUnavailableError: cannot fetch from epg.example.com: ClientError&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;, url = 'https://epg.example.com/guide.xml'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+                    raise SourceUnavailableError(msg)
+                stream = response.content  # bind once: some readers build a new stream per attribute access
+                async for chunk in stream.iter_chunked(_CHUNK_SIZE):
+                    received += len(chunk)
+                    if received &gt; max_bytes:
+                        _LOGGER.debug("Download from source host %s exceeds %s bytes", host, max_bytes)
+                        msg = f"download from {host} exceeds {max_bytes} bytes"
+                        raise SourceTooLargeError(msg)
+                    chunks.append(chunk)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            # The error text of aiohttp can contain the full URL, so only its type is logged
+            _LOGGER.debug("Fetching from source host %s failed: %s", host, type(err).__name__)
+            msg = f"cannot fetch from {host}: {type(err).__name__}"
+&gt;           raise SourceUnavailableError(msg) from None
+E           custom_components.xmltv_calendar.source.SourceUnavailableError: cannot fetch from epg.example.com: ClientError
+
+custom_components/xmltv_calendar/source.py:276: SourceUnavailableError</error></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[timeout]" time="0.026"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f8160e90&gt;
+forbid_loop_io = None, mock_kwargs = {'exc': TimeoutError()}
+
+    @pytest.mark.parametrize(
+        "mock_kwargs", [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}], ids=["client-error", "timeout"]
+    )
+    async def test_unreachable_url_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, **mock_kwargs)
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "cannot_connect")
+
+tests/test_config_flow.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR01SVC2J7PQFZBHNA5', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'cannot_connect', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[timeout]" time="0.007"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceUnavailableError: cannot fetch from epg.example.com: TimeoutError&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;, url = 'https://epg.example.com/guide.xml'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+                    raise SourceUnavailableError(msg)
+                stream = response.content  # bind once: some readers build a new stream per attribute access
+                async for chunk in stream.iter_chunked(_CHUNK_SIZE):
+                    received += len(chunk)
+                    if received &gt; max_bytes:
+                        _LOGGER.debug("Download from source host %s exceeds %s bytes", host, max_bytes)
+                        msg = f"download from {host} exceeds {max_bytes} bytes"
+                        raise SourceTooLargeError(msg)
+                    chunks.append(chunk)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            # The error text of aiohttp can contain the full URL, so only its type is logged
+            _LOGGER.debug("Fetching from source host %s failed: %s", host, type(err).__name__)
+            msg = f"cannot fetch from {host}: {type(err).__name__}"
+&gt;           raise SourceUnavailableError(msg) from None
+E           custom_components.xmltv_calendar.source.SourceUnavailableError: cannot fetch from epg.example.com: TimeoutError
+
+custom_components/xmltv_calendar/source.py:276: SourceUnavailableError</error></testcase><testcase classname="tests.test_config_flow" name="test_http_error_cannot_connect[404]" time="0.035"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f82a71d0&gt;
+forbid_loop_io = None, status = 404
+
+    @pytest.mark.parametrize("status", [404, 500])
+    async def test_http_error_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, status: int
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, status=status)
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "cannot_connect")
+
+tests/test_config_flow.py:305: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR09ZRV2HMMT7KJE7QJ', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'cannot_connect', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_http_error_cannot_connect[404]" time="0.009"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceUnavailableError: HTTP 404 from epg.example.com&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;, url = 'https://epg.example.com/guide.xml'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+&gt;                   raise SourceUnavailableError(msg)
+E                   custom_components.xmltv_calendar.source.SourceUnavailableError: HTTP 404 from epg.example.com
+
+custom_components/xmltv_calendar/source.py:263: SourceUnavailableError</error></testcase><testcase classname="tests.test_config_flow" name="test_http_error_cannot_connect[500]" time="0.025"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f83558c0&gt;
+forbid_loop_io = None, status = 500
+
+    @pytest.mark.parametrize("status", [404, 500])
+    async def test_http_error_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, status: int
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, status=status)
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "cannot_connect")
+
+tests/test_config_flow.py:305: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR0YCXCM3X4PBQ5R47J', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'cannot_connect', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_http_error_cannot_connect[500]" time="0.007"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceUnavailableError: HTTP 500 from epg.example.com&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;, url = 'https://epg.example.com/guide.xml'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+&gt;                   raise SourceUnavailableError(msg)
+E                   custom_components.xmltv_calendar.source.SourceUnavailableError: HTTP 500 from epg.example.com
+
+custom_components/xmltv_calendar/source.py:263: SourceUnavailableError</error></testcase><testcase classname="tests.test_config_flow" name="test_non_feed_body_is_invalid_feed" time="0.031"><failure message="AssertionError: assert 'name' == 'url'&#10;  &#10;  - url&#10;  + name">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f8355370&gt;
+forbid_loop_io = None
+
+    async def test_non_feed_body_is_invalid_feed(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=b"hello")
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "invalid_feed")
+
+tests/test_config_flow.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'data_schema': &lt;Schema({'name': &lt;class 'str'&gt;}, extra=PREVENT_EXTRA, required=False) object at 0x7f76f823f380&gt;, 'description_placeholders': None, 'errors': {}, 'flow_id': '01M4SXHAR0RS0FJJP4AMK7CR90', ...}
+error = 'invalid_feed', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+        assert result["type"] is FlowResultType.FORM
+&gt;       assert result["step_id"] == "url"
+E       AssertionError: assert 'name' == 'url'
+E         
+E         - url
+E         + name
+
+tests/test_config_flow.py:276: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_bom_and_whitespace_before_xml_pass" time="0.031" /><testcase classname="tests.test_config_flow" name="test_too_large_download_shows_feed_too_large" time="0.028"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f8224a50&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f76f8214b40&gt;
+forbid_loop_io = None
+
+    async def test_too_large_download_shows_feed_too_large(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, monkeypatch: pytest.MonkeyPatch, forbid_loop_io: None
+    ) -&gt; None:
+        monkeypatch.setattr(source, "MAX_DOWNLOAD_BYTES", 1024)
+        aioclient_mock.get(FEED_URL, content=b"&lt;" + b"x" * 4095)
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "feed_too_large")
+
+tests/test_config_flow.py:331: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR061W9SKJA103KF1K6', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'feed_too_large', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_too_large_download_shows_feed_too_large" time="0.008"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceTooLargeError: download from epg.example.com exceeds 1024 bytes&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;, url = 'https://epg.example.com/guide.xml'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+                    raise SourceUnavailableError(msg)
+                stream = response.content  # bind once: some readers build a new stream per attribute access
+                async for chunk in stream.iter_chunked(_CHUNK_SIZE):
+                    received += len(chunk)
+                    if received &gt; max_bytes:
+                        _LOGGER.debug("Download from source host %s exceeds %s bytes", host, max_bytes)
+                        msg = f"download from {host} exceeds {max_bytes} bytes"
+&gt;                       raise SourceTooLargeError(msg)
+E                       custom_components.xmltv_calendar.source.SourceTooLargeError: download from epg.example.com exceeds 1024 bytes
+
+custom_components/xmltv_calendar/source.py:270: SourceTooLargeError</error></testcase><testcase classname="tests.test_config_flow" name="test_retry_after_download_error_downloads_again" time="0.028"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f8231e50&gt;
+forbid_loop_io = None
+
+    async def test_retry_after_download_error_downloads_again(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, status=500)
+        result = await add_url_source(hass)
+&gt;       _assert_url_form_error(result, "cannot_connect")
+
+tests/test_config_flow.py:339: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR0XDX0PH31JZ3Y7RHE', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'cannot_connect', url = 'https://epg.example.com/guide.xml'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_retry_after_download_error_downloads_again" time="0.008"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceUnavailableError: HTTP 500 from epg.example.com&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;, url = 'https://epg.example.com/guide.xml'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+&gt;                   raise SourceUnavailableError(msg)
+E                   custom_components.xmltv_calendar.source.SourceUnavailableError: HTTP 500 from epg.example.com
+
+custom_components/xmltv_calendar/source.py:263: SourceUnavailableError</error></testcase><testcase classname="tests.test_config_flow" name="test_abandoned_download_writes_no_cache" time="0.033" /><testcase classname="tests.test_config_flow" name="test_duplicate_source_aborts_before_download" time="0.026" /><testcase classname="tests.test_config_flow" name="test_flow_download_logs_host_only" time="0.028"><failure message="AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f76f8102dd0&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7f76f817d160&gt;
+forbid_loop_io = None
+
+    async def test_flow_download_logs_host_only(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, caplog: pytest.LogCaptureFixture, forbid_loop_io: None
+    ) -&gt; None:
+        caplog.set_level(logging.DEBUG)
+        aioclient_mock.get(SECRET_URL, exc=aiohttp.ClientError(SECRET_URL))
+        result = await add_url_source(hass, SECRET_URL)
+&gt;       _assert_url_form_error(result, "cannot_connect", SECRET_URL)
+
+tests/test_config_flow.py:403: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'description_placeholders': None, 'flow_id': '01M4SXHAR039JSA8MANTYSA97F', 'handler': 'xmltv_calendar', 'progress_action': 'download', ...}
+error = 'cannot_connect', url = 'https://epg.example.com/guide.xml?token=s3cret'
+
+    def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -&gt; None:
+        """Assert the flow is back on the url form with `error` and the entered URL kept."""
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.SHOW_PROGRESS: 'progress'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_config_flow.py:275: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_flow_download_logs_host_only" time="0.007"><error message="failed on teardown with &quot;custom_components.xmltv_calendar.source.SourceUnavailableError: cannot fetch from epg.example.com: ClientError&quot;">def finalizer() -&gt; None:
+        """Yield again, to finalize."""
+    
+        async def async_finalizer() -&gt; None:
+            try:
+                await gen_obj.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                msg = "Async generator fixture didn't stop."
+                msg += "Yield only once."
+                raise ValueError(msg)
+    
+&gt;       runner.run(async_finalizer(), context=context)
+
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:424: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.14/asyncio/runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.14/asyncio/base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pytest_asyncio/plugin.py:416: in async_finalizer
+    await gen_obj.__anext__()
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/plugins.py:764: in hass
+    raise ex
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:538: in call_configure
+    await self._async_configure(flow.flow_id)
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:387: in _async_configure
+    result = await self._async_handle_step(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:504: in _async_handle_step
+    result: _FlowResultT = await getattr(flow, method)(user_input)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/config_flow.py:241: in async_step_download
+    fetched = task.result()
+              ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant STOPPED&gt;
+url = 'https://epg.example.com/guide.xml?token=s3cret'
+
+    async def async_fetch_url(
+        hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+    ) -&gt; Fetched | NotModified:
+        """
+        Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+    
+        `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+        If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+        """
+        host = URL(url).host
+        max_bytes = MAX_DOWNLOAD_BYTES
+        session = async_get_clientsession(hass)
+        headers: dict[str, str] = {}
+        if etag:
+            headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+        if last_modified:
+            headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
+        chunks: list[bytes] = []
+        received = 0
+        try:
+            async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+                new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+                new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+                if response.status == HTTPStatus.NOT_MODIFIED:
+                    _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                    if new_etag is None and new_last_modified is None:
+                        return NOT_MODIFIED
+                    return NotModified(new_etag, new_last_modified)
+                if response.status &gt;= _HTTP_ERROR_MIN:
+                    _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
+                    msg = f"HTTP {response.status} from {host}"
+                    raise SourceUnavailableError(msg)
+                stream = response.content  # bind once: some readers build a new stream per attribute access
+                async for chunk in stream.iter_chunked(_CHUNK_SIZE):
+                    received += len(chunk)
+                    if received &gt; max_bytes:
+                        _LOGGER.debug("Download from source host %s exceeds %s bytes", host, max_bytes)
+                        msg = f"download from {host} exceeds {max_bytes} bytes"
+                        raise SourceTooLargeError(msg)
+                    chunks.append(chunk)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            # The error text of aiohttp can contain the full URL, so only its type is logged
+            _LOGGER.debug("Fetching from source host %s failed: %s", host, type(err).__name__)
+            msg = f"cannot fetch from {host}: {type(err).__name__}"
+&gt;           raise SourceUnavailableError(msg) from None
+E           custom_components.xmltv_calendar.source.SourceUnavailableError: cannot fetch from epg.example.com: ClientError
+
+custom_components/xmltv_calendar/source.py:276: SourceUnavailableError</error></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[relative]" time="0.038" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[outside]" time="0.041" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[symlink-escape]" time="0.033" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[traversal]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[missing]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[directory]" time="0.029" /><testcase classname="tests.test_config_flow" name="test_file_step_errors[not-xml]" time="0.031" /><testcase classname="tests.test_config_flow" name="test_blank_name_is_rejected[]" time="0.031" /><testcase classname="tests.test_config_flow" name="test_blank_name_is_rejected[   ]" time="0.031" /><testcase classname="tests.test_config_flow" name="test_same_name_different_urls_both_created" time="0.056" /><testcase classname="tests.test_config_flow" name="test_minimum_refresh_is_one_hour" time="0.056" /><testcase classname="tests.test_config_flow" name="test_refresh_out_of_bounds_is_rejected[0]" time="0.031" /><testcase classname="tests.test_config_flow" name="test_refresh_out_of_bounds_is_rejected[169]" time="0.033" /><testcase classname="tests.test_config_flow" name="test_refresh_default_is_24_hours" time="0.034" /><testcase classname="tests.test_config_flow" name="test_missing_refresh_option_means_24_hours" time="0.047" /><testcase classname="tests.test_config_flow" name="test_truncated_file_retries_setup" time="0.032" /><testcase classname="tests.test_config_flow" name="test_file_outside_allowlist_is_refused_at_setup" time="0.034" /></testsuite></testsuites>

@@ -6,15 +6,14 @@ Task 2 of plan 01-07 chose sha256: unique_id = SHA-256 hex of "<source_type>:<no
 import hashlib
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
-from homeassistant.config_entries import SOURCE_USER
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.xmltv_calendar import source
 
-from .conftest import DOMAIN, FEED_URL
+from .conftest import FEED_URL, add_file_source, add_url_source
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -50,23 +49,11 @@ def test_source_unique_id_is_sha256_of_typed_locator() -> None:
     assert "secret" not in unique_id
 
 
-async def _add_url_source(hass: HomeAssistant, url: str) -> dict[str, Any]:
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
-    return await hass.config_entries.flow.async_configure(result["flow_id"], {"url": url, "refresh_hours": 24})
-
-
-async def _add_file_source(hass: HomeAssistant, path: str) -> dict[str, Any]:
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "file"})
-    return await hass.config_entries.flow.async_configure(result["flow_id"], {"path": path, "refresh_hours": 24})
-
-
 async def test_url_variant_identity_invariant(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
 ) -> None:
     aioclient_mock.get(FEED_URL, content=BASIC_FEED)
-    result = await _add_url_source(hass, FEED_URL)
+    result = await add_url_source(hass, FEED_URL)
     assert result["step_id"] == "name"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "EPG"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -76,10 +63,10 @@ async def test_url_variant_identity_invariant(
 
     # Same source, different spelling: upper-case scheme and host, default port, dot segment, fragment
     calls_before = aioclient_mock.call_count
-    result = await _add_url_source(hass, "HTTPS://EPG.EXAMPLE.COM:443/x/../guide.xml#now")
+    result = await add_url_source(hass, "HTTPS://EPG.EXAMPLE.COM:443/x/../guide.xml#now")
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
-    assert aioclient_mock.call_count == calls_before  # duplicate aborts before the probe
+    assert aioclient_mock.call_count == calls_before  # duplicate aborts before the download
 
 
 async def test_url_entry_stores_normalized_url_and_hashed_id(
@@ -87,7 +74,7 @@ async def test_url_entry_stores_normalized_url_and_hashed_id(
 ) -> None:
     token_url = "https://epg.example.com/guide.xml?apikey=s3cret"  # noqa: S105 - fake token
     aioclient_mock.get(token_url, content=BASIC_FEED)
-    result = await _add_url_source(hass, "HTTPS://EPG.example.com/guide.xml?apikey=s3cret#top")
+    result = await add_url_source(hass, "HTTPS://EPG.example.com/guide.xml?apikey=s3cret#top")
     assert result["step_id"] == "name"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "EPG"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -109,7 +96,7 @@ async def test_file_variant_identity_invariant(hass: HomeAssistant, allowed_dir:
     link.symlink_to(feed)
     hass.config.allowlist_external_dirs = {str(allowed_dir)}
 
-    result = await _add_file_source(hass, str(feed))
+    result = await add_file_source(hass, str(feed))
     assert result["step_id"] == "name"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Local"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -117,6 +104,6 @@ async def test_file_variant_identity_invariant(hass: HomeAssistant, allowed_dir:
     assert result["result"].unique_id == source.source_unique_id("file", str(feed))
 
     # Same file through a symlink resolves to the same real path
-    result = await _add_file_source(hass, str(link))
+    result = await add_file_source(hass, str(link))
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"

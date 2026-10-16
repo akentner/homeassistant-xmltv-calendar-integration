@@ -1,6 +1,8 @@
 """Source config flow: URL and local-file sources, validation, duplicates, name default and refresh bounds."""
 
+import asyncio
 import gzip
+import logging
 from datetime import timedelta
 from pathlib import Path
 from types import MappingProxyType
@@ -11,7 +13,6 @@ import pytest
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState, ConfigSubentry
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from pytest_homeassistant_custom_component.test_util import aiohttp as aiohttp_mock
 
 from custom_components.xmltv_calendar import source
 
@@ -258,87 +259,152 @@ async def test_offset_out_of_bounds_is_rejected(hass: HomeAssistant, forbid_loop
         )
 
 
-# --- URL step validation -------------------------------------------------------------------------------
+# --- URL step validation and download errors -------------------------------------------------------------
+
+SECRET_URL = "https://epg.example.com/guide.xml?token=s3cret"  # noqa: S105 - fake token the logs must not show
 
 
-async def _url_form(hass: HomeAssistant) -> dict[str, Any]:
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
-    return await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
+def _cache_files(hass: HomeAssistant) -> list[str]:
+    """Return the names in the integration's cache directory (empty when it does not exist)."""
+    directory = Path(hass.config.cache_path(DOMAIN))
+    return sorted(path.name for path in directory.iterdir()) if directory.is_dir() else []
 
 
-async def _submit_url(hass: HomeAssistant, url: str, refresh_hours: float = 24) -> dict[str, Any]:
-    result = await _url_form(hass)
-    return await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"url": url, "refresh_hours": refresh_hours}
-    )
+def _assert_url_form_error(result: dict[str, Any], error: str, url: str = FEED_URL) -> None:
+    """Assert the flow is back on the url form with `error` and the entered URL kept."""
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "url"
+    assert result["errors"] == {"base": error}
+    assert _schema_key(result, "url").description["suggested_value"] == url
 
 
 async def test_url_with_other_scheme_is_invalid(hass: HomeAssistant, forbid_loop_io: None) -> None:
-    result = await _submit_url(hass, "ftp://x")
+    result = await add_url_source(hass, "ftp://x")
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "url"
     assert result["errors"] == {"url": "invalid_url"}
 
 
 @pytest.mark.parametrize(
-    "mock_kwargs",
-    [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}, {"status": 404}, {"status": 500}],
-    ids=["client-error", "timeout", "http-404", "http-500"],
+    "mock_kwargs", [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}], ids=["client-error", "timeout"]
 )
 async def test_unreachable_url_cannot_connect(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
 ) -> None:
     aioclient_mock.get(FEED_URL, **mock_kwargs)
-    result = await _submit_url(hass, FEED_URL)
-    assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "cannot_connect"}
+    result = await add_url_source(hass)
+    _assert_url_form_error(result, "cannot_connect")
+
+
+@pytest.mark.parametrize("status", [404, 500])
+async def test_http_error_cannot_connect(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, status: int
+) -> None:
+    aioclient_mock.get(FEED_URL, status=status)
+    result = await add_url_source(hass)
+    _assert_url_form_error(result, "cannot_connect")
 
 
 async def test_non_feed_body_is_invalid_feed(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
 ) -> None:
     aioclient_mock.get(FEED_URL, content=b"hello")
-    result = await _submit_url(hass, FEED_URL)
-    assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "invalid_feed"}
+    result = await add_url_source(hass)
+    _assert_url_form_error(result, "invalid_feed")
 
 
 async def test_bom_and_whitespace_before_xml_pass(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
 ) -> None:
     aioclient_mock.get(FEED_URL, content=b"\xef\xbb\xbf \r\n\t" + BASIC_FEED)
-    result = await _submit_url(hass, FEED_URL)
+    result = await add_url_source(hass)
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "name"
 
 
-async def test_probe_reads_at_most_probe_bytes(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    monkeypatch: pytest.MonkeyPatch,
-    forbid_loop_io: None,
+async def test_too_large_download_shows_feed_too_large(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, monkeypatch: pytest.MonkeyPatch, forbid_loop_io: None
 ) -> None:
-    body = BASIC_FEED + b"<!-- " + b"x" * (1024 * 1024) + b" -->\n"  # valid XML, over 1 MiB
-    streams: list[tuple[int, Any]] = []
-    real_mock_stream = aiohttp_mock.mock_stream
+    monkeypatch.setattr(source, "MAX_DOWNLOAD_BYTES", 1024)
+    aioclient_mock.get(FEED_URL, content=b"<" + b"x" * 4095)
+    result = await add_url_source(hass)
+    _assert_url_form_error(result, "feed_too_large")
 
-    def recording_stream(data: bytes) -> Any:
-        stream = real_mock_stream(data)
-        streams.append((len(data), stream))
-        return stream
 
-    monkeypatch.setattr(aiohttp_mock, "mock_stream", recording_stream)
-    aioclient_mock.get(FEED_URL, content=body)
+async def test_retry_after_download_error_downloads_again(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+) -> None:
+    aioclient_mock.get(FEED_URL, status=500)
+    result = await add_url_source(hass)
+    _assert_url_form_error(result, "cannot_connect")
 
-    result = await _submit_url(hass, FEED_URL)
-    assert result["step_id"] == "name"
-    assert streams, "the url step made no probe request"
-    size, probe_stream = streams[0]
-    consumed = size - len(await probe_stream.read())
-    assert 0 < consumed <= source.PROBE_BYTES
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Big"})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
+    # The url form shown again starts a new download on submit
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"url": FEED_URL, "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+    )
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
     await hass.async_block_till_done()
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["step_id"] == "schedule"
+    assert aioclient_mock.call_count == 1
+
+
+async def test_abandoned_download_writes_no_cache(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+) -> None:
+    started = asyncio.Event()
+
+    async def hang(*_: Any) -> Any:
+        started.set()
+        await asyncio.Event().wait()  # never set: the download only ends by cancellation
+
+    aioclient_mock.get(FEED_URL, side_effect=hang)
+    result = await _source_form(hass, "url")
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"url": FEED_URL, "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+    )
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    await started.wait()
+
+    # Closing the dialog removes the flow; the flow manager cancels the download task
+    hass.config_entries.flow.async_abort(result["flow_id"])
+    await hass.async_block_till_done()
+    assert hass.config_entries.flow.async_progress() == []
+    assert hass.config_entries.async_entries(DOMAIN) == []
+    assert _cache_files(hass) == []
+
+
+async def test_duplicate_source_aborts_before_download(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+) -> None:
+    MockConfigEntry(
+        domain=DOMAIN,
+        title="EPG",
+        data={"source_type": "url", "url": FEED_URL},
+        unique_id=source.source_unique_id("url", FEED_URL),
+    ).add_to_hass(hass)
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await add_url_source(hass)
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert aioclient_mock.call_count == 0
+
+
+async def test_flow_download_logs_host_only(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, caplog: pytest.LogCaptureFixture, forbid_loop_io: None
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    aioclient_mock.get(SECRET_URL, exc=aiohttp.ClientError(SECRET_URL))
+    result = await add_url_source(hass, SECRET_URL)
+    _assert_url_form_error(result, "cannot_connect", SECRET_URL)
+    messages = [record.getMessage() for record in caplog.records if record.name.startswith(source.__name__)]
+    assert any("epg.example.com" in message for message in messages)
+    assert "s3cret" not in caplog.text
+    assert "guide.xml" not in caplog.text
 
 
 # --- File step validation ------------------------------------------------------------------------------
@@ -402,7 +468,7 @@ async def test_blank_name_is_rejected(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, name: str
 ) -> None:
     aioclient_mock.get(FEED_URL, content=BASIC_FEED)
-    result = await _submit_url(hass, FEED_URL)
+    result = await add_url_source(hass)
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": name})
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"name": "name_required"}
@@ -415,7 +481,7 @@ async def test_same_name_different_urls_both_created(
     aioclient_mock.get(FEED_URL, content=BASIC_FEED)
     aioclient_mock.get(other_url, content=BASIC_FEED)
     for url in (FEED_URL, other_url):
-        result = await _submit_url(hass, url)
+        result = await add_url_source(hass, url)
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "EPG"})
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done()
@@ -431,10 +497,10 @@ async def test_minimum_refresh_is_one_hour(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
 ) -> None:
     aioclient_mock.get(FEED_URL, content=BASIC_FEED)
-    result = await _submit_url(hass, FEED_URL, refresh_hours=1)
+    result = await add_url_source(hass, refresh_hours=1)
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "Hourly"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["options"] == {"refresh_hours": 1}
+    assert result["options"]["refresh_hours"] == 1
     await hass.async_block_till_done()
     assert result["result"].runtime_data.coordinator.update_interval == timedelta(hours=1)
 

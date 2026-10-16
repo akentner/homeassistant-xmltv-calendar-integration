@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 
-from .conftest import DOMAIN, FEED_URL
+from .conftest import DOMAIN, FEED_URL, add_url_source
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -35,16 +35,14 @@ async def test_url_source_to_calendar_events(
     freezer.move_to("2026-10-13T10:30:00+00:00")
     aioclient_mock.get(FEED_URL, content=FIXTURE.read_bytes())
 
-    # 1. Source flow: menu -> url
+    # 1. Source flow: menu -> url -> download -> schedule
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     assert result["type"] is FlowResultType.MENU
     assert "url" in result["menu_options"]
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "url"})
-    assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "url"
+    hass.config_entries.flow.async_abort(result["flow_id"])
 
-    # 2. url -> name (pre-filled with the host, D-09) -> entry
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"url": FEED_URL, "refresh_hours": 24})
+    # 2. -> name (pre-filled with the host, D-09) -> entry
+    result = await add_url_source(hass)
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "name"
     assert _schema_key(result, "name").description["suggested_value"] == "epg.example.com"
@@ -52,7 +50,12 @@ async def test_url_source_to_calendar_events(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Test EPG"
     assert result["data"] == {"source_type": "url", "url": FEED_URL}
-    assert result["options"] == {"refresh_hours": 24}
+    assert result["options"] == {
+        "refresh_mode": "interval",
+        "refresh_hours": 24,
+        "naive_timezone": "utc",
+        "offset_minutes": 0,
+    }
     await hass.async_block_till_done()
     entry = result["result"]
     assert entry.state is ConfigEntryState.LOADED
