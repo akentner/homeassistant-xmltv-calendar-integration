@@ -90,6 +90,76 @@ async def test_daily_slot_served_once_when_timer_fires_early(
     assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-15T16:15:00+00:00")
 
 
+async def test_daily_fast_failure_before_slot_backs_off_five_minutes(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    berlin_tz: None,
+    freezer: Any,
+) -> None:
+    freezer.move_to("2026-10-13T16:00:00+00:00")
+    entry = await setup_xmltv(FEED, options=DAILY_18_15)
+    coordinator = entry.runtime_data.coordinator
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+
+    # An early-fired timer whose request fails at once: the first backoff step, not a retry 0.6 s later
+    failed_at = datetime.fromisoformat("2026-10-13T16:14:59.400000+00:00")
+    freezer.move_to(failed_at)
+    await coordinator.async_refresh()
+    assert aioclient_mock.call_count == 1
+    assert coordinator.last_update_success is False
+    assert coordinator.health.consecutive_failures == 1
+    assert coordinator.next_refresh_at == failed_at + timedelta(minutes=5)
+
+    await _step_to(hass, freezer, "2026-10-13T16:15:01+00:00")
+    assert aioclient_mock.call_count == 1
+    assert coordinator.health.consecutive_failures == 1
+
+    retry_at = coordinator.next_refresh_at + timedelta(seconds=1)
+    await _step_to(hass, freezer, retry_at.isoformat())
+    assert aioclient_mock.call_count == 2
+    assert coordinator.health.consecutive_failures == 2
+    assert coordinator.next_refresh_at == retry_at + timedelta(minutes=15)
+
+
+async def test_manual_refresh_before_slot_keeps_the_slot(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    berlin_tz: None,
+    freezer: Any,
+) -> None:
+    freezer.move_to("2026-10-13T16:00:00+00:00")
+    entry = await setup_xmltv(FEED, options=DAILY_18_15)
+    coordinator = entry.runtime_data.coordinator
+
+    # A manual refresh minutes before the slot does not consume it (D-12)
+    freezer.move_to("2026-10-13T16:10:00+00:00")
+    await coordinator.async_refresh()
+    assert aioclient_mock.call_count == 2
+    assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-13T16:15:00+00:00")
+
+    await _step_to(hass, freezer, "2026-10-13T16:15:01+00:00")
+    assert aioclient_mock.call_count == 3
+    assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-14T16:15:00+00:00")
+
+
+async def test_manual_refresh_restarts_the_interval(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to("2026-10-13T06:00:00+00:00")
+    entry = await setup_xmltv(FEED, options={CONF_REFRESH_HOURS: 2})
+    coordinator = entry.runtime_data.coordinator
+
+    # now + interval; a plain max(now, target) base would push it to 10:00
+    freezer.move_to("2026-10-13T07:00:00+00:00")
+    await coordinator.async_refresh()
+    assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-13T09:00:00+00:00")
+
+
 async def test_interval_source_refreshes_every_interval(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,

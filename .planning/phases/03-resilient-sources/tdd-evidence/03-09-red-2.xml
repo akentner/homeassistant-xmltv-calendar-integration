@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="10" time="0.902" timestamp="2026-10-16T15:27:04.621963+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_schedule_refresh" name="test_daily_slot_refreshes_at_local_time" time="0.196" /><testcase classname="tests.test_schedule_refresh" name="test_daily_slot_served_once_when_timer_fires_early" time="0.078" /><testcase classname="tests.test_schedule_refresh" name="test_daily_fast_failure_before_slot_backs_off_five_minutes" time="0.055"><failure message="assert HAFakeDatetime(2026, 10, 13, 16, 15, 0, 400000, tzinfo=datetime.timezone.utc) == (HAFakeDatetime(2026, 10, 13, 16, 14, 59, 400000, tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=300))&#10; +  where HAFakeDatetime(2026, 10, 13, 16, 15, 0, 400000, tzinfo=datetime.timezone.utc) = &lt;custom_components.xmltv_calendar.coordinator.XmltvCoordinator object at 0x7fe1d81f6fd0&gt;.next_refresh_at&#10; +  and   datetime.timedelta(seconds=300) = timedelta(minutes=5)">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fe1d975afd0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fe1d8218880&gt;
+berlin_tz = None
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fe1dba48e10&gt;
+
+    async def test_daily_fast_failure_before_slot_backs_off_five_minutes(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        berlin_tz: None,
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T16:00:00+00:00")
+        entry = await setup_xmltv(FEED, options=DAILY_18_15)
+        coordinator = entry.runtime_data.coordinator
+        aioclient_mock.clear_requests()
+        aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+    
+        # An early-fired timer whose request fails at once: the first backoff step, not a retry 0.6 s later
+        failed_at = datetime.fromisoformat("2026-10-13T16:14:59.400000+00:00")
+        freezer.move_to(failed_at)
+        await coordinator.async_refresh()
+        assert aioclient_mock.call_count == 1
+        assert coordinator.last_update_success is False
+        assert coordinator.health.consecutive_failures == 1
+&gt;       assert coordinator.next_refresh_at == failed_at + timedelta(minutes=5)
+E       assert HAFakeDatetime(2026, 10, 13, 16, 15, 0, 400000, tzinfo=datetime.timezone.utc) == (HAFakeDatetime(2026, 10, 13, 16, 14, 59, 400000, tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=300))
+E        +  where HAFakeDatetime(2026, 10, 13, 16, 15, 0, 400000, tzinfo=datetime.timezone.utc) = &lt;custom_components.xmltv_calendar.coordinator.XmltvCoordinator object at 0x7fe1d81f6fd0&gt;.next_refresh_at
+E        +  and   datetime.timedelta(seconds=300) = timedelta(minutes=5)
+
+tests/test_schedule_refresh.py:113: AssertionError</failure></testcase><testcase classname="tests.test_schedule_refresh" name="test_manual_refresh_before_slot_keeps_the_slot" time="0.084" /><testcase classname="tests.test_schedule_refresh" name="test_manual_refresh_restarts_the_interval" time="0.058" /><testcase classname="tests.test_schedule_refresh" name="test_interval_source_refreshes_every_interval" time="0.060" /><testcase classname="tests.test_schedule_refresh" name="test_rearm_after_calendar_readded" time="0.060" /><testcase classname="tests.test_schedule_refresh" name="test_failure_backoff_steps" time="0.064" /><testcase classname="tests.test_schedule_refresh" name="test_backoff_capped_by_interval" time="0.056" /><testcase classname="tests.test_schedule_refresh" name="test_backoff_capped_by_next_daily_slot" time="0.063" /></testsuite></testsuites>
