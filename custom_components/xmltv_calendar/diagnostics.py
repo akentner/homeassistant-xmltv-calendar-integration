@@ -17,7 +17,9 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.helpers.redact import REDACTED, async_redact_data
 from yarl import URL
 
+from .cache import FeedCache, cache_key
 from .const import CONF_PATH, CONF_URL
+from .xmltv.schedule import SourceOptions
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -91,13 +93,34 @@ def _calendars(entry: XmltvConfigEntry, runtime: XmltvRuntimeData) -> list[dict[
     return sorted(rows, key=lambda row: row["title"])
 
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: XmltvConfigEntry) -> dict[str, Any]:  # noqa: ARG001
-    """Return the diagnostics of a source entry from a snapshot of its current state (D-21)."""
-    runtime = entry.runtime_data
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: XmltvConfigEntry) -> dict[str, Any]:
+    """
+    Return the diagnostics of a source entry from a snapshot of its current state (D-21).
+
+    An entry that is not loaded (for example SETUP_RETRY) has no coordinator: its options are read from the entry and
+    its health and cache metadata from the Store, so a source that never loaded can still be diagnosed.
+    """
+    source = async_redact_data(dict(entry.data), {CONF_URL: _redact_url, CONF_PATH: _redact_path})
+    runtime: XmltvRuntimeData | None = getattr(entry, "runtime_data", None)
+    if runtime is None:
+        cache = FeedCache(hass, cache_key(entry))
+        await cache.async_load()
+        result: dict[str, Any] = {
+            "loaded": False,
+            "source": source,
+            "options": SourceOptions.from_mapping(entry.options).as_options(),
+            "health": _health(cache.health),
+            "cache": _cache(cache.meta),
+            "stats": None,
+            "calendars": [],
+            "next_refresh": None,
+        }
+        return async_redact_data(result, TO_REDACT)
     coordinator = runtime.coordinator
     data = coordinator.data
     result = {
-        "source": async_redact_data(dict(entry.data), {CONF_URL: _redact_url, CONF_PATH: _redact_path}),
+        "loaded": True,
+        "source": source,
         "options": coordinator.source_options.as_options(),
         "health": _health(coordinator.health),
         "cache": _cache(coordinator.cache_meta),
