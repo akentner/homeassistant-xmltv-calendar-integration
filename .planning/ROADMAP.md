@@ -119,7 +119,7 @@ Plans:
   4. When a fetch or parse fails, calendars keep showing the last good data. A source that keeps failing raises a Repairs issue, which clears automatically after the next successful refresh.
   5. User downloads diagnostics for a source showing programme/channel/match counts and last success/failure, with URL and credentials redacted.
 
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans executed
 
 Plans:
 **Wave 1**
@@ -140,7 +140,7 @@ Plans:
 - [x] 03-07-PLAN.md — Diagnostics with redacted URL/path, health, cache metadata and counts (wave 5)
 
 **Wave 6** *(blocked on Wave 5 completion)*
-- [ ] 03-08-PLAN.md — Options flow for schedule and timezone settings, phase gate and UAT walkthrough (wave 6)
+- [x] 03-08-PLAN.md — Options flow for schedule and timezone settings, phase gate and UAT walkthrough (wave 6)
 
 **Notes**: Use a plain `OptionsFlow` only, never `OptionsFlowWithReload` (it conflicts with the update listener and raises an error from 2026.12). Source option changes go through the Phase 2 diffing listener. Store the raw-file cache in `hass.config.cache_path`. Research flags: `async_show_progress`, Repairs issue lifecycle.
 
@@ -169,5 +169,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
-| 3. Resilient Sources | 7/8 | In Progress | - |
+| 3. Resilient Sources | 8/8 | In Progress | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |

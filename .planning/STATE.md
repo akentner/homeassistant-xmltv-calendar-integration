@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
-status: executing
-stopped_at: Completed 03-07-PLAN.md
-last_updated: "2026-10-16T11:17:17.227Z"
+status: verifying
+stopped_at: Completed 03-08-PLAN.md
+last_updated: "2026-10-16T11:26:22.152Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: 83cd920b5826d9a086e992e2efb18e17a6e5cec3
+state_head: aae6adfba6845aa372326e4c2668e1f58a7dce42
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 29
-  completed_plans: 28
+  completed_plans: 29
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 
 Phase: 03 (Resilient Sources) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-16 — Phase 03 execution started
 
 Progress: [█████░░░░░] 50%
@@ -85,6 +85,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P05 | 7 min | 3 tasks | 6 files |
 | Phase 03 P06 | 9 min | 3 tasks | 8 files |
 | Phase 03 P07 | 4 min | 2 tasks | 8 files |
+| Phase 03 P08 | 7 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -181,6 +182,8 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-06: async_probe_url removed; flow sniffs PROBE_BYTES of the full bounded download; tests use conftest add_url_source/add_file_source
 - [Phase 03]: 03-07: diagnostics keys fixed: loaded, source (URL scheme+host / file name), options, health {last_success, failing_since, last_failure {time, reason}, consecutive_failures}, cache {fetched_at, size, has_etag, has_last_modified}, stats (ParseStats), calendars [{title, matches}] sorted by title, next_refresh
 - [Phase 03]: 03-07: not-loaded entries read options from entry.options and health/cache presence from the Store (FeedCache(cache_key(entry))); diagnostics never refresh or download
+- [Phase 03]: 03-08: An interval source keeps its last valid daily refresh_time in entry.options (_options_to_store), so switching back to daily pre-fills it; from_mapping ignores the key outside daily mode
+- [Phase 03]: 03-08: Source options flow is a plain OptionsFlow reusing the setup builders; async_create_entry replaces entry.options and the single diffing listener reloads once from cache; identical values never reload
 
 ### Pending Todos
 
@@ -214,6 +217,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T11:17:17.052Z
-Stopped at: Completed 03-07-PLAN.md
+Last session: 2026-10-16T11:26:21.953Z
+Stopped at: Completed 03-08-PLAN.md
 Resume file: None
