@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-10-16T10:13:59.252Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-10-16T10:25:47.902Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: 08b1b430beae8b9becd43dfffd2c4cf3369e0cbd
+state_head: 0c38e9f354c0f40e326d03ccdf55c3d71048e8dd
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 29
-  completed_plans: 22
+  completed_plans: 23
   percent: 50
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 03 (Resilient Sources) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-10-16 — Phase 03 execution started
 
@@ -79,6 +79,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02 P09 | 7 min | 2 tasks | 6 files |
 | Phase 02 P10 | 4 min | 2 tasks | 3 files |
 | Phase 03 P01 | 13 min | 3 tasks | 11 files |
+| Phase 03 P02 | 8 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,10 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-01: coordinator keeps _next_refresh_at (aware UTC), recomputed via next_regular after every refresh (try/finally); _schedule_refresh override arms max(target - utcnow, 1 s)
 - [Phase 03]: 03-01: backoff 5m/15m/1h/3h/6h then 6h, capped at the next regular refresh, floor 1 s; persistent failure = failing_since > 24 h before now; DST gap slot fires shifted, fold slot at first occurrence
 - [Phase 03]: 03-01: tests/test_subentry_flow.py::test_channel_picker_lists_sorted_ids uses a channels-only feed; 03-04 (D-20 empty feed = failure) must adapt it
+- [Phase 03]: Disk cache per URL source: raw payload in .cache/xmltv_calendar/<key>.feed (0o600) plus URL-free CacheMeta in Store xmltv_calendar.<key>; key = unique_id or entry_id, SHA-256 when not [0-9A-Za-z]{1,64}
+- [Phase 03]: Cache valid only when stored source_id matches the current source and the payload has the stored size; payload written before metadata; unusable caches dropped
+- [Phase 03]: Stale-while-revalidate start: any valid cache is shown at once; stale sets the refresh target to now (~1 s background refresh); setup only touches the network without a usable cache
+- [Phase 03]: Calendars available while coordinator.data is not None (D-19)
 
 ### Pending Todos
 
@@ -188,6 +193,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T10:13:59.087Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-10-16T10:25:47.733Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
