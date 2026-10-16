@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.291" timestamp="2026-10-16T12:27:52.744384+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_refresh" name="test_unchanged_feed_answers_304_without_reparse" time="0.203"><failure message="assert None == '&quot;v1&quot;'&#10; +  where None = &lt;built-in method get of dict object at 0x7f524ede5400&gt;('If-None-Match')&#10; +    where &lt;built-in method get of dict object at 0x7f524ede5400&gt; = {}.get">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f525a1b4ec0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f525a29d400&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f525a4078a0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f524ef46140&gt;
+
+    async def test_unchanged_feed_answers_304_without_reparse(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED, headers=VALIDATORS)
+        coordinator = entry.runtime_data.coordinator
+        previous = coordinator.data
+        parses = ParseCounter(monkeypatch)
+        _serve(aioclient_mock, status=304, headers={"ETag": '"v1"'})
+    
+        freezer.tick(timedelta(hours=1))
+        await coordinator.async_refresh()
+    
+        assert aioclient_mock.call_count == 1
+        headers = _request_headers(aioclient_mock)
+&gt;       assert headers.get("If-None-Match") == '"v1"'
+E       assert None == '"v1"'
+E        +  where None = &lt;built-in method get of dict object at 0x7f524ede5400&gt;('If-None-Match')
+E        +    where &lt;built-in method get of dict object at 0x7f524ede5400&gt; = {}.get
+
+tests/test_refresh.py:70: AssertionError</failure></testcase></testsuite></testsuites>
