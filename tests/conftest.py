@@ -29,6 +29,12 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Allow Home Assistant to load integrations from custom_components in every test."""
 
 
+@pytest.fixture(autouse=True)
+def hass_config_dir(hass_tmp_config_dir: str) -> str:
+    """Give every test its own config dir, so cache files never leak into phcc's shared testing_config."""
+    return hass_tmp_config_dir
+
+
 @pytest.fixture
 def forbid_loop_io(monkeypatch: pytest.MonkeyPatch) -> None:
     """Fail when integration code calls open() on the event-loop thread (HA's detector is off in tests)."""
@@ -60,13 +66,15 @@ def setup_xmltv(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> Cal
         calendars: Iterable[tuple[str, Mapping[str, Any]]] = (("Test", {}),),
         *,
         url: str = FEED_URL,
+        options: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> MockConfigEntry:
-        aioclient_mock.get(url, content=feed)
+        aioclient_mock.get(url, content=feed, headers=dict(headers) if headers is not None else None)
         entry = MockConfigEntry(
             domain=DOMAIN,
             title="Test EPG",
             data={"source_type": "url", "url": url},
-            options={"refresh_hours": 24},
+            options=dict(options) if options is not None else {"refresh_hours": 24},
             subentries_data=[
                 ConfigSubentryData(subentry_type="calendar", title=title, data=dict(data), unique_id=None)
                 for title, data in calendars

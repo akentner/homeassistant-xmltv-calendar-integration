@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="0.389" timestamp="2026-10-16T12:00:44.337249+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_schedule_refresh" name="test_daily_slot_refreshes_at_local_time" time="0.201"><failure message="assert 1 == 2&#10; +  where 1 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f34795ac830&gt;.call_count">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f34795ac830&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3478200670&gt;
+berlin_tz = None
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f3478362270&gt;
+
+    async def test_daily_slot_refreshes_at_local_time(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        berlin_tz: None,
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T16:00:00+00:00")
+        entry = await setup_xmltv(FEED, options=DAILY_18_15)
+        assert aioclient_mock.call_count == 1
+    
+        # 18:15 Europe/Berlin (CEST) is 16:15 UTC
+        await _step_to(hass, freezer, "2026-10-13T16:14:59+00:00")
+        assert aioclient_mock.call_count == 1
+    
+        await _step_to(hass, freezer, "2026-10-13T16:15:01+00:00")
+&gt;       assert aioclient_mock.call_count == 2
+E       assert 1 == 2
+E        +  where 1 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f34795ac830&gt;.call_count
+
+tests/test_schedule_refresh.py:44: AssertionError</failure></testcase><testcase classname="tests.test_schedule_refresh" name="test_interval_source_refreshes_every_interval" time="0.051" /><testcase classname="tests.test_schedule_refresh" name="test_rearm_after_calendar_readded" time="0.052"><failure message="assert 1 == 2&#10; +  where 1 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f347958e990&gt;.call_count">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f347958e990&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f3470dc73d0&gt;
+berlin_tz = None
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f3470ea3c50&gt;
+
+    async def test_rearm_after_calendar_readded(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        berlin_tz: None,
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T16:00:00+00:00")
+        entry = await setup_xmltv(FEED, options=DAILY_18_15)
+        assert aioclient_mock.call_count == 1
+    
+        # Removing the only calendar drops the last listener and unschedules the refresh
+        freezer.move_to("2026-10-13T16:05:00+00:00")
+        (subentry_id,) = entry.subentries
+        assert hass.config_entries.async_remove_subentry(entry, subentry_id)
+        await hass.async_block_till_done()
+    
+        # The new calendar's listener re-arms the timer; a delay remembered from 16:00 would fire at 16:25
+        freezer.move_to("2026-10-13T16:10:00+00:00")
+        subentry = ConfigSubentry(data=MappingProxyType({}), subentry_type="calendar", title="New", unique_id=None)
+        assert hass.config_entries.async_add_subentry(entry, subentry)
+        await hass.async_block_till_done()
+        assert hass.states.get("calendar.new") is not None
+    
+        await _step_to(hass, freezer, "2026-10-13T16:15:01+00:00")
+&gt;       assert aioclient_mock.call_count == 2
+E       assert 1 == 2
+E        +  where 1 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f347958e990&gt;.call_count
+
+tests/test_schedule_refresh.py:93: AssertionError</failure></testcase></testsuite></testsuites>
