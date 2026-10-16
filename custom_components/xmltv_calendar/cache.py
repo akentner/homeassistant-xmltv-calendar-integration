@@ -42,6 +42,11 @@ def cache_key(entry: ConfigEntry) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def payload_sha256(payload: bytes) -> str:
+    """Return the SHA-256 hex digest the metadata stores for `payload`; run it in the executor for large payloads."""
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _aware_datetime(value: object) -> datetime | None:
     """Parse a stored ISO 8601 time; None unless it is a string holding an aware datetime."""
     if not isinstance(value, str):
@@ -228,4 +233,4 @@ class FeedCache:
     def _write(self, payload: bytes) -> str:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         write_utf8_file(str(self._path), payload, private=True, mode="wb")
-        return hashlib.sha256(payload).hexdigest()
+        return payload_sha256(payload)

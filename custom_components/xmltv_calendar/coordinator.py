@@ -10,7 +10,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .cache import CacheMeta, FeedCache, cache_key
+from .cache import CacheMeta, FeedCache, cache_key, payload_sha256
 from .const import (
     CONF_PATH,
     CONF_SOURCE_TYPE,
@@ -71,6 +71,9 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             config_entry=entry,
             name=f"{DOMAIN}_{entry.title}",
             update_interval=max(self._next_refresh_at - now, MIN_DELAY),
+            # EpgData compares by identity: returning the same object (304, identical body, unchanged file) calls no
+            # listeners unless the success state changed (RESEARCH Pattern 5)
+            always_update=False,
         )
 
     @property
@@ -208,9 +211,28 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         meta = self._cache.valid_meta(self._source_id)
         fetched = await self._async_fetch(meta)
         if isinstance(fetched, NotModified):
-            if self.data is None:
+            if self.data is not None:
+                _LOGGER.debug("Source %s unchanged", self.config_entry.title)
+                await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
+                return self.data
+            # No data in memory (RESEARCH Pitfall 3): the unchanged feed is the cached payload
+            cached = await self._async_parse_cached()
+            if cached is not None:
+                await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
+                return cached
+            # The unusable cache is dropped by now; ask again without validators, so the source never stays empty
+            _LOGGER.debug("Source %s: unchanged, but the cache is unusable; downloading again", self.config_entry.title)
+            fetched = await self._async_fetch(None)
+            if isinstance(fetched, NotModified):
                 raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch")
-            _LOGGER.debug("Source %s unchanged", self.config_entry.title)
+        elif (
+            meta is not None
+            and self.data is not None
+            and len(fetched.payload) == meta.size
+            and await self.hass.async_add_executor_job(payload_sha256, fetched.payload) == meta.sha256
+        ):
+            # A server without validators sent the cached bytes again: same feed, no parse (RESEARCH A8)
+            _LOGGER.debug("Source %s unchanged (identical body)", self.config_entry.title)
             await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
             return self.data
         epg = await self._async_parse_payload(fetched.payload)

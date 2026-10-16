@@ -135,7 +135,11 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
     @callback
     @override
     def _handle_coordinator_update(self) -> None:
-        """Re-filter in the executor on every coordinator update."""
+        """Re-filter in the executor when the coordinator has new data; otherwise only rewrite the state."""
+        if self.coordinator.data is self._epg:
+            # Unchanged data, e.g. a success/failure transition: the matches are still valid (RESEARCH Pattern 5)
+            self.async_write_ha_state()
+            return
         self._entry.async_create_task(self.hass, self._async_refilter(), name=f"{DOMAIN} refilter {self.entity_id}")
 
     async def _async_refilter(self) -> None:

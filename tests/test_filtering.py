@@ -19,10 +19,13 @@ from custom_components.xmltv_calendar.xmltv.settings import (
     KEY_WEEKDAYS,
 )
 
+from .conftest import FEED_URL
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from homeassistant.core import HomeAssistant
+    from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 BASIC_FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 
@@ -51,6 +54,7 @@ async def test_include_pattern_end_to_end(
 
 async def test_missing_channel_warning_once_per_refresh(
     hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
     freezer: Any,
     caplog: pytest.LogCaptureFixture,
     setup_xmltv: Callable[..., Awaitable[Any]],
@@ -63,6 +67,9 @@ async def test_missing_channel_warning_once_per_refresh(
 
     assert len(missing_warnings()) == 1
 
+    # A changed body: an identical one is not re-parsed and therefore not refiltered (03-03, SRC-07)
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED + b"\n<!-- changed -->\n")
     await entry.runtime_data.coordinator.async_refresh()
     await hass.async_block_till_done()
     assert len(missing_warnings()) == 2
