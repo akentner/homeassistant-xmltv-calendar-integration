@@ -68,14 +68,17 @@ from .const import (
     SUBENTRY_TYPE_CALENDAR,
 )
 from .source import (
+    PROBE_BYTES,
     Fetched,
     FileMissingError,
     InvalidFeedError,
     InvalidUrlError,
     PathNotAllowedError,
     SourceError,
+    SourceTooLargeError,
     async_fetch_url,
     check_file,
+    looks_like_feed,
     normalize_url,
     probe_file,
     source_unique_id,
@@ -192,6 +195,8 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._pending: dict[str, Any] = {}
         self._url_input: dict[str, Any] | None = None
         self._download_task: asyncio.Task[Fetched | NotModified] | None = None
+        # Errors of a failed setup download, shown once by the url step (a progress step cannot show a form)
+        self._download_errors: dict[str, str] = {}
         # The setup download; written to the cache only when the entry is created (D-13)
         self._fetched: Fetched | None = None
 
@@ -202,7 +207,12 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_url(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for the feed URL and the source settings; reject bad URLs and duplicates before any download."""
         errors: dict[str, str] = {}
-        if user_input is not None:
+        suggested = user_input
+        if user_input is None:
+            # Back from a failed download: show its error with the values the user entered
+            errors, self._download_errors = self._download_errors, {}
+            suggested = self._url_input if errors else None
+        else:
             try:
                 url = normalize_url(str(user_input[CONF_URL]))
             except InvalidUrlError:
@@ -222,12 +232,17 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
                 **_settings_fields(SourceOptions()),
             }
         )
-        if user_input is not None:
-            schema = self.add_suggested_values_to_schema(schema, user_input)
+        if suggested is not None:
+            schema = self.add_suggested_values_to_schema(schema, suggested)
         return self.async_show_form(step_id="url", data_schema=schema, errors=errors)
 
     async def async_step_download(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
-        """Download the full, bounded feed behind a progress indicator (CFG-03); the flow continues by itself."""
+        """
+        Download the full, bounded feed behind a progress indicator (CFG-03); the flow continues by itself.
+
+        A progress step may only end in progress or progress-done, so every failure goes back to the url step through
+        progress-done with a stored error. Closing the dialog cancels the task (the flow manager owns it).
+        """
         if self._download_task is None:
             # eager_start=False: the first call always shows the progress step
             self._download_task = self.hass.async_create_task(
@@ -237,11 +252,23 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_show_progress(
                 step_id="download", progress_action="download", progress_task=self._download_task
             )
+        # Clear the finished task, so a retry from the url step starts a new download
         task, self._download_task = self._download_task, None
-        fetched = task.result()
-        if isinstance(fetched, Fetched):
-            self._fetched = fetched
-        return self.async_show_progress_done(next_step_id="schedule")
+        try:
+            fetched = task.result()
+        except SourceTooLargeError:
+            self._download_errors = {"base": "feed_too_large"}
+        except SourceError:
+            self._download_errors = {"base": "cannot_connect"}
+        else:
+            if not isinstance(fetched, Fetched):  # a 304 without having sent validators
+                self._download_errors = {"base": "cannot_connect"}
+            elif not looks_like_feed(fetched.payload[:PROBE_BYTES]):
+                self._download_errors = {"base": "invalid_feed"}
+            else:
+                self._fetched = fetched
+                return self.async_show_progress_done(next_step_id="schedule")
+        return self.async_show_progress_done(next_step_id="url")
 
     async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for the one schedule field the chosen refresh mode needs (D-01, D-02)."""

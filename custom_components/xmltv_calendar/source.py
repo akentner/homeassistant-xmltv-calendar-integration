@@ -33,7 +33,7 @@ MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024  # 256 MiB on the wire (SRC-09)
 DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=300, sock_read=60)
 _CHUNK_SIZE = 1 << 16
 _HTTP_ERROR_MIN = 400
-PROBE_BYTES = 64 * 1024  # flow-time sniff of a source; the full read happens at setup
+PROBE_BYTES = 64 * 1024  # flow-time sniff: the head of a local file, or of the downloaded body of a URL
 _UTF8_BOM = b"\xef\xbb\xbf"
 _URL_SCHEMES = frozenset({"http", "https"})
 # Upper bound for a stored ETag or Last-Modified value; longer values are dropped (RESEARCH Pitfall 9)
@@ -136,38 +136,6 @@ def looks_like_feed(head: bytes) -> bool:
     if head.startswith(GZIP_MAGIC):
         return True
     return head.removeprefix(_UTF8_BOM).lstrip().startswith(b"<")
-
-
-async def async_probe_url(hass: HomeAssistant, url: str) -> None:
-    """
-    Read at most `PROBE_BYTES` of the URL and check that it starts like a feed.
-
-    Raises `SourceUnavailableError` when the source cannot be reached or answers with an HTTP error, and
-    `InvalidFeedError` when the first bytes are neither gzip nor XML. The connection is released after the
-    probe; the full download happens at setup.
-    """
-    host = URL(url).host
-    session = async_get_clientsession(hass)
-    head = b""
-    try:
-        async with session.get(url, timeout=DOWNLOAD_TIMEOUT) as response:
-            if response.status >= _HTTP_ERROR_MIN:
-                _LOGGER.debug("Probe of source host %s answered HTTP %s", host, response.status)
-                msg = f"HTTP {response.status} from {host}"
-                raise SourceUnavailableError(msg)
-            stream = response.content  # bind once, see async_fetch_url
-            async for chunk in stream.iter_chunked(_CHUNK_SIZE):
-                head += chunk
-                if len(head) >= PROBE_BYTES:
-                    break
-    except (aiohttp.ClientError, TimeoutError) as err:
-        _LOGGER.debug("Probe of source host %s failed: %s", host, type(err).__name__)
-        msg = f"cannot fetch from {host}: {type(err).__name__}"
-        raise SourceUnavailableError(msg) from None
-    if not looks_like_feed(head[:PROBE_BYTES]):
-        _LOGGER.debug("Source host %s did not answer with gzip or XML", host)
-        msg = f"response from {host} is neither gzip nor XML"
-        raise InvalidFeedError(msg)
 
 
 def check_file(config: Config, path: str) -> str:
