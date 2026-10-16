@@ -3,11 +3,12 @@
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
+from homeassistant.helpers import issue_registry as ir
 
 from .cache import FeedCache, cache_key
 from .calendar import XmltvCalendarEntity
-from .const import SUBENTRY_TYPE_CALENDAR
-from .coordinator import XmltvCoordinator
+from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
+from .coordinator import XmltvCoordinator, issue_id
 from .data import XmltvConfigEntry, XmltvRuntimeData
 
 if TYPE_CHECKING:
@@ -58,5 +59,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bo
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> None:
-    """Delete the source's cached feed and its metadata when the entry is removed (D-08)."""
+    """Delete the source's cached feed, its metadata and health, and its Repairs issue when the entry is removed."""
     await FeedCache(hass, cache_key(entry)).async_remove()
+    ir.async_delete_issue(hass, DOMAIN, issue_id(entry.entry_id))

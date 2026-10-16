@@ -38,6 +38,7 @@ from .xmltv.schedule import (
     MIN_DELAY,
     Schedule,
     SourceOptions,
+    backoff_delay,
     fresh_until,
     is_fresh,
     is_persistently_failing,
@@ -144,20 +145,27 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         Read the source (disk cache, download or allowed local file), then parse it off the event loop.
 
         Every outcome sets exactly one refresh target and is recorded in the source health: a success (also a 304, an
-        identical body or an unchanged file) ends a failure streak and clears its Repairs issue (D-17); a failure keeps
-        the last good data (SRC-08, D-19), extends the streak and may raise the issue. `UpdateFailed` is re-raised
-        unchanged, so Home Assistant logs it once per streak (RESEARCH Pitfall 8).
+        identical body or an unchanged file) ends a failure streak, clears its Repairs issue (D-17) and returns to the
+        regular schedule; a failure keeps the last good data (SRC-08, D-19), extends the streak, may raise the issue
+        and retries after a capped backoff (D-10). A failed first refresh without cache is recorded too, so setup
+        retries count toward the issue. `UpdateFailed` is re-raised unchanged, so Home Assistant logs it once per
+        streak (RESEARCH Pitfall 8).
         """
         is_file = self.config_entry.data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_FILE
         if not is_file and self.data is None:
             cached = await self._async_start_from_cache()
             if cached is not None:
+                # Non-persistent issues are not restored after a restart: re-raise a still-failing source's issue
+                self._sync_issue(dt_util.utcnow())
                 return cached
         try:
             epg = await (self._async_update_file() if is_file else self._async_update_url())
         except UpdateFailed as err:
-            self._set_regular_target()
-            await self._async_record_failure(dt_util.utcnow(), err.translation_key)
+            now = dt_util.utcnow()
+            await self._async_record_failure(now, err.translation_key)
+            # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh
+            failures = self._cache.health.consecutive_failures
+            self._next_refresh_at = now + backoff_delay(failures, now, next_regular(now, self._schedule()))
             raise
         self._set_regular_target()
         await self._async_record_success(dt_util.utcnow())
