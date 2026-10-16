@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.333" timestamp="2026-10-16T12:52:09.295780+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_timezone_options" name="test_naive_local_timestamps_end_to_end" time="0.204"><failure message="AssertionError: assert [('2026-10-13...15:00+02:00')] == [('2026-10-13...15:00+02:00')]&#10;  &#10;  At index 0 diff: ('2026-10-13T22:00:00+02:00', '2026-10-13T22:15:00+02:00') != ('2026-10-13T20:00:00+02:00', '2026-10-13T20:15:00+02:00')&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fac0eff8f60&gt;
+
+    async def test_naive_local_timestamps_end_to_end(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        await setup_xmltv(NAIVE_FEED, options={CONF_REFRESH_HOURS: 24, CONF_NAIVE_TIMEZONE: NAIVE_TZ_LOCAL})
+    
+        events = await _events(hass)
+&gt;       assert [(event["start"], event["end"]) for event in events] == [
+            ("2026-10-13T20:00:00+02:00", "2026-10-13T20:15:00+02:00")
+        ]
+E       AssertionError: assert [('2026-10-13...15:00+02:00')] == [('2026-10-13...15:00+02:00')]
+E         
+E         At index 0 diff: ('2026-10-13T22:00:00+02:00', '2026-10-13T22:15:00+02:00') != ('2026-10-13T20:00:00+02:00', '2026-10-13T20:15:00+02:00')
+E         Use -v to get more diff
+
+tests/test_timezone_options.py:44: AssertionError</failure></testcase><testcase classname="tests.test_timezone_options" name="test_naive_timestamps_stay_utc_by_default" time="0.050" /></testsuite></testsuites>
