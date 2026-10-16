@@ -58,7 +58,7 @@
 
 - [x] **CFG-01**: All setup is possible via UI (config flow for source, subentry flow for calendars); no YAML
 - [ ] **CFG-02**: User can edit source settings (refresh, timezone options) via options flow
-- [ ] **CFG-03**: User sees a progress indicator while a source is downloaded during setup
+- [x] **CFG-03**: User sees a progress indicator while a source is downloaded during setup
 - [ ] **CFG-04**: UI is available in English and German
 
 ### Distribution
@@ -140,7 +140,7 @@
 | AUT-05 | Phase 4 | Pending |
 | CFG-01 | Phase 1 | Complete |
 | CFG-02 | Phase 3 | Pending |
-| CFG-03 | Phase 3 | Pending |
+| CFG-03 | Phase 3 | Complete |
 | CFG-04 | Phase 4 | Pending |
 | DST-01 | Phase 1 | Complete |
 | DST-02 | Phase 1 | Complete |
