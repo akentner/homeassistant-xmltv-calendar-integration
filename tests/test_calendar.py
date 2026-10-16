@@ -27,12 +27,6 @@ BASIC_FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 # About two interpreter frames per nesting level: 2,000 levels exceed the default recursion limit of 1,000, so
 # re.compile raises RecursionError; the flow's 300-character cap makes this reachable only through stored data
 DEEP_NESTING = "(" * 2000 + ")" * 2000
-NO_PROGRAMMES_FEED = b"""<?xml version="1.0" encoding="UTF-8"?>
-<tv>
-  <channel id="daserste.de"><display-name>Das Erste</display-name></channel>
-  <channel id="zdf.de"><display-name>ZDF</display-name></channel>
-</tv>
-"""
 
 
 def _busy_feed(channels: int = 60, per_channel: int = 100, minutes: int = 14) -> bytes:
@@ -265,8 +259,8 @@ async def test_start_offset_and_end_triggers_fire(
 @pytest.mark.parametrize(
     ("feed", "data"),
     [
+        # A feed without programmes no longer loads (D-20): tests/test_empty_feed.py covers it
         pytest.param(BASIC_FEED, {"channels": ["absent.de"]}, id="channel-not-in-feed"),
-        pytest.param(NO_PROGRAMMES_FEED, {}, id="feed-without-programmes"),
     ],
 )
 async def test_calendar_with_no_matches(

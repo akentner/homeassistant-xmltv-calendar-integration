@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="0.441" timestamp="2026-10-16T12:47:01.195338+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_empty_feed" name="test_first_setup_with_empty_feed_retries" time="0.191"><failure message="AssertionError: assert &lt;ConfigEntryState.LOADED: 'loaded'&gt; is &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt;&#10; +  where &lt;ConfigEntryState.LOADED: 'loaded'&gt; = &lt;ConfigEntry entry_id=01M4SXHAR0HF48VY2KQ80XF7KS version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.LOADED unique_id=None&gt;.state&#10; +  and   &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = ConfigEntryState.SETUP_RETRY">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...son': None, ...}, 'meta': None}, 'key': 'xmltv_calendar.01M4SXHAR0HF48VY2KQ80XF7KS', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fa0f16d3060&gt;
+
+    async def test_first_setup_with_empty_feed_retries(
+        hass: HomeAssistant,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(NO_PROGRAMMES_FEED)
+    
+&gt;       assert entry.state is ConfigEntryState.SETUP_RETRY
+E       AssertionError: assert &lt;ConfigEntryState.LOADED: 'loaded'&gt; is &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt;
+E        +  where &lt;ConfigEntryState.LOADED: 'loaded'&gt; = &lt;ConfigEntry entry_id=01M4SXHAR0HF48VY2KQ80XF7KS version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.LOADED unique_id=None&gt;.state
+E        +  and   &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = ConfigEntryState.SETUP_RETRY
+
+tests/test_empty_feed.py:59: AssertionError</failure></testcase><testcase classname="tests.test_empty_feed" name="test_feed_with_only_past_programmes_retries" time="0.048"><failure message="AssertionError: assert &lt;ConfigEntryState.LOADED: 'loaded'&gt; is &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt;&#10; +  where &lt;ConfigEntryState.LOADED: 'loaded'&gt; = &lt;ConfigEntry entry_id=01M4SXHAR0H1KZVWC7HCYHJ163 version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.LOADED unique_id=None&gt;.state&#10; +  and   &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = ConfigEntryState.SETUP_RETRY">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...son': None, ...}, 'meta': None}, 'key': 'xmltv_calendar.01M4SXHAR0H1KZVWC7HCYHJ163', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fa0f006a350&gt;
+
+    async def test_feed_with_only_past_programmes_retries(
+        hass: HomeAssistant,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(PAST_PROGRAMMES_FEED)
+    
+&gt;       assert entry.state is ConfigEntryState.SETUP_RETRY
+E       AssertionError: assert &lt;ConfigEntryState.LOADED: 'loaded'&gt; is &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt;
+E        +  where &lt;ConfigEntryState.LOADED: 'loaded'&gt; = &lt;ConfigEntry entry_id=01M4SXHAR0H1KZVWC7HCYHJ163 version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.LOADED unique_id=None&gt;.state
+E        +  and   &lt;ConfigEntryState.SETUP_RETRY: 'setup_retry'&gt; = ConfigEntryState.SETUP_RETRY
+
+tests/test_empty_feed.py:73: AssertionError</failure></testcase><testcase classname="tests.test_empty_feed" name="test_later_empty_feed_keeps_last_good_data" time="0.051"><failure message="assert True is False&#10; +  where True = &lt;custom_components.xmltv_calendar.coordinator.XmltvCoordinator object at 0x7fa0f00f7c50&gt;.last_update_success">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fa0f04c6ad0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fa0f1742710&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fa0e8f0cd50&gt;
+
+    async def test_later_empty_feed_keeps_last_good_data(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        coordinator = entry.runtime_data.coordinator
+        previous = coordinator.data
+        _serve(aioclient_mock, content=NO_PROGRAMMES_FEED)
+    
+        freezer.tick(timedelta(hours=1))
+        await coordinator.async_refresh()
+    
+&gt;       assert coordinator.last_update_success is False
+E       assert True is False
+E        +  where True = &lt;custom_components.xmltv_calendar.coordinator.XmltvCoordinator object at 0x7fa0f00f7c50&gt;.last_update_success
+
+tests/test_empty_feed.py:93: AssertionError</failure></testcase><testcase classname="tests.test_empty_feed" name="test_fewer_programmes_are_accepted" time="0.053" /></testsuite></testsuites>

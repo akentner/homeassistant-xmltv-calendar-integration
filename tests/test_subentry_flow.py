@@ -321,7 +321,12 @@ async def test_channel_picker_lists_sorted_ids(
       <channel id="arte.de"><display-name>arte</display-name></channel>
       <channel id="daserste.de"><display-name>Das Erste</display-name></channel>
     """
-    entry = await setup_xmltv(_feed("", channels=channels), calendars=())
+    # One programme, so the source loads: a feed without programmes is a failure (D-20)
+    programme = (
+        '<programme channel="zdf.de" start="20261013120000 +0200" stop="20261013124500 +0200">'
+        "<title>heute</title></programme>\n"
+    )
+    entry = await setup_xmltv(_feed(programme, channels=channels), calendars=())
 
     result = await _start_flow(hass, entry)
 
