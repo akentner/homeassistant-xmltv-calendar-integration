@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="38" time="2.271" timestamp="2026-10-16T12:20:54.406681+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_cache" name="test_restart_uses_fresh_cache" time="0.209" /><testcase classname="tests.test_cache" name="test_reload_uses_fresh_cache" time="0.057" /><testcase classname="tests.test_cache" name="test_size_mismatch_redownloads" time="0.057" /><testcase classname="tests.test_cache" name="test_missing_payload_redownloads" time="0.056" /><testcase classname="tests.test_cache" name="test_corrupt_cached_payload_is_dropped" time="0.055"><failure message="AssertionError: assert not True&#10; +  where True = exists()&#10; +    where exists = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-169/test_corrupt_cached_payload_is0/.cache/xmltv_calendar/01M4SXHAR00PW7QJF2N251TE4J.feed').exists">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f50186d9f30&gt;
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...7a3e19377e605610d01b808', ...}}, 'key': 'xmltv_calendar.01M4SXHAR00PW7QJF2N251TE4J', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f50197b1f30&gt;
+
+    async def test_corrupt_cached_payload_is_dropped(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        path = _payload_path(hass, entry)
+        path.write_bytes(b"x" * len(FEED))  # right size, does not parse
+    
+        # Restart while the source is down: the bad payload must be gone, not kept for the next start
+        _serve(aioclient_mock, exc=aiohttp.ClientError())
+        await _restart(hass, entry)
+    
+        assert entry.state is ConfigEntryState.SETUP_RETRY
+        assert aioclient_mock.call_count == 1
+&gt;       assert not path.exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-169/test_corrupt_cached_payload_is0/.cache/xmltv_calendar/01M4SXHAR00PW7QJF2N251TE4J.feed').exists
+
+tests/test_cache.py:155: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_changed_source_ignores_cache" time="0.057" /><testcase classname="tests.test_cache" name="test_empty_parse_is_not_cached" time="0.047" /><testcase classname="tests.test_cache" name="test_cache_write_failure_is_tolerated" time="0.053" /><testcase classname="tests.test_cache" name="test_payload_is_private" time="0.048" /><testcase classname="tests.test_cache" name="test_store_holds_no_url" time="0.048" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[quoted-ETag-etag]" time="0.054" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[quoted-Last-Modified-last_modified]" time="0.050" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[weak-ETag-etag]" time="0.047" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[weak-Last-Modified-last_modified]" time="0.049" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[http-date-ETag-etag]" time="0.048" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[http-date-Last-Modified-last_modified]" time="0.049" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1024-chars-ETag-etag]" time="0.053" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1024-chars-Last-Modified-last_modified]" time="0.049" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[crlf-ETag-etag]" time="0.049" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[crlf-Last-Modified-last_modified]" time="0.051" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1025-chars-ETag-etag]" time="0.062" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1025-chars-Last-Modified-last_modified]" time="0.049" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[non-ascii-ETag-etag]" time="0.054" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[non-ascii-Last-Modified-last_modified]" time="0.048" /><testcase classname="tests.test_cache" name="test_cache_key_is_filesystem_safe[hex-unique-id]" time="0.024" /><testcase classname="tests.test_cache" name="test_cache_key_is_filesystem_safe[entry-id]" time="0.023" /><testcase classname="tests.test_cache" name="test_cache_key_is_filesystem_safe[path-traversal]" time="0.024" /><testcase classname="tests.test_cache" name="test_remove_entry_deletes_cache" time="0.049"><failure message="AssertionError: assert not True&#10; +  where True = exists()&#10; +    where exists = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-169/test_remove_entry_deletes_cach0/.cache/xmltv_calendar/01M4SXHAR0MW150THTTR10HDX1.feed').exists">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...7a3e19377e605610d01b808', ...}}, 'key': 'xmltv_calendar.01M4SXHAR0MW150THTTR10HDX1', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f5019633a00&gt;
+
+    async def test_remove_entry_deletes_cache(
+        hass: HomeAssistant,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        path = _payload_path(hass, entry)
+        assert path.exists()
+    
+        await hass.config_entries.async_remove(entry.entry_id)
+        await hass.async_block_till_done()
+    
+&gt;       assert not path.exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-169/test_remove_entry_deletes_cach0/.cache/xmltv_calendar/01M4SXHAR0MW150THTTR10HDX1.feed').exists
+
+tests/test_cache.py:297: AssertionError</failure></testcase><testcase classname="tests.test_init" name="test_two_calendars_one_download" time="0.064" /><testcase classname="tests.test_init" name="test_add_calendar_via_flow_no_refetch" time="0.056" /><testcase classname="tests.test_init" name="test_remove_calendar_removes_entity_and_device" time="0.054" /><testcase classname="tests.test_init" name="test_rename_source_does_not_reload" time="0.051" /><testcase classname="tests.test_init" name="test_options_change_reloads_once" time="0.063" /><testcase classname="tests.test_init" name="test_data_change_reloads_once" time="0.089" /><testcase classname="tests.test_init" name="test_preexisting_subentries_get_one_entity_each" time="0.056" /><testcase classname="tests.test_init" name="test_identical_filters_make_two_entities" time="0.056" /><testcase classname="tests.test_init" name="test_zero_calendars_loads" time="0.043" /><testcase classname="tests.test_init" name="test_add_and_remove_order_does_not_change_events" time="0.061" /></testsuite></testsuites>
