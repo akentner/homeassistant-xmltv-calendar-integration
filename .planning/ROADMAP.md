@@ -119,7 +119,7 @@ Plans:
   4. When a fetch or parse fails, calendars keep showing the last good data. A source that keeps failing raises a Repairs issue, which clears automatically after the next successful refresh.
   5. User downloads diagnostics for a source showing programme/channel/match counts and last success/failure, with URL and credentials redacted.
 
-**Plans**: 2/8 plans executed
+**Plans**: 3/8 plans executed
 
 Plans:
 **Wave 1**
@@ -129,7 +129,7 @@ Plans:
 - [x] 03-02-PLAN.md — Disk cache: restarts and reloads reuse the feed; a stale cache is shown and refreshed in the background (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 03-03-PLAN.md — Conditional GET (ETag / If-Modified-Since), manual refresh via update_entity, unchanged local files not re-parsed (wave 3)
+- [x] 03-03-PLAN.md — Conditional GET (ETag / If-Modified-Since), manual refresh via update_entity, unchanged local files not re-parsed (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 03-04-PLAN.md — Failures keep last good data, capped backoff, Repairs issue after 24 h of failures, empty feed counts as failure (wave 4)
@@ -169,5 +169,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
-| 3. Resilient Sources | 2/8 | In Progress | - |
+| 3. Resilient Sources | 3/8 | In Progress | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |

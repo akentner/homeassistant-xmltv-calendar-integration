@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-10-16T10:25:47.902Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-10-16T10:37:46.457Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: 0c38e9f354c0f40e326d03ccdf55c3d71048e8dd
+state_head: 32f22fb5c126beae07c371ef273dd37336c82976
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 29
-  completed_plans: 23
+  completed_plans: 24
   percent: 50
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 03 (Resilient Sources) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-16 — Phase 03 execution started
 
@@ -80,6 +80,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02 P10 | 4 min | 2 tasks | 3 files |
 | Phase 03 P01 | 13 min | 3 tasks | 11 files |
 | Phase 03 P02 | 8 min | 3 tasks | 7 files |
+| Phase 03 P03 | 9 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,10 @@ Recent decisions affecting current work:
 - [Phase 03]: Cache valid only when stored source_id matches the current source and the payload has the stored size; payload written before metadata; unusable caches dropped
 - [Phase 03]: Stale-while-revalidate start: any valid cache is shown at once; stale sets the refresh target to now (~1 s background refresh); setup only touches the network without a usable cache
 - [Phase 03]: Calendars available while coordinator.data is not None (D-19)
+- [Phase 03]: 03-03: NotModified carries the cleaned validators of a 304 (NOT_MODIFIED = validator-less instance); async_touch keeps a stored validator the response omits
+- [Phase 03]: 03-03: unchanged sources (304, identical SHA-256 body, unchanged file) return the identical EpgData object; always_update=False plus calendar identity guard means no refilter
+- [Phase 03]: 03-03: 304 without data parses the cache, else repeats the request without validators in the same refresh; a 304 to that retry fails unable_to_fetch
+- [Phase 03]: 03-03: file sources skip the parse when (st_mtime_ns, st_size) matches the signature of this coordinator instance; allowlist check first, nothing persisted
 
 ### Pending Todos
 
@@ -193,6 +198,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T10:25:47.733Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-10-16T10:37:46.298Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None

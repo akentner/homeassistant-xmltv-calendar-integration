@@ -13,7 +13,7 @@
 - [x] **SRC-04**: User can set a refresh interval per source
 - [ ] **SRC-05**: User can alternatively schedule a source to refresh once daily at a fixed time (e.g. 18:15 for a feed generated at 18:00)
 - [x] **SRC-06**: Downloaded source data is cached on disk; an HA restart or entry reload uses the cache and does not re-fetch while the cache is still fresh for the configured schedule
-- [ ] **SRC-07**: Remote sources are re-downloaded only when changed (ETag / If-Modified-Since)
+- [x] **SRC-07**: Remote sources are re-downloaded only when changed (ETag / If-Modified-Since)
 - [ ] **SRC-08**: A failed fetch or parse keeps the last good data; calendars keep working
 - [x] **SRC-09**: Large feeds (50+ MB) are parsed without blocking the HA event loop and with bounded memory
 - [ ] **SRC-10**: User can configure per source that timestamps without offset are local time, and/or apply a time offset correction
@@ -51,7 +51,7 @@
 - [x] **AUT-01**: Calendar works with calendar triggers (start/end, offsets) and `calendar.get_events`
 - [x] **AUT-02**: Calendar state is `on` while a matching programme airs; attributes show the current/next match
 - [ ] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
-- [ ] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
+- [x] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
 - [ ] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
 
 ### Configuration UX
@@ -107,7 +107,7 @@
 | SRC-04 | Phase 1 | Complete |
 | SRC-05 | Phase 3 | Pending |
 | SRC-06 | Phase 3 | Complete |
-| SRC-07 | Phase 3 | Pending |
+| SRC-07 | Phase 3 | Complete |
 | SRC-08 | Phase 3 | Pending |
 | SRC-09 | Phase 1 | Complete |
 | SRC-10 | Phase 3 | Pending |
@@ -136,7 +136,7 @@
 | AUT-01 | Phase 1 | Complete |
 | AUT-02 | Phase 1 | Complete |
 | AUT-03 | Phase 4 | Pending |
-| AUT-04 | Phase 3 | Pending |
+| AUT-04 | Phase 3 | Complete |
 | AUT-05 | Phase 4 | Pending |
 | CFG-01 | Phase 1 | Complete |
 | CFG-02 | Phase 3 | Pending |
