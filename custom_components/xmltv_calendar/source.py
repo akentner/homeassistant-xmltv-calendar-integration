@@ -8,6 +8,7 @@ Logs and errors name only the host: path and query may carry credentials. File h
 import hashlib
 import logging
 from dataclasses import dataclass
+from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -45,6 +46,18 @@ class Fetched:
     payload: bytes
     etag: str | None = None
     last_modified: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NotModified:
+    """The server reported the feed unchanged (HTTP 304), with any new cleaned validators it sent along."""
+
+    etag: str | None = None
+    last_modified: str | None = None
+
+
+# A 304 without validators; a 304 that carries an ETag or Last-Modified gets its own instance
+NOT_MODIFIED = NotModified()
 
 
 def clean_validator(value: str | None) -> str | None:
@@ -198,21 +211,38 @@ def read_and_parse_file(
         raise SourceUnavailableError(msg) from None
 
 
-async def async_fetch_url(hass: HomeAssistant, url: str) -> Fetched:
-    """Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators."""
+async def async_fetch_url(
+    hass: HomeAssistant, url: str, *, etag: str | None = None, last_modified: str | None = None
+) -> Fetched | NotModified:
+    """
+    Stream the feed body into memory, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`, with its validators.
+
+    `etag` and `last_modified` (the stored validators of a usable cache) are sent verbatim as If-None-Match and
+    If-Modified-Since; a 304 answer returns a `NotModified` without reading a body (SRC-07).
+    """
     host = URL(url).host
     max_bytes = MAX_DOWNLOAD_BYTES
     session = async_get_clientsession(hass)
+    headers: dict[str, str] = {}
+    if etag:
+        headers[aiohttp.hdrs.IF_NONE_MATCH] = etag  # echoed verbatim: weak W/ prefix and quotes stay
+    if last_modified:
+        headers[aiohttp.hdrs.IF_MODIFIED_SINCE] = last_modified  # echoed verbatim, never reformatted
     chunks: list[bytes] = []
     received = 0
     try:
-        async with session.get(url, timeout=DOWNLOAD_TIMEOUT) as response:
+        async with session.get(url, timeout=DOWNLOAD_TIMEOUT, headers=headers) as response:
+            new_etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
+            new_last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
+            if response.status == HTTPStatus.NOT_MODIFIED:
+                _LOGGER.debug("Source host %s reported the feed unchanged", host)
+                if new_etag is None and new_last_modified is None:
+                    return NOT_MODIFIED
+                return NotModified(new_etag, new_last_modified)
             if response.status >= _HTTP_ERROR_MIN:
                 _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
                 msg = f"HTTP {response.status} from {host}"
                 raise SourceUnavailableError(msg)
-            etag = clean_validator(response.headers.get(aiohttp.hdrs.ETAG))
-            last_modified = clean_validator(response.headers.get(aiohttp.hdrs.LAST_MODIFIED))
             stream = response.content  # bind once: some readers build a new stream per attribute access
             async for chunk in stream.iter_chunked(_CHUNK_SIZE):
                 received += len(chunk)
@@ -227,4 +257,4 @@ async def async_fetch_url(hass: HomeAssistant, url: str) -> Fetched:
         msg = f"cannot fetch from {host}: {type(err).__name__}"
         raise SourceUnavailableError(msg) from None
     _LOGGER.debug("Downloaded %s bytes from source host %s", received, host)
-    return Fetched(b"".join(chunks), etag, last_modified)
+    return Fetched(b"".join(chunks), new_etag, new_last_modified)

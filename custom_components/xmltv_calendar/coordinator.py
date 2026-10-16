@@ -23,6 +23,7 @@ from .const import (
 )
 from .source import (
     FileMissingError,
+    NotModified,
     PathNotAllowedError,
     SourceError,
     SourceTooLargeError,
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .data import XmltvConfigEntry
+    from .source import Fetched
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -178,17 +180,39 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             return None
         return epg
 
-    async def _async_update_url(self) -> EpgData:
-        """Download the feed, parse it in the executor and cache the body when it holds programmes."""
-        now = dt_util.utcnow()
+    async def _async_fetch(self, meta: CacheMeta | None) -> Fetched | NotModified:
+        """Download the feed, conditional on the validators of `meta`; source errors become `UpdateFailed`."""
         try:
-            fetched = await async_fetch_url(self.hass, self.config_entry.data[CONF_URL])
+            return await async_fetch_url(
+                self.hass,
+                self.config_entry.data[CONF_URL],
+                etag=meta.etag if meta is not None else None,
+                last_modified=meta.last_modified if meta is not None else None,
+            )
         except SourceTooLargeError as err:
             _LOGGER.debug("Source %s is too large: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="feed_too_large") from err
         except SourceError as err:
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
+
+    async def _async_update_url(self) -> EpgData:
+        """
+        Download the feed, parse it in the executor and cache the body when it holds programmes.
+
+        With a usable cache the stored validators are sent (SRC-07); a 304 keeps the data in memory as the identical
+        object, without a body or a parse, and counts as a successful refresh.
+        """
+        now = dt_util.utcnow()
+        # Validators only accompany a cache that belongs to this source, never a request without a payload on disk
+        meta = self._cache.valid_meta(self._source_id)
+        fetched = await self._async_fetch(meta)
+        if isinstance(fetched, NotModified):
+            if self.data is None:
+                raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch")
+            _LOGGER.debug("Source %s unchanged", self.config_entry.title)
+            await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
+            return self.data
         epg = await self._async_parse_payload(fetched.payload)
         if epg.programmes:
             await self._cache.async_write(

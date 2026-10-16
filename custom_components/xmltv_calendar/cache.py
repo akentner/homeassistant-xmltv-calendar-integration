@@ -12,7 +12,7 @@ the stored size is never trusted, so a crash between the two writes cannot leave
 import hashlib
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
@@ -180,6 +180,32 @@ class FeedCache:
             return False
         self._meta = meta
         return True
+
+    async def async_touch(
+        self, fetched_at: datetime, *, etag: str | None = None, last_modified: str | None = None
+    ) -> None:
+        """
+        Record that the source confirmed the cached payload at `fetched_at` (304 or identical body); no payload IO.
+
+        A validator that is given replaces the stored one; one that is not given is kept. A failed save is logged at
+        DEBUG and leaves the in-memory metadata updated.
+        """
+        meta = self._meta
+        if meta is None:
+            return
+        etag = clean_validator(etag)
+        last_modified = clean_validator(last_modified)
+        meta = replace(
+            meta,
+            fetched_at=fetched_at,
+            etag=etag if etag is not None else meta.etag,
+            last_modified=last_modified if last_modified is not None else meta.last_modified,
+        )
+        self._meta = meta
+        try:
+            await self._store.async_save({"meta": meta.as_dict()})
+        except (OSError, HomeAssistantError) as err:
+            _LOGGER.debug("Cache %s metadata not updated: %s", self._key, type(err).__name__)
 
     async def async_drop(self) -> None:
         """Forget a cache that turned out unusable: delete the payload and save empty metadata."""
