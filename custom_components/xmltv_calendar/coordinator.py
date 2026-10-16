@@ -169,9 +169,11 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         except UpdateFailed as err:
             now = dt_util.utcnow()
             await self._async_record_failure(now, err.translation_key)
-            # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh
+            # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh after
+            # the target being served (an early-fired timer serves its target, CR-01)
             failures = self._cache.health.consecutive_failures
-            self._next_refresh_at = now + backoff_delay(failures, now, next_regular(now, self._schedule()))
+            base = refresh_base(now, self._next_refresh_at)
+            self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
             raise
         self._set_regular_target()
         await self._async_record_success(dt_util.utcnow())
