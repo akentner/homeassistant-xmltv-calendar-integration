@@ -75,10 +75,10 @@ recorded: 2026-10-16T17:50:08.718Z
 | IN-04 | info | open | - |
 | IN-06 | info | open | - |
 | IN-07 | info | open | - |
-| CR-01 | critical | open | - (not in the current review) |
-| CR-02 | critical | open | - (not in the current review) |
-| WR-02 | warning | open | - (not in the current review) |
-| WR-03 | warning | open | - (not in the current review) |
+| CR-01 | critical | fixed | 03-09 (af12ce8, 8283e60): `refresh_base` on success and failure path; re-review confirmed resolved |
+| CR-02 | critical | fixed | 03-09 (4271ad6): one failure handler for every `Exception`; re-review confirmed resolved (residual gap tracked as WR-04) |
+| WR-02 | warning | fixed | 03-10 (f0cefd7): setup download seeded as last_success; re-review confirmed resolved |
+| WR-03 | warning | fixed | 03-10 (bb521c1, 77c9a14): identity tests frozen at fixture date, assert LOADED; re-review confirmed resolved |
 | IN-01 | info | open | - (not in the current review) |
 | IN-03 | info | open | - (not in the current review) |
 | IN-05 | info | open | - (not in the current review) |
