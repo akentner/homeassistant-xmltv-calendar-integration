@@ -6,7 +6,7 @@ import time
 import unicodedata
 import xml.etree.ElementTree as ET
 import zlib
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, BinaryIO
 
 from .model import Channel, EpgData, ParseStats, Programme
@@ -75,14 +75,19 @@ def _channel(elem: ET.Element) -> Channel | None:
     return Channel(id=channel_id, display_name=_first(elem, "display-name") or channel_id)
 
 
-def _programme(elem: ET.Element) -> Programme | None:
+def _programme(elem: ET.Element, naive_tz: tzinfo = UTC, shift: timedelta = timedelta(0)) -> Programme | None:
     channel_id = (elem.get("channel") or "").strip()
-    start = parse_xmltv_time(elem.get("start"))
+    start = parse_xmltv_time(elem.get("start"), naive_tz)
     titles = _texts(elem, "title")
     if not channel_id or start is None or not titles:
         return None
     # A missing or unparsable stop is handed to normalize as `stop == start`
-    stop = parse_xmltv_time(elem.get("stop")) or start
+    stop = parse_xmltv_time(elem.get("stop"), naive_tz) or start
+    if shift:
+        # D-15: shift the instant before normalize, so inferred stops follow shifted starts. Parsed datetimes carry a
+        # fixed offset, so this is absolute-time arithmetic even across DST.
+        start += shift
+        stop += shift
     return Programme(
         channel_id=sys.intern(channel_id),
         start=start,
@@ -114,7 +119,13 @@ def _read_events(reader: _CappedReader) -> Iterator[tuple[str, ET.Element]]:
         yield event, elem
 
 
-def _collect(source: _CappedReader, stats: ParseStats, yield_every: int) -> tuple[dict[str, Channel], list[Programme]]:
+def _collect(
+    source: _CappedReader,
+    stats: ParseStats,
+    yield_every: int,
+    naive_tz: tzinfo,
+    shift: timedelta,
+) -> tuple[dict[str, Channel], list[Programme]]:
     """Stream channels and programmes out of the document, skipping and counting malformed programmes."""
     channels: dict[str, Channel] = {}
     programmes: list[Programme] = []
@@ -126,7 +137,7 @@ def _collect(source: _CappedReader, stats: ParseStats, yield_every: int) -> tupl
             continue
         if elem.tag == "programme":
             try:
-                programme = _programme(elem)
+                programme = _programme(elem, naive_tz, shift)
             except ValueError, OverflowError:
                 programme = None  # CR-01: one unconvertible programme is skipped and counted, never fatal
             if programme is None:
@@ -144,13 +155,15 @@ def _collect(source: _CappedReader, stats: ParseStats, yield_every: int) -> tupl
     return channels, programmes
 
 
-def parse(
+def parse(  # noqa: PLR0913 - keyword-only options, bound once by the coordinator's partial
     fileobj: BinaryIO,
     *,
     keep_after: datetime | None = None,
     yield_every: int = 250,
     default_duration: timedelta = timedelta(minutes=60),
     max_bytes: int = MAX_DECOMPRESSED_BYTES,
+    naive_tz: tzinfo = UTC,
+    shift: timedelta = timedelta(0),
 ) -> EpgData:
     """
     Parse a plain or gzip-compressed XMLTV document into `EpgData`. `fileobj` must be seekable.
@@ -159,6 +172,9 @@ def parse(
     OverflowError, are skipped and counted. Programmes whose stop is before `keep_after` are dropped. Every
     `yield_every` programmes the thread sleeps 1 ms so the event loop gets the GIL. Raises `FeedTooLargeError` past
     `max_bytes` of XML and `FeedError` only for read and decode failures; other exceptions propagate unchanged.
+
+    Timestamps without offset are read in `naive_tz` (SRC-10, D-14), and every start and stop is then moved by
+    `shift` of absolute time (D-15). The defaults keep timestamps as written, offset-less ones in UTC.
     """
     stats = ParseStats()
     # Gzip is detected by its magic bytes only, never by file name or Content-Type (SRC-03)
@@ -166,7 +182,7 @@ def parse(
     fileobj.seek(0)
     reader = _CappedReader(gzip.GzipFile(fileobj=fileobj) if head == GZIP_MAGIC else fileobj, max_bytes)
     try:
-        channels, programmes = _collect(reader, stats, yield_every)
+        channels, programmes = _collect(reader, stats, yield_every, naive_tz, shift)
     except StopIteration:
         msg = "empty document"
         raise FeedError(msg) from None

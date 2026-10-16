@@ -3,6 +3,7 @@
 import io
 import logging
 from contextlib import contextmanager
+from datetime import UTC, timedelta
 from functools import partial
 from typing import TYPE_CHECKING, override
 
@@ -19,6 +20,7 @@ from .const import (
     DEFAULT_DURATION,
     DOMAIN,
     KEEP_PAST,
+    NAIVE_TZ_LOCAL,
     SOURCE_TYPE_FILE,
     SOURCE_TYPE_URL,
 )
@@ -250,8 +252,20 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         return epg
 
     def _parser(self) -> Callable[[BinaryIO], EpgData]:
-        """Return the feed parser with the current cut-off; looks the module-global `parse` up at call time."""
-        return partial(parse, keep_after=dt_util.utcnow() - KEEP_PAST, default_duration=DEFAULT_DURATION)
+        """
+        Return the feed parser with the current cut-off and the source's timezone options (SRC-10).
+
+        Looks the module-global `parse` up at call time. Downloads, cached payloads and files all parse through it, so
+        the correction is applied once per parse and never to data already in memory.
+        """
+        options = self._options
+        return partial(
+            parse,
+            keep_after=dt_util.utcnow() - KEEP_PAST,
+            default_duration=DEFAULT_DURATION,
+            naive_tz=dt_util.get_default_time_zone() if options.naive_timezone == NAIVE_TZ_LOCAL else UTC,
+            shift=timedelta(minutes=options.offset_minutes),
+        )
 
     async def _async_parse_payload(self, payload: bytes) -> EpgData:
         """Parse a feed body in one executor job; parser errors become `UpdateFailed`."""

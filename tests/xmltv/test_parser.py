@@ -6,6 +6,7 @@ import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -217,11 +218,11 @@ BAD_START = "20261013140000 +0000"
 def test_conversion_error_skips_only_that_programme(monkeypatch: pytest.MonkeyPatch, error: type[Exception]) -> None:
     real = parser.parse_xmltv_time
 
-    def flaky(value: str | None):
+    def flaky(value: str | None, *args: Any):
         if value == BAD_START:
             msg = "boom"
             raise error(msg)
-        return real(value)
+        return real(value, *args)
 
     monkeypatch.setattr(parser, "parse_xmltv_time", flaky)
 
@@ -232,7 +233,7 @@ def test_conversion_error_skips_only_that_programme(monkeypatch: pytest.MonkeyPa
 
 
 def test_programming_error_is_not_reported_as_feed_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    def broken(elem):
+    def broken(elem, *_args):
         msg = "bug"
         raise KeyError(msg)
 
