@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 
 FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 NOW = "2026-10-13T06:00:00+00:00"
+pytestmark = pytest.mark.freeze_time(NOW)
 
 
 def _subentry_id(entry: MockConfigEntry, title: str) -> str:

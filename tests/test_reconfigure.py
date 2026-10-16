@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
 FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 NOW = "2026-10-13T06:00:00+00:00"
+pytestmark = pytest.mark.freeze_time(NOW)
+
 # About two interpreter frames per nesting level: 2,000 levels exceed the default recursion limit of 1,000, so
 # re.compile raises RecursionError; the flow's 300-character cap makes this reachable only through stored data
 DEEP_NESTING = "(" * 2000 + ")" * 2000
@@ -446,6 +448,9 @@ async def test_edit_on_unloaded_source_aborts(
 ) -> None:
     entry = await setup_xmltv(FEED, calendars=(("A", {"include": "tagesschau"}),))
     a_id = _subentry_id(entry, "A")
+    # Unload first: with real programmes the calendar arms a state timer that would linger in a faked SETUP_RETRY
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
     entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
 
     result = await entry.start_subentry_reconfigure_flow(hass, a_id)

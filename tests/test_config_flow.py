@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
+NOW = "2026-10-13T06:00:00+00:00"
+pytestmark = pytest.mark.freeze_time(NOW)
+
 BASIC_FEED = (Path(__file__).parent / "fixtures" / "basic.xml").read_bytes()
 
 

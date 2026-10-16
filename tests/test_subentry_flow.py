@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 NOW = "2026-10-13T06:00:00+00:00"
+pytestmark = pytest.mark.freeze_time(NOW)
 DAY_START = "2026-10-13T00:00:00+00:00"
 
 CHANNELS = """
