@@ -125,19 +125,28 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             self._set_regular_target()
 
     async def _async_start_from_cache(self) -> EpgData | None:
-        """First refresh: the parsed cache when it belongs to this source and is fresh (SRC-06, D-08), else None."""
+        """
+        First refresh: the parsed cache when it belongs to this source, else None (SRC-06, D-08, D-09).
+
+        Stale-while-revalidate (RESEARCH Pattern 3): a fresh cache is used until it turns stale; a stale one (also a
+        daily slot missed since the fetch, D-03) is shown at once and refreshed about `MIN_DELAY` after the first
+        calendar subscribes. The network is touched during setup only without a usable cache, so a slow or
+        unreachable host never blocks or fails setup when cached data exists.
+        """
         meta = self._cache.valid_meta(self._source_id)
         if meta is None:
-            return None
-        now = dt_util.utcnow()
-        schedule = self._schedule()
-        if not is_fresh(meta.fetched_at, now, schedule):
             return None
         epg = await self._async_parse_cached()
         if epg is None:
             return None
-        _LOGGER.debug("Source %s: using the disk cache from %s", self.config_entry.title, meta.fetched_at)
-        self._next_refresh_at = fresh_until(meta.fetched_at, now, schedule)
+        now = dt_util.utcnow()
+        schedule = self._schedule()
+        if is_fresh(meta.fetched_at, now, schedule):
+            _LOGGER.debug("Source %s: using the fresh disk cache", self.config_entry.title)
+            self._next_refresh_at = fresh_until(meta.fetched_at, now, schedule)
+        else:
+            _LOGGER.debug("Source %s: using the stale disk cache, refreshing soon", self.config_entry.title)
+            self._next_refresh_at = now
         return epg
 
     def _parser(self) -> Callable[[BinaryIO], EpgData]:

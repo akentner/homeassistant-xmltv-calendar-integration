@@ -126,6 +126,12 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         await super().async_added_to_hass()
         await self._async_refilter()
 
+    @property
+    @override
+    def available(self) -> bool:
+        """Available while last good data exists, also when the latest refresh failed (D-19)."""
+        return self.coordinator.data is not None
+
     @callback
     @override
     def _handle_coordinator_update(self) -> None:
