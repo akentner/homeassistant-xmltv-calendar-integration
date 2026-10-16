@@ -31,7 +31,7 @@ from homeassistant.helpers.selector import (
 from homeassistant.util import dt as dt_util
 from yarl import URL
 
-from .cache import FeedCache
+from .cache import FeedCache, SourceHealth
 from .const import (
     CONF_ADVANCED,
     CONF_CASE_SENSITIVE,
@@ -345,20 +345,25 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         Write the setup download to the disk cache, so the first refresh parses it instead of downloading (D-13).
 
-        Only done at the last step, so an abandoned flow leaves no file. A failed write is logged by FeedCache;
-        the coordinator then simply downloads.
+        Only done at the last step, so an abandoned flow leaves no file. The setup download is also recorded as
+        the source's last successful refresh, with the same time as the cache metadata, so diagnostics and the
+        Repairs text show it from the start (WR-02). A failed write is logged by FeedCache and seeds nothing; the
+        coordinator then simply downloads and records its own success.
         """
         if self._fetched is None or self.unique_id is None:
             return
         cache = FeedCache(self.hass, self.unique_id)
         await cache.async_load()
-        await cache.async_write(
+        fetched_at = dt_util.utcnow()
+        if await cache.async_write(
             self._fetched.payload,
             source_id=self.unique_id,
-            fetched_at=dt_util.utcnow(),
+            fetched_at=fetched_at,
             etag=self._fetched.etag,
             last_modified=self._fetched.last_modified,
-        )
+        ):
+            # A brand-new entry has no other history, so this is its complete health
+            await cache.async_save_health(SourceHealth(last_success=fetched_at))
 
     @staticmethod
     @callback
