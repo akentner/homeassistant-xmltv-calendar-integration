@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.343" timestamp="2026-10-16T12:16:27.950620+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_cache" name="test_restart_uses_fresh_cache" time="0.193"><failure message="assert 2 == 1&#10; +  where 2 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fcb9ddf0ad0&gt;.call_count">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fcb9ddf0ad0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fcb9de04bf0&gt;
+
+    async def test_restart_uses_fresh_cache(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        assert aioclient_mock.call_count == 1
+        before = await _summaries(hass)
+        assert len(before) == 4
+    
+        await _restart(hass, entry)
+    
+        assert entry.state is ConfigEntryState.LOADED
+&gt;       assert aioclient_mock.call_count == 1
+E       assert 2 == 1
+E        +  where 2 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fcb9ddf0ad0&gt;.call_count
+
+tests/test_cache.py:58: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_reload_uses_fresh_cache" time="0.058"><failure message="assert 2 == 1&#10; +  where 2 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fcb9dd7f610&gt;.call_count">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fcb9dd7f610&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fcb9c7db5e0&gt;
+
+    async def test_reload_uses_fresh_cache(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        before = await _summaries(hass)
+    
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    
+        assert entry.state is ConfigEntryState.LOADED
+&gt;       assert aioclient_mock.call_count == 1
+E       assert 2 == 1
+E        +  where 2 = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fcb9dd7f610&gt;.call_count
+
+tests/test_cache.py:75: AssertionError</failure></testcase></testsuite></testsuites>
