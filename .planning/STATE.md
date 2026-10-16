@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
 status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-10-16T10:49:50.547Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-10-16T10:59:14.747Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: 7542ae0587f1cf88defaae28de90284eb8d86217
+state_head: 47033566db9a7e1718268a04583a23b54e914f5f
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 29
-  completed_plans: 25
+  completed_plans: 26
   percent: 50
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 03 (Resilient Sources) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-10-16 — Phase 03 execution started
 
@@ -82,6 +82,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P02 | 8 min | 3 tasks | 7 files |
 | Phase 03 P03 | 9 min | 3 tasks | 7 files |
 | Phase 03 P04 | 9 min | 3 tasks | 11 files |
+| Phase 03 P05 | 7 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -170,6 +171,8 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-04: Repairs issue source_failing_<entry_id> (not fixable, WARNING, non-persistent) uses translation_key source_failing_<reason> with placeholders source and last_success (local YYYY-MM-DD HH:MM or -); reasons limited to FAILURE_REASONS, unknown -> unable_to_fetch
 - [Phase 03]: 03-04: failure target = now + backoff_delay(consecutive_failures, now, next_regular); cache start re-raises the issue; failed first setup records health so retries count toward 24 h; async_remove_entry deletes the issue
 - [Phase 03]: 03-04: a parsed feed with 0 current programmes raises UpdateFailed(empty_feed) before any cache write or file-signature update (D-20); first setup without cache -> SETUP_RETRY
+- [Phase 03]: 03-05: offset-less timestamps in a DST-aware naive_tz resolve with fold=0 and are re-pinned to a cached fixed-offset timezone; no ZoneInfo leaves the pure parser
+- [Phase 03]: 03-05: offset_minutes is added to start and stop before normalize (inferred stops follow shifted starts), once per parse via coordinator._parser(); downloads, cache and files share it, data in memory is never shifted
 
 ### Pending Todos
 
@@ -203,6 +206,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T10:49:50.384Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-10-16T10:59:14.569Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
