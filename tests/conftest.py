@@ -15,6 +15,7 @@ import custom_components.xmltv_calendar  # noqa: F401
 from custom_components.xmltv_calendar.const import (
     CONF_NAIVE_TIMEZONE,
     CONF_OFFSET_MINUTES,
+    CONF_PATH,
     CONF_REFRESH_HOURS,
     CONF_REFRESH_MODE,
     CONF_REFRESH_TIME,
@@ -137,6 +138,33 @@ async def add_url_source(
         return result
     await hass.async_block_till_done()
     result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    if result["type"] is not FlowResultType.FORM or result["step_id"] != "schedule":
+        return result
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], _schedule_input(refresh_mode, refresh_hours, refresh_time)
+    )
+
+
+async def add_file_source(
+    hass: HomeAssistant,
+    path: str,
+    *,
+    refresh_mode: str = "interval",
+    refresh_hours: float = 24,
+    refresh_time: str | None = None,
+    naive_timezone: str = "utc",
+    offset_minutes: float = 0,
+) -> Any:
+    """
+    Drive menu -> file -> schedule (no download step); return the name-step result.
+
+    A file form with errors or an abort is returned as is, so callers can assert on it.
+    """
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "file"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_PATH: path, **_settings_input(refresh_mode, naive_timezone, offset_minutes)}
+    )
     if result["type"] is not FlowResultType.FORM or result["step_id"] != "schedule":
         return result
     return await hass.config_entries.flow.async_configure(

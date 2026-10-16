@@ -15,7 +15,7 @@ from pytest_homeassistant_custom_component.test_util import aiohttp as aiohttp_m
 
 from custom_components.xmltv_calendar import source
 
-from .conftest import DOMAIN, FEED_URL
+from .conftest import DOMAIN, FEED_URL, add_file_source, add_url_source
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -78,23 +78,37 @@ async def test_file_source_end_to_end(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "file"
 
-    # 2. file -> name, pre-filled with the file name (D-09)
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"path": str(feed), "refresh_hours": 24})
+    # 2. file -> schedule directly: a local file is not downloaded, so there is no progress step
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"path": str(feed), "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "schedule"
+
+    # 3. schedule -> name, pre-filled with the file name (D-09)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"refresh_hours": 12})
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "name"
     assert _schema_key(result, "name").description["suggested_value"] == "guide.xml"
 
-    # 3. Submitting the suggested name unchanged creates the entry
+    # 4. Submitting the suggested name unchanged creates the entry with the complete option contract
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "guide.xml"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "guide.xml"
     assert result["data"] == {"source_type": "file", "path": str(feed)}
-    assert result["options"] == {"refresh_hours": 24}
+    assert result["options"] == {
+        "refresh_mode": "interval",
+        "refresh_hours": 12,
+        "naive_timezone": "utc",
+        "offset_minutes": 0,
+    }
     await hass.async_block_till_done()
     entry = result["result"]
     assert entry.state is ConfigEntryState.LOADED
 
-    # 4. A calendar without filters shows every programme of the file
+    # 5. A calendar without filters shows every programme of the file; no cache file was seeded (D-11)
+    assert not _cache_file(hass, entry.unique_id).exists()
     hass.config_entries.async_add_subentry(
         entry,
         ConfigSubentry(data=MappingProxyType({}), subentry_type="calendar", title="All", unique_id=None),
@@ -197,6 +211,53 @@ async def test_daily_mode_asks_only_for_a_time(
     await hass.async_block_till_done()
 
 
+# --- Shared settings fields (D-05, D-06) ----------------------------------------------------------------
+
+
+async def _source_form(hass: HomeAssistant, step: str) -> dict[str, Any]:
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    return await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": step})
+
+
+@pytest.mark.parametrize("step", ["url", "file"])
+async def test_url_and_file_steps_share_settings_fields(hass: HomeAssistant, step: str) -> None:
+    result = await _source_form(hass, step)
+    assert result["step_id"] == step
+    assert _schema_key(result, "refresh_mode").default() == "interval"
+    timezone = result["data_schema"].schema[_schema_key(result, "timezone")]
+    assert timezone.options == {"collapsed": True}
+    fields = {str(key): key.default() for key in timezone.schema.schema}
+    assert fields == {"naive_timezone": "utc", "offset_minutes": 0}
+    assert "refresh_hours" not in result["data_schema"].schema
+
+
+async def test_timezone_section_is_stored_flat(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+) -> None:
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await add_url_source(hass, naive_timezone="local", offset_minutes=-60)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "EPG"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["options"]["naive_timezone"] == "local"
+    assert result["options"]["offset_minutes"] == -60
+    assert "timezone" not in result["options"]
+    await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize("offset_minutes", [-721, 721])
+async def test_offset_out_of_bounds_is_rejected(hass: HomeAssistant, forbid_loop_io: None, offset_minutes: int) -> None:
+    result = await _source_form(hass, "url")
+    with pytest.raises(InvalidData):
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                "url": FEED_URL,
+                "refresh_mode": "interval",
+                "timezone": {"naive_timezone": "utc", "offset_minutes": offset_minutes},
+            },
+        )
+
+
 # --- URL step validation -------------------------------------------------------------------------------
 
 
@@ -284,9 +345,7 @@ async def test_probe_reads_at_most_probe_bytes(
 
 
 async def _submit_file(hass: HomeAssistant, path: str) -> dict[str, Any]:
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "file"})
-    return await hass.config_entries.flow.async_configure(result["flow_id"], {"path": path, "refresh_hours": 24})
+    return await add_file_source(hass, path)
 
 
 @pytest.fixture
@@ -380,17 +439,32 @@ async def test_minimum_refresh_is_one_hour(
     assert result["result"].runtime_data.coordinator.update_interval == timedelta(hours=1)
 
 
+async def _schedule_form(hass: HomeAssistant) -> dict[str, Any]:
+    """Drive a URL source up to the interval schedule step."""
+    result = await _source_form(hass, "url")
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"url": FEED_URL, "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+    )
+    await hass.async_block_till_done()
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["step_id"] == "schedule"
+    return result
+
+
 @pytest.mark.parametrize("refresh_hours", [0, 169])
-async def test_refresh_out_of_bounds_is_rejected(hass: HomeAssistant, forbid_loop_io: None, refresh_hours: int) -> None:
-    result = await _url_form(hass)
+async def test_refresh_out_of_bounds_is_rejected(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, refresh_hours: int
+) -> None:
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await _schedule_form(hass)
     with pytest.raises(InvalidData):
-        await hass.config_entries.flow.async_configure(
-            result["flow_id"], {"url": FEED_URL, "refresh_hours": refresh_hours}
-        )
+        await hass.config_entries.flow.async_configure(result["flow_id"], {"refresh_hours": refresh_hours})
 
 
-async def test_refresh_default_is_24_hours(hass: HomeAssistant) -> None:
-    result = await _url_form(hass)
+async def test_refresh_default_is_24_hours(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    result = await _schedule_form(hass)
     marker = _schema_key(result, "refresh_hours")
     assert marker.default() == 24
 

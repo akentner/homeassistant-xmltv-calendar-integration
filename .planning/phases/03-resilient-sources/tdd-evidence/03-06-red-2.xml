@@ -1,0 +1,3893 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="21" skipped="0" tests="33" time="3.505" timestamp="2026-10-16T13:05:26.111368+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_config_flow" name="test_file_source_end_to_end" time="0.166"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2a4f81a0&gt;
+flow_id = '01M4T4D2004P71JSCBEJRWYVKV'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_source_end_to_end0/guide.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e2a663860&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_source_end_to_end0/guide.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+allowed_dir = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_source_end_to_end0')
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f1e2a8d97f0&gt;
+forbid_loop_io = None
+
+    async def test_file_source_end_to_end(
+        hass: HomeAssistant,
+        allowed_dir: Path,
+        freezer: Any,
+        forbid_loop_io: None,
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T08:00:00+00:00")
+        allowed = allowed_dir
+        feed = allowed / "guide.xml"
+        feed.write_bytes(gzip.compress(BASIC_FEED))  # gzip data under a .xml name (SRC-03)
+        hass.config.allowlist_external_dirs = {str(allowed)}
+    
+        # 1. Menu offers url first, then file
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+        assert result["type"] is FlowResultType.MENU
+        assert list(result["menu_options"]) == ["url", "file"]
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "file"})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "file"
+    
+        # 2. file -&gt; schedule directly: a local file is not downloaded, so there is no progress step
+&gt;       result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"path": str(feed), "refresh_mode": "interval", "timezone": {"naive_timezone": "utc", "offset_minutes": 0}},
+        )
+
+tests/test_config_flow.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2a4f81a0&gt;
+flow_id = '01M4T4D2004P71JSCBEJRWYVKV'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_source_end_to_end0/guide.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_url_source_end_to_end_with_progress_and_seeded_cache" time="0.062" /><testcase classname="tests.test_config_flow" name="test_daily_mode_asks_only_for_a_time" time="0.046" /><testcase classname="tests.test_config_flow" name="test_url_and_file_steps_share_settings_fields[url]" time="0.028" /><testcase classname="tests.test_config_flow" name="test_url_and_file_steps_share_settings_fields[file]" time="0.026"><failure message="AssertionError: refresh_mode not in form">hass = &lt;HomeAssistant RUNNING&gt;, step = 'file'
+
+    @pytest.mark.parametrize("step", ["url", "file"])
+    async def test_url_and_file_steps_share_settings_fields(hass: HomeAssistant, step: str) -&gt; None:
+        result = await _source_form(hass, step)
+        assert result["step_id"] == step
+&gt;       assert _schema_key(result, "refresh_mode").default() == "interval"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'data_schema': &lt;Schema({'path': &lt;homeassistant.helpers.selector.TextSelector object at 0x7f1e282565d0&gt;, 'refresh_hour...bject at 0x7f1e21facb90&gt;, 'description_placeholders': None, 'errors': {}, 'flow_id': '01M4SXHAR0VWX67FPJQGZ4FCDY', ...}
+name = 'refresh_mode'
+
+    def _schema_key(result: Any, name: str) -&gt; Any:
+        """Return the voluptuous marker for `name` in a form result."""
+        for key in result["data_schema"].schema:
+            if key == name:
+                return key
+        msg = f"{name} not in form"
+&gt;       raise AssertionError(msg)
+E       AssertionError: refresh_mode not in form
+
+tests/test_config_flow.py:36: AssertionError</failure></testcase><testcase classname="tests.test_config_flow" name="test_timezone_section_is_stored_flat" time="0.047" /><testcase classname="tests.test_config_flow" name="test_offset_out_of_bounds_is_rejected[-721]" time="0.026" /><testcase classname="tests.test_config_flow" name="test_offset_out_of_bounds_is_rejected[721]" time="0.026" /><testcase classname="tests.test_config_flow" name="test_url_with_other_scheme_is_invalid" time="0.027"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21fdbb50&gt;
+flow_id = '01M4SXHAR0MHEB3WPSM0NPBBFD'
+user_input = {'refresh_hours': 24, 'url': 'ftp://x'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e219e4c80&gt;
+data = {'refresh_hours': 24, 'url': 'ftp://x'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;, forbid_loop_io = None
+
+    async def test_url_with_other_scheme_is_invalid(hass: HomeAssistant, forbid_loop_io: None) -&gt; None:
+&gt;       result = await _submit_url(hass, "ftp://x")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:277: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21fdbb50&gt;
+flow_id = '01M4SXHAR0MHEB3WPSM0NPBBFD'
+user_input = {'refresh_hours': 24, 'url': 'ftp://x'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[client-error]" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2a780450&gt;
+flow_id = '01M4SXHAR0NERA99D34PVNAZMX'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e219e5a50&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e282a90f0&gt;
+forbid_loop_io = None, mock_kwargs = {'exc': ClientError()}
+
+    @pytest.mark.parametrize(
+        "mock_kwargs",
+        [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}, {"status": 404}, {"status": 500}],
+        ids=["client-error", "timeout", "http-404", "http-500"],
+    )
+    async def test_unreachable_url_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, **mock_kwargs)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2a780450&gt;
+flow_id = '01M4SXHAR0NERA99D34PVNAZMX'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[timeout]" time="0.027"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21838aa0&gt;
+flow_id = '01M4SXHAR0B7EZ3EX5K9PM957J'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e219e6680&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e282a8770&gt;
+forbid_loop_io = None, mock_kwargs = {'exc': TimeoutError()}
+
+    @pytest.mark.parametrize(
+        "mock_kwargs",
+        [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}, {"status": 404}, {"status": 500}],
+        ids=["client-error", "timeout", "http-404", "http-500"],
+    )
+    async def test_unreachable_url_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, **mock_kwargs)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21838aa0&gt;
+flow_id = '01M4SXHAR0B7EZ3EX5K9PM957J'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[http-404]" time="0.027"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e218386e0&gt;
+flow_id = '01M4SXHAR07RP93ET0QNTPDCHZ'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e2a75ad00&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e219804d0&gt;
+forbid_loop_io = None, mock_kwargs = {'status': 404}
+
+    @pytest.mark.parametrize(
+        "mock_kwargs",
+        [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}, {"status": 404}, {"status": 500}],
+        ids=["client-error", "timeout", "http-404", "http-500"],
+    )
+    async def test_unreachable_url_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, **mock_kwargs)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e218386e0&gt;
+flow_id = '01M4SXHAR07RP93ET0QNTPDCHZ'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_unreachable_url_cannot_connect[http-500]" time="0.032"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2191b4d0&gt;
+flow_id = '01M4SXHAR07YYSZBDHTJWBHXT1'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e2a7587a0&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e28182250&gt;
+forbid_loop_io = None, mock_kwargs = {'status': 500}
+
+    @pytest.mark.parametrize(
+        "mock_kwargs",
+        [{"exc": aiohttp.ClientError()}, {"exc": TimeoutError()}, {"status": 404}, {"status": 500}],
+        ids=["client-error", "timeout", "http-404", "http-500"],
+    )
+    async def test_unreachable_url_cannot_connect(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, mock_kwargs: dict[str, Any]
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, **mock_kwargs)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2191b4d0&gt;
+flow_id = '01M4SXHAR07YYSZBDHTJWBHXT1'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_non_feed_body_is_invalid_feed" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2195a7b0&gt;
+flow_id = '01M4SXHAR01BF22J9PM01R3KZK'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e219e76c0&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e28181d00&gt;
+forbid_loop_io = None
+
+    async def test_non_feed_body_is_invalid_feed(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=b"hello")
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:301: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2195a7b0&gt;
+flow_id = '01M4SXHAR01BF22J9PM01R3KZK'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_bom_and_whitespace_before_xml_pass" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e23a258b0&gt;
+flow_id = '01M4SXHAR0SFR8E5V3RV0PSGKV'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e23a26f70&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e219a4e50&gt;
+forbid_loop_io = None
+
+    async def test_bom_and_whitespace_before_xml_pass(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=b"\xef\xbb\xbf \r\n\t" + BASIC_FEED)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e23a258b0&gt;
+flow_id = '01M4SXHAR0SFR8E5V3RV0PSGKV'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_probe_reads_at_most_probe_bytes" time="0.028"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21ab5910&gt;
+flow_id = '01M4SXHAR0PH7MQ5R636P3T5D3'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e23a27380&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e219a4250&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f1e283f3a10&gt;
+forbid_loop_io = None
+
+    async def test_probe_reads_at_most_probe_bytes(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        monkeypatch: pytest.MonkeyPatch,
+        forbid_loop_io: None,
+    ) -&gt; None:
+        body = BASIC_FEED + b"&lt;!-- " + b"x" * (1024 * 1024) + b" --&gt;\n"  # valid XML, over 1 MiB
+        streams: list[tuple[int, Any]] = []
+        real_mock_stream = aiohttp_mock.mock_stream
+    
+        def recording_stream(data: bytes) -&gt; Any:
+            stream = real_mock_stream(data)
+            streams.append((len(data), stream))
+            return stream
+    
+        monkeypatch.setattr(aiohttp_mock, "mock_stream", recording_stream)
+        aioclient_mock.get(FEED_URL, content=body)
+    
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21ab5910&gt;
+flow_id = '01M4SXHAR0PH7MQ5R636P3T5D3'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[relative]" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21ab6e10&gt;
+flow_id = '01M4SXHAR005RACP3204KJH5HN'
+user_input = {'path': 'guide.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e2a75add0&gt;
+data = {'path': 'guide.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_relative0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_relative0/outside')}
+forbid_loop_io = None, relative = 'guide.xml', field = 'path'
+error = 'path_not_allowed'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21ab6e10&gt;
+flow_id = '01M4SXHAR005RACP3204KJH5HN'
+user_input = {'path': 'guide.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[outside]" time="0.027"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e218e5180&gt;
+flow_id = '01M4SXHAR02QJEW8R4V1QV56H7'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_outside_0/outside/secret.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e219e7790&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_outside_0/outside/secret.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_outside_0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_outside_0/outside')}
+forbid_loop_io = None, relative = '@outside/secret.xml', field = 'path'
+error = 'path_not_allowed'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e218e5180&gt;
+flow_id = '01M4SXHAR02QJEW8R4V1QV56H7'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_outside_0/outside/secret.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[symlink-escape]" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2188c730&gt;
+flow_id = '01M4SXHAR0RDCMFET6RFNZ9GRG'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_symlink_0/allowed/escape.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e23a24390&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_symlink_0/allowed/escape.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_symlink_0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_symlink_0/outside')}
+forbid_loop_io = None, relative = '@inside/escape.xml', field = 'path'
+error = 'path_not_allowed'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2188c730&gt;
+flow_id = '01M4SXHAR0RDCMFET6RFNZ9GRG'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_symlink_0/allowed/escape.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[traversal]" time="0.027"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2186c730&gt;
+flow_id = '01M4SXHAR0CB96SFPGVP7YARH4'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_traversa0/allowed/../outside/secret.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a8c600&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_traversa0/allowed/../outside/secret.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_traversa0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_traversa0/outside')}
+forbid_loop_io = None, relative = '@inside/../outside/secret.xml'
+field = 'path', error = 'path_not_allowed'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e2186c730&gt;
+flow_id = '01M4SXHAR0CB96SFPGVP7YARH4'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_traversa0/allowed/../outside/secret.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[missing]" time="0.030"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21abd2e0&gt;
+flow_id = '01M4SXHAR0X30MA6SF1PWBZ66C'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_missing_0/allowed/missing.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a8d300&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_missing_0/allowed/missing.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_missing_0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_missing_0/outside')}
+forbid_loop_io = None, relative = '@inside/missing.xml', field = 'path'
+error = 'file_not_found'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21abd2e0&gt;
+flow_id = '01M4SXHAR0X30MA6SF1PWBZ66C'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_missing_0/allowed/missing.xml', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[directory]" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21abc9f0&gt;
+flow_id = '01M4SXHAR0ZKDQFKM5KRRZPF1Z'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_director0/allowed', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a8e4e0&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_director0/allowed', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_director0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_director0/outside')}
+forbid_loop_io = None, relative = '@inside', field = 'path'
+error = 'file_not_found'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21abc9f0&gt;
+flow_id = '01M4SXHAR0ZKDQFKM5KRRZPF1Z'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_director0/allowed', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_file_step_errors[not-xml]" time="0.026"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21a60f70&gt;
+flow_id = '01M4SXHAR0MM8NNSDAARRVE65G'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_not_xml_0/allowed/notes.txt', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a8e8f0&gt;
+data = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_not_xml_0/allowed/notes.txt', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_hours'? at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+layout = {'inside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_not_xml_0/allowed'), 'outside': PosixPath('/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_not_xml_0/outside')}
+forbid_loop_io = None, relative = '@inside/notes.txt', field = 'base'
+error = 'invalid_feed'
+
+    @pytest.mark.parametrize(
+        ("relative", "field", "error"),
+        [
+            ("guide.xml", "path", "path_not_allowed"),  # relative path
+            ("@outside/secret.xml", "path", "path_not_allowed"),  # existing file, directory not allowed
+            ("@inside/escape.xml", "path", "path_not_allowed"),  # symlink inside pointing outside
+            ("@inside/../outside/secret.xml", "path", "path_not_allowed"),  # traversal
+            ("@inside/missing.xml", "path", "file_not_found"),
+            ("@inside", "path", "file_not_found"),  # a directory is not a file
+            ("@inside/notes.txt", "base", "invalid_feed"),
+        ],
+        ids=["relative", "outside", "symlink-escape", "traversal", "missing", "directory", "not-xml"],
+    )
+    async def test_file_step_errors(
+        hass: HomeAssistant,
+        layout: dict[str, Path],
+        forbid_loop_io: None,
+        relative: str,
+        field: str,
+        error: str,
+    ) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(layout["inside"])}
+        path = relative
+        for name, directory in layout.items():
+            path = path.replace(f"@{name}", str(directory))
+&gt;       result = await _submit_file(hass, path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:390: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:348: in _submit_file
+    return await add_file_source(hass, path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:165: in add_file_source
+    result = await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21a60f70&gt;
+flow_id = '01M4SXHAR0MM8NNSDAARRVE65G'
+user_input = {'path': '/tmp/akentner/pytest-of-akentner/pytest-228/test_file_step_errors_not_xml_0/allowed/notes.txt', 'refresh_mode': 'interval', 'timezone': {'naive_timezone': 'utc', 'offset_minutes': 0}}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_mode'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_blank_name_is_rejected[]" time="0.032"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21a62e60&gt;
+flow_id = '01M4SXHAR0WSV251DK8PE92QXT'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a8c6d0&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e21a967b0&gt;
+forbid_loop_io = None, name = ''
+
+    @pytest.mark.parametrize("name", ["", "   "])
+    async def test_blank_name_is_rejected(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, name: str
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:405: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21a62e60&gt;
+flow_id = '01M4SXHAR0WSV251DK8PE92QXT'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_blank_name_is_rejected[   ]" time="0.032"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21aed2e0&gt;
+flow_id = '01M4SXHAR0WG71E0C14188AJH7'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a23c70&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e21a0d040&gt;
+forbid_loop_io = None, name = '   '
+
+    @pytest.mark.parametrize("name", ["", "   "])
+    async def test_blank_name_is_rejected(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None, name: str
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+&gt;       result = await _submit_url(hass, FEED_URL)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:405: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21aed2e0&gt;
+flow_id = '01M4SXHAR0WG71E0C14188AJH7'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_same_name_different_urls_both_created" time="0.030"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21a38aa0&gt;
+flow_id = '01M4SXHAR0B3N0SYWSNY9886QV'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a20ae0&gt;
+data = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e21a82dd0&gt;
+forbid_loop_io = None
+
+    async def test_same_name_different_urls_both_created(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        other_url = "https://other.example.org/epg.xml"
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+        aioclient_mock.get(other_url, content=BASIC_FEED)
+        for url in (FEED_URL, other_url):
+&gt;           result = await _submit_url(hass, url)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:418: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21a38aa0&gt;
+flow_id = '01M4SXHAR0B3N0SYWSNY9886QV'
+user_input = {'refresh_hours': 24, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_minimum_refresh_is_one_hour" time="0.032"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'">self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21cb9b20&gt;
+flow_id = '01M4SXHAR01ASSJEE1MS2SBBD4'
+user_input = {'refresh_hours': 1, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7f1e21a22dd0&gt;
+data = {'refresh_hours': 1, 'url': 'https://epg.example.com/guide.xml'}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option, did you mean 'refresh_mode'? at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f1e21a82190&gt;
+forbid_loop_io = None
+
+    async def test_minimum_refresh_is_one_hour(
+        hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, forbid_loop_io: None
+    ) -&gt; None:
+        aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+&gt;       result = await _submit_url(hass, FEED_URL, refresh_hours=1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_config_flow.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_config_flow.py:271: in _submit_url
+    return await hass.config_entries.flow.async_configure(
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/homeassistant/config_entries.py:1691: in _async_configure
+    return await super()._async_configure(flow_id, user_input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigEntriesFlowManager object at 0x7f1e21cb9b20&gt;
+flow_id = '01M4SXHAR01ASSJEE1MS2SBBD4'
+user_input = {'refresh_hours': 1, 'url': 'https://epg.example.com/guide.xml'}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'refresh_hours'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_config_flow" name="test_refresh_out_of_bounds_is_rejected[0]" time="0.039" /><testcase classname="tests.test_config_flow" name="test_refresh_out_of_bounds_is_rejected[169]" time="0.031" /><testcase classname="tests.test_config_flow" name="test_refresh_default_is_24_hours" time="0.033" /><testcase classname="tests.test_config_flow" name="test_missing_refresh_option_means_24_hours" time="0.042" /><testcase classname="tests.test_config_flow" name="test_truncated_file_retries_setup" time="0.030" /><testcase classname="tests.test_config_flow" name="test_file_outside_allowlist_is_refused_at_setup" time="0.030" /></testsuite></testsuites>
