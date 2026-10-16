@@ -150,15 +150,22 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             return await self.hass.async_add_executor_job(self._parser(), io.BytesIO(payload))
 
     async def _async_parse_cached(self) -> EpgData | None:
-        """Parse the cached payload; None when it is missing, does not parse or holds no programmes."""
+        """
+        Parse the cached payload; None when it is unusable.
+
+        A payload that is missing, has the wrong size, does not parse or holds no programmes is dropped, so the caller
+        falls through to an unconditional download and a poisoned cache is never retried (T-03-05).
+        """
         payload = await self._cache.async_read()
-        if payload is None:
-            return None
-        try:
-            epg = await self._async_parse_payload(payload)
-        except UpdateFailed:
-            return None
-        if not epg.programmes:
+        epg: EpgData | None = None
+        if payload is not None:
+            try:
+                epg = await self._async_parse_payload(payload)
+            except UpdateFailed:
+                epg = None
+        if epg is None or not epg.programmes:
+            _LOGGER.debug("Source %s: dropping an unusable disk cache", self.config_entry.title)
+            await self._cache.async_drop()
             return None
         return epg
 

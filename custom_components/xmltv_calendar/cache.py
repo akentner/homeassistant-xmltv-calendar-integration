@@ -181,6 +181,24 @@ class FeedCache:
         self._meta = meta
         return True
 
+    async def async_drop(self) -> None:
+        """Forget a cache that turned out unusable: delete the payload and save empty metadata."""
+        self._meta = None
+        await self._hass.async_add_executor_job(self._unlink)
+        await self._store.async_save({"meta": None})
+
+    async def async_remove(self) -> None:
+        """Delete the payload file and the Store, when the entry is removed (D-08)."""
+        self._meta = None
+        await self._hass.async_add_executor_job(self._unlink)
+        await self._store.async_remove()
+
+    def _unlink(self) -> None:
+        try:
+            self._path.unlink(missing_ok=True)
+        except OSError as err:
+            _LOGGER.debug("Cache %s payload not deleted: %s", self._key, type(err).__name__)
+
     def _write(self, payload: bytes) -> str:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         write_utf8_file(str(self._path), payload, private=True, mode="wb")

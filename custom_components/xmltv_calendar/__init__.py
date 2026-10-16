@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
 
+from .cache import FeedCache, cache_key
 from .calendar import XmltvCalendarEntity
 from .const import SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
@@ -54,3 +55,8 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
 async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bool:
     """Unload the calendar platform."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> None:
+    """Delete the source's cached feed and its metadata when the entry is removed (D-08)."""
+    await FeedCache(hass, cache_key(entry)).async_remove()
