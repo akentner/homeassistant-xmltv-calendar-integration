@@ -170,6 +170,11 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             )
         self.async_write_ha_state()
 
+    @property
+    def match_count(self) -> int:
+        """Number of programmes the calendar's filter currently matches (diagnostics, D-21)."""
+        return len(self._index)
+
     def differs_from(self, subentry: ConfigSubentry) -> bool:
         """Return whether `subentry` has another title or data than the entity was last built from."""
         return (subentry.title, subentry.data) != (self._subentry_title, self._subentry_data)
