@@ -1,5 +1,7 @@
 """End-to-end refresh scheduling through Home Assistant: daily slot in the HA time zone, interval, re-arm (SRC-05)."""
 
+import asyncio
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import MappingProxyType
@@ -7,9 +9,11 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from homeassistant.config_entries import ConfigSubentry
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
+from custom_components.xmltv_calendar import coordinator as coordinator_module
 from custom_components.xmltv_calendar.const import (
     CONF_REFRESH_HOURS,
     CONF_REFRESH_MODE,
@@ -22,6 +26,7 @@ from .conftest import FEED_URL
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    import pytest
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.common import MockConfigEntry
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
@@ -283,3 +288,90 @@ async def test_backoff_capped_by_next_daily_slot(
     freezer.move_to("2026-10-13T16:05:00+00:00")
     await coordinator.async_refresh()
     assert coordinator.next_refresh_at == datetime.fromisoformat("2026-10-13T16:15:00+00:00")
+
+
+def _raise_runtime_error(*_args: Any, **_kwargs: Any) -> Any:
+    msg = "boom"
+    raise RuntimeError(msg)
+
+
+async def test_unexpected_exception_backs_off_and_is_recorded(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    freezer.move_to("2026-10-13T06:00:00+00:00")
+    entry = await setup_xmltv(FEED)
+    coordinator = entry.runtime_data.coordinator
+    previous = coordinator.data
+    # A changed body, so the refresh parses instead of taking the identical-body shortcut
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, content=FEED + b"\n")
+    # A latent parser bug (or MemoryError): neither FeedError nor UpdateFailed
+    monkeypatch.setattr(coordinator_module, "parse", _raise_runtime_error)
+    caplog.clear()
+
+    failed_at = coordinator.next_refresh_at + timedelta(seconds=1)
+    await _step_to(hass, freezer, failed_at.isoformat())
+    assert aioclient_mock.call_count == 1
+    health = coordinator.health
+    assert health.consecutive_failures == 1
+    assert health.failing_since == failed_at
+    assert health.last_failure_reason == "unable_to_fetch"
+    assert coordinator.next_refresh_at == failed_at + timedelta(minutes=5)
+    assert isinstance(coordinator.last_exception, UpdateFailed)
+    assert coordinator.last_exception.translation_key == "unable_to_fetch"
+    # The last good data stays and the calendars stay available (SRC-08, D-19)
+    assert coordinator.data is previous
+    state = hass.states.get("calendar.test")
+    assert state is not None
+    assert state.state != "unavailable"
+    # One content-free WARNING: the exception class, never its text (T-03-28)
+    warnings = [
+        record
+        for record in caplog.records
+        if record.name == "custom_components.xmltv_calendar.coordinator" and record.levelno == logging.WARNING
+    ]
+    assert len(warnings) == 1
+    assert "RuntimeError" in warnings[0].getMessage()
+    assert "boom" not in warnings[0].getMessage()
+    assert warnings[0].exc_info is None
+
+    # No once-per-second retry loop
+    await _step_to(hass, freezer, (failed_at + timedelta(seconds=10)).isoformat())
+    assert aioclient_mock.call_count == 1
+
+    retry_at = coordinator.next_refresh_at + timedelta(seconds=1)
+    await _step_to(hass, freezer, retry_at.isoformat())
+    assert aioclient_mock.call_count == 2
+    assert coordinator.health.consecutive_failures == 2
+    assert coordinator.next_refresh_at == retry_at + timedelta(minutes=15)
+
+
+async def test_cancelled_refresh_records_no_failure(
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    freezer.move_to("2026-10-13T06:00:00+00:00")
+    entry = await setup_xmltv(FEED)
+    coordinator = entry.runtime_data.coordinator
+    target = coordinator.next_refresh_at
+
+    async def _cancelled(*_args: Any, **_kwargs: Any) -> Any:
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(coordinator_module, "async_fetch_url", _cancelled)
+    freezer.tick(timedelta(hours=1))
+    # Home Assistant swallows a CancelledError when the refreshing task itself is not being cancelled
+    await coordinator.async_refresh()
+
+    health = coordinator.health
+    assert health.consecutive_failures == 0
+    assert health.failing_since is None
+    assert health.last_failure_at is None
+    assert coordinator.next_refresh_at == target
+    assert isinstance(coordinator.last_exception, asyncio.CancelledError)

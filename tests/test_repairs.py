@@ -1,7 +1,7 @@
 """Repairs issue for a source that keeps failing (SRC-11, D-17, D-18)."""
 
 import gzip
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +13,8 @@ from homeassistant.helpers.translation import async_get_translations
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
+from custom_components.xmltv_calendar import coordinator as coordinator_module
+from custom_components.xmltv_calendar.cache import FeedCache, cache_key
 from custom_components.xmltv_calendar.const import CONF_REFRESH_MODE, CONF_REFRESH_TIME, REFRESH_MODE_DAILY
 
 from .conftest import DOMAIN, FEED_URL
@@ -115,6 +117,67 @@ async def test_persistent_failure_raises_and_clears_issue(
     await _refresh_at(hass, freezer, entry, timedelta(hours=26))
     assert coordinator.last_update_success is True
     assert _issue(hass, entry) is None
+
+
+def _raise_runtime_error(*_args: Any, **_kwargs: Any) -> Any:
+    msg = "boom"
+    raise RuntimeError(msg)
+
+
+async def test_unexpected_exception_raises_issue_after_24h(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = await setup_xmltv(FEED)
+    coordinator = entry.runtime_data.coordinator
+    monkeypatch.setattr(coordinator_module, "parse", _raise_runtime_error)
+    # A changed body, so every refresh parses
+    _serve(aioclient_mock, content=FEED + b"\n")
+
+    await _refresh_at(hass, freezer, entry, timedelta(hours=1))
+    assert coordinator.health.consecutive_failures == 1
+    assert coordinator.last_update_success is False
+    assert _issue(hass, entry) is None
+
+    await _refresh_at(hass, freezer, entry, timedelta(hours=25, seconds=1))
+    issue = _issue(hass, entry)
+    assert issue is not None
+    assert issue.translation_key == "source_failing_unable_to_fetch"
+    assert issue.translation_placeholders == {"source": "Test EPG", "last_success": "2026-10-13 08:00"}
+
+    # The cached body again: an identical-body success without a parse
+    _serve(aioclient_mock, content=FEED)
+    await _refresh_at(hass, freezer, entry, timedelta(hours=26))
+    assert coordinator.last_update_success is True
+    assert _issue(hass, entry) is None
+
+
+async def test_unexpected_cache_parse_failure_is_recorded(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = await setup_xmltv(FEED)  # loaded, cache written at NOW
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    monkeypatch.setattr(coordinator_module, "parse", _raise_runtime_error)
+    _serve(aioclient_mock, content=FEED)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.error_reason_translation_key == "unable_to_fetch"
+    assert aioclient_mock.call_count == 0
+    cache = FeedCache(hass, cache_key(entry))
+    await cache.async_load()
+    assert cache.health.consecutive_failures == 1
+    assert cache.health.last_failure_reason == "unable_to_fetch"
+    assert cache.health.last_success == datetime.fromisoformat(NOW)
 
 
 async def test_issue_follows_the_latest_reason(
