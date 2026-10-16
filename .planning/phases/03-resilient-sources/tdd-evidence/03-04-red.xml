@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="0.418" timestamp="2026-10-16T12:40:44.972276+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_repairs" name="test_persistent_failure_raises_and_clears_issue" time="0.206"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fa12da04d70&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fa12daed2b0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fa12c7bd4e0&gt;
+
+    async def test_persistent_failure_raises_and_clears_issue(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        coordinator = entry.runtime_data.coordinator
+        _serve(aioclient_mock, exc=aiohttp.ClientError())
+    
+        await _refresh_at(hass, freezer, entry, timedelta(hours=1))
+        assert coordinator.last_update_success is False
+        assert _issue(hass, entry) is None
+    
+        # Exactly 24 h after the first failure of the streak is not yet "more than 24 h"
+        await _refresh_at(hass, freezer, entry, timedelta(hours=25))
+        assert _issue(hass, entry) is None
+    
+        await _refresh_at(hass, freezer, entry, timedelta(hours=25, seconds=1))
+        issue = _issue(hass, entry)
+&gt;       assert issue is not None
+E       assert None is not None
+
+tests/test_repairs.py:67: AssertionError</failure></testcase><testcase classname="tests.test_repairs" name="test_issue_follows_the_latest_reason" time="0.056"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fa12daa74d0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fa12daa6490&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fa12c406090&gt;
+
+    async def test_issue_follows_the_latest_reason(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        payload = gzip.compress(FEED)
+        entry = await setup_xmltv(payload)
+        _serve(aioclient_mock, exc=aiohttp.ClientError())
+        await _refresh_at(hass, freezer, entry, timedelta(hours=1))
+    
+        _serve(aioclient_mock, content=payload[: len(payload) // 2], headers=OCTET_STREAM)
+        await _refresh_at(hass, freezer, entry, timedelta(hours=25, seconds=1))
+    
+        issue = _issue(hass, entry)
+&gt;       assert issue is not None
+E       assert None is not None
+
+tests/test_repairs.py:94: AssertionError</failure></testcase><testcase classname="tests.test_repairs" name="test_issue_text_has_no_url" time="0.056"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fa12c42a350&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fa12daa6710&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fa12c29cca0&gt;
+
+    async def test_issue_text_has_no_url(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED, url=SECRET_URL)
+        _serve(aioclient_mock, url=SECRET_URL, exc=aiohttp.ClientError())
+        await _refresh_at(hass, freezer, entry, timedelta(hours=1))
+        await _refresh_at(hass, freezer, entry, timedelta(hours=25, seconds=1))
+    
+        issue = _issue(hass, entry)
+&gt;       assert issue is not None
+E       assert None is not None
+
+tests/test_repairs.py:110: AssertionError</failure></testcase></testsuite></testsuites>
