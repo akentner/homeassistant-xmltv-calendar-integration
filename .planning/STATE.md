@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
 status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-10-16T10:37:46.457Z"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-10-16T10:49:50.547Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: 32f22fb5c126beae07c371ef273dd37336c82976
+state_head: 7542ae0587f1cf88defaae28de90284eb8d86217
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 29
-  completed_plans: 24
+  completed_plans: 25
   percent: 50
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 03 (Resilient Sources) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-10-16 — Phase 03 execution started
 
@@ -81,6 +81,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P01 | 13 min | 3 tasks | 11 files |
 | Phase 03 P02 | 8 min | 3 tasks | 7 files |
 | Phase 03 P03 | 9 min | 3 tasks | 7 files |
+| Phase 03 P04 | 9 min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -165,6 +166,10 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-03: unchanged sources (304, identical SHA-256 body, unchanged file) return the identical EpgData object; always_update=False plus calendar identity guard means no refilter
 - [Phase 03]: 03-03: 304 without data parses the cache, else repeats the request without validators in the same refresh; a 304 to that retry fails unable_to_fetch
 - [Phase 03]: 03-03: file sources skip the parse when (st_mtime_ns, st_size) matches the signature of this coordinator instance; allowlist check first, nothing persisted
+- [Phase 03]: 03-04: SourceHealth (last_success, failing_since, last_failure_at/reason, consecutive_failures) is stored with CacheMeta in the cache Store as {meta, health}, for file sources too; success resets the streak but keeps the last failure for diagnostics
+- [Phase 03]: 03-04: Repairs issue source_failing_<entry_id> (not fixable, WARNING, non-persistent) uses translation_key source_failing_<reason> with placeholders source and last_success (local YYYY-MM-DD HH:MM or -); reasons limited to FAILURE_REASONS, unknown -> unable_to_fetch
+- [Phase 03]: 03-04: failure target = now + backoff_delay(consecutive_failures, now, next_regular); cache start re-raises the issue; failed first setup records health so retries count toward 24 h; async_remove_entry deletes the issue
+- [Phase 03]: 03-04: a parsed feed with 0 current programmes raises UpdateFailed(empty_feed) before any cache write or file-signature update (D-20); first setup without cache -> SETUP_RETRY
 
 ### Pending Todos
 
@@ -198,6 +203,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T10:37:46.298Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-10-16T10:49:50.384Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None

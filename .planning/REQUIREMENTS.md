@@ -14,10 +14,10 @@
 - [ ] **SRC-05**: User can alternatively schedule a source to refresh once daily at a fixed time (e.g. 18:15 for a feed generated at 18:00)
 - [x] **SRC-06**: Downloaded source data is cached on disk; an HA restart or entry reload uses the cache and does not re-fetch while the cache is still fresh for the configured schedule
 - [x] **SRC-07**: Remote sources are re-downloaded only when changed (ETag / If-Modified-Since)
-- [ ] **SRC-08**: A failed fetch or parse keeps the last good data; calendars keep working
+- [x] **SRC-08**: A failed fetch or parse keeps the last good data; calendars keep working
 - [x] **SRC-09**: Large feeds (50+ MB) are parsed without blocking the HA event loop and with bounded memory
 - [ ] **SRC-10**: User can configure per source that timestamps without offset are local time, and/or apply a time offset correction
-- [ ] **SRC-11**: User sees a Repairs issue when a source fails persistently; it clears on success
+- [x] **SRC-11**: User sees a Repairs issue when a source fails persistently; it clears on success
 - [ ] **SRC-12**: User can download diagnostics for a source (URL/credentials redacted; programme/channel/match counts, last success/failure)
 - [x] **SRC-13**: Duplicate sources (same normalized URL/path) are rejected during setup
 
@@ -108,10 +108,10 @@
 | SRC-05 | Phase 3 | Pending |
 | SRC-06 | Phase 3 | Complete |
 | SRC-07 | Phase 3 | Complete |
-| SRC-08 | Phase 3 | Pending |
+| SRC-08 | Phase 3 | Complete |
 | SRC-09 | Phase 1 | Complete |
 | SRC-10 | Phase 3 | Pending |
-| SRC-11 | Phase 3 | Pending |
+| SRC-11 | Phase 3 | Complete |
 | SRC-12 | Phase 3 | Pending |
 | SRC-13 | Phase 1 | Complete |
 | FLT-01 | Phase 1 | Complete |
