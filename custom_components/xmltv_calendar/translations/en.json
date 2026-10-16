@@ -185,6 +185,48 @@
       }
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Source settings",
+        "description": "Change how this source is refreshed and how the feed's times are read. Saving reloads the source from its cache, without a new download. The URL or file of a source cannot be changed here.",
+        "data": {
+          "refresh_mode": "Refresh"
+        },
+        "data_description": {
+          "refresh_mode": "Download the feed again at a fixed interval or once a day at a fixed time."
+        },
+        "sections": {
+          "timezone": {
+            "name": "Timezone",
+            "description": "How the times in the feed are read. Only needed when the feed's times are off.",
+            "data": {
+              "naive_timezone": "Times without offset",
+              "offset_minutes": "Offset correction"
+            },
+            "data_description": {
+              "naive_timezone": "Time zone for feed times that carry no UTC offset: UTC (the XMLTV default) or the Home Assistant time zone.",
+              "offset_minutes": "Minutes added to every programme time, from -720 to 720. Use it when a feed is off by a fixed amount."
+            }
+          }
+        }
+      },
+      "schedule": {
+        "title": "Refresh schedule",
+        "data": {
+          "refresh_hours": "Refresh interval",
+          "refresh_time": "Refresh time"
+        },
+        "data_description": {
+          "refresh_hours": "How often the source is refreshed, in hours (1 to 168).",
+          "refresh_time": "Time of day of the daily refresh, in the local Home Assistant time zone."
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Enter a valid time of day."
+    }
+  },
   "issues": {
     "source_failing_unable_to_fetch": {
       "title": "XMLTV source {source} keeps failing",

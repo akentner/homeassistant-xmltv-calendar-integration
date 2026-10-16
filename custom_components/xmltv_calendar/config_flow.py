@@ -1,4 +1,4 @@
-"""Config flow: source entries (menu -> source step [-> download] -> schedule -> name) and calendar subentries."""
+"""Config flow: source entries (menu -> source step [-> download] -> schedule -> name), source options, calendars."""
 
 from pathlib import PurePath
 from typing import TYPE_CHECKING, Any
@@ -10,6 +10,7 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     ConfigSubentryFlow,
+    OptionsFlow,
     SubentryFlowResult,
 )
 from homeassistant.core import callback
@@ -358,11 +359,58 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
             last_modified=self._fetched.last_modified,
         )
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> XmltvOptionsFlow:  # noqa: ARG004
+        """Return the source options flow; a plain OptionsFlow, the entry's diffing listener reloads (D-07)."""
+        return XmltvOptionsFlow()
+
     @classmethod
     @callback
     def async_get_supported_subentry_types(cls, config_entry: ConfigEntry) -> dict[str, type[ConfigSubentryFlow]]:  # noqa: ARG003
         """Return the subentry types this integration supports."""
         return {SUBENTRY_TYPE_CALENDAR: CalendarSubentryFlow}
+
+
+class XmltvOptionsFlow(OptionsFlow):
+    """
+    Edit a source's schedule and timezone settings: init (mode + timezone section) -> schedule (D-04, D-05).
+
+    URL and path are never offered, so the source identity stays fixed. Saving replaces entry.options with the complete
+    option contract; the entry's diffing update listener then reloads the source once (D-07), from its cache (D-16).
+    """
+
+    def __init__(self) -> None:
+        """Initialize the pending options; self.config_entry is not available yet."""
+        self._pending: dict[str, Any] = {}
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Ask for the refresh mode and the timezone settings, pre-filled from the stored options (D-06)."""
+        defaults = SourceOptions.from_mapping(self.config_entry.options)
+        if user_input is not None:
+            self._pending = {**defaults.as_options(), **_settings_from_input(user_input)}
+            return await self.async_step_schedule()
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(_settings_fields(defaults)))
+
+    async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Ask for the one schedule field the chosen mode needs, pre-filled with its stored value (D-01, D-02)."""
+        errors: dict[str, str] = {}
+        mode = self._pending[CONF_REFRESH_MODE]
+        if user_input is not None:
+            if mode == REFRESH_MODE_DAILY:
+                refresh_time = normalize_time(user_input.get(CONF_REFRESH_TIME))
+                if refresh_time is None:
+                    errors[CONF_REFRESH_TIME] = "invalid_time"
+                else:
+                    self._pending[CONF_REFRESH_TIME] = refresh_time
+            else:
+                # The NumberSelector sends float; stored as whole hours
+                self._pending[CONF_REFRESH_HOURS] = int(user_input[CONF_REFRESH_HOURS])
+            if not errors:
+                return self.async_create_entry(data=SourceOptions.from_mapping(self._pending).as_options())
+
+        schema = _schedule_schema(SourceOptions.from_mapping(self._pending), mode)
+        return self.async_show_form(step_id="schedule", data_schema=schema, errors=errors)
 
 
 # Free-text filter fields: one pattern per line, blank lines ignored (D-05)
