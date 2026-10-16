@@ -7,10 +7,11 @@ from functools import partial
 from typing import TYPE_CHECKING, override
 
 from homeassistant.core import callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .cache import CacheMeta, FeedCache, cache_key, payload_sha256
+from .cache import CacheMeta, FeedCache, SourceHealth, cache_key, payload_sha256
 from .const import (
     CONF_PATH,
     CONF_SOURCE_TYPE,
@@ -33,7 +34,15 @@ from .source import (
 )
 from .xmltv.model import EpgData
 from .xmltv.parser import FeedError, FeedTooLargeError, parse
-from .xmltv.schedule import MIN_DELAY, Schedule, SourceOptions, fresh_until, is_fresh, next_regular
+from .xmltv.schedule import (
+    MIN_DELAY,
+    Schedule,
+    SourceOptions,
+    fresh_until,
+    is_fresh,
+    is_persistently_failing,
+    next_regular,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -46,6 +55,17 @@ if TYPE_CHECKING:
     from .source import Fetched
 
 _LOGGER = logging.getLogger(__name__)
+
+# Translation keys of the coordinator's UpdateFailed; each has an issue text source_failing_<reason>
+FAILURE_REASONS = frozenset(
+    {"unable_to_fetch", "invalid_feed", "feed_too_large", "path_not_allowed", "file_not_found", "empty_feed"}
+)
+_DEFAULT_REASON = "unable_to_fetch"
+
+
+def issue_id(entry_id: str) -> str:
+    """Return the id of the Repairs issue a persistently failing source raises (one per source entry)."""
+    return f"source_failing_{entry_id}"
 
 
 class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
@@ -93,6 +113,11 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         """Metadata of the source's disk cache, None when there is none."""
         return self._cache.meta
 
+    @property
+    def health(self) -> SourceHealth:
+        """Refresh outcomes of the source: last success, failure streak and last failure (read-only snapshot)."""
+        return self._cache.health
+
     def _schedule(self) -> Schedule:
         """Return the refresh schedule in the current HA time zone (read on every call, D-02)."""
         return self._options.schedule(dt_util.get_default_time_zone())
@@ -115,21 +140,81 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
 
     @override
     async def _async_update_data(self) -> EpgData:
-        """Read the source (disk cache, download or allowed local file), then parse it off the event loop."""
-        # Every outcome sets exactly one refresh target
-        if self.config_entry.data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_FILE:
-            try:
-                return await self._async_update_file()
-            finally:
-                self._set_regular_target()
-        if self.data is None:
+        """
+        Read the source (disk cache, download or allowed local file), then parse it off the event loop.
+
+        Every outcome sets exactly one refresh target and is recorded in the source health: a success (also a 304, an
+        identical body or an unchanged file) ends a failure streak and clears its Repairs issue (D-17); a failure keeps
+        the last good data (SRC-08, D-19), extends the streak and may raise the issue. `UpdateFailed` is re-raised
+        unchanged, so Home Assistant logs it once per streak (RESEARCH Pitfall 8).
+        """
+        is_file = self.config_entry.data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_FILE
+        if not is_file and self.data is None:
             cached = await self._async_start_from_cache()
             if cached is not None:
                 return cached
         try:
-            return await self._async_update_url()
-        finally:
+            epg = await (self._async_update_file() if is_file else self._async_update_url())
+        except UpdateFailed as err:
             self._set_regular_target()
+            await self._async_record_failure(dt_util.utcnow(), err.translation_key)
+            raise
+        self._set_regular_target()
+        await self._async_record_success(dt_util.utcnow())
+        return epg
+
+    async def _async_record_success(self, now: datetime) -> None:
+        """End the failure streak, clear the Repairs issue (D-17); keep the last failure for diagnostics."""
+        health = self._cache.health
+        await self._cache.async_save_health(
+            SourceHealth(
+                last_success=now,
+                last_failure_at=health.last_failure_at,
+                last_failure_reason=health.last_failure_reason,
+            )
+        )
+        ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.config_entry.entry_id))
+
+    async def _async_record_failure(self, now: datetime, reason: str | None) -> None:
+        """Record a failed refresh, extend the failure streak and raise the Repairs issue once it is persistent."""
+        health = self._cache.health
+        await self._cache.async_save_health(
+            SourceHealth(
+                last_success=health.last_success,
+                failing_since=health.failing_since or now,
+                last_failure_at=now,
+                last_failure_reason=reason if reason in FAILURE_REASONS else _DEFAULT_REASON,
+                consecutive_failures=health.consecutive_failures + 1,
+            )
+        )
+        self._sync_issue(now)
+
+    @callback
+    def _sync_issue(self, now: datetime) -> None:
+        """
+        Raise or update the Repairs issue when the failure streak began more than 24 h before `now` (D-17, D-18).
+
+        The issue is info only and names the source title, the last success in local time and the reason through a
+        per-reason translation key; it never holds the URL, the path or exception text (T-03-12). Re-creating it with
+        another reason replaces it in place.
+        """
+        health = self._cache.health
+        if not is_persistently_failing(health.failing_since, now):
+            return
+        reason = health.last_failure_reason if health.last_failure_reason in FAILURE_REASONS else _DEFAULT_REASON
+        last_success = (
+            dt_util.as_local(health.last_success).strftime("%Y-%m-%d %H:%M") if health.last_success is not None else "-"
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            issue_id(self.config_entry.entry_id),
+            is_fixable=False,
+            is_persistent=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=f"source_failing_{reason}",
+            translation_placeholders={"source": self.config_entry.title, "last_success": last_success},
+        )
 
     async def _async_start_from_cache(self) -> EpgData | None:
         """

@@ -206,7 +206,9 @@ async def test_empty_parse_is_not_cached(
     entry = await setup_xmltv(OUTDATED_FEED)
 
     assert not _payload_path(hass, entry).exists()
-    assert f"{DOMAIN}.{entry.entry_id}" not in hass_storage
+    # The Store may hold the source health (03-04), never payload metadata
+    stored = hass_storage.get(f"{DOMAIN}.{entry.entry_id}")
+    assert stored is None or stored["data"]["meta"] is None
 
 
 async def test_cache_write_failure_is_tolerated(

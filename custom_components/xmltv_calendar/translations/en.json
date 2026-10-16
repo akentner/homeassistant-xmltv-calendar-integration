@@ -141,6 +141,32 @@
       }
     }
   },
+  "issues": {
+    "source_failing_unable_to_fetch": {
+      "title": "XMLTV source {source} keeps failing",
+      "description": "The XMLTV source {source} has been failing for more than 24 hours: the feed could not be downloaded. Last successful refresh: {last_success}. The calendars of this source keep showing the last good data."
+    },
+    "source_failing_invalid_feed": {
+      "title": "XMLTV source {source} keeps failing",
+      "description": "The XMLTV source {source} has been failing for more than 24 hours: the feed is not a valid XMLTV file. Last successful refresh: {last_success}. The calendars of this source keep showing the last good data."
+    },
+    "source_failing_feed_too_large": {
+      "title": "XMLTV source {source} keeps failing",
+      "description": "The XMLTV source {source} has been failing for more than 24 hours: the feed exceeds the size limits. Last successful refresh: {last_success}. The calendars of this source keep showing the last good data."
+    },
+    "source_failing_path_not_allowed": {
+      "title": "XMLTV source {source} keeps failing",
+      "description": "The XMLTV source {source} has been failing for more than 24 hours: the file path is not in a directory Home Assistant allows. Last successful refresh: {last_success}. The calendars of this source keep showing the last good data."
+    },
+    "source_failing_file_not_found": {
+      "title": "XMLTV source {source} keeps failing",
+      "description": "The XMLTV source {source} has been failing for more than 24 hours: the file does not exist or cannot be read. Last successful refresh: {last_success}. The calendars of this source keep showing the last good data."
+    },
+    "source_failing_empty_feed": {
+      "title": "XMLTV source {source} keeps failing",
+      "description": "The XMLTV source {source} has been failing for more than 24 hours: the feed contains no current programmes. Last successful refresh: {last_success}. The calendars of this source keep showing the last good data."
+    }
+  },
   "exceptions": {
     "unable_to_fetch": {
       "message": "Unable to download the XMLTV feed."
@@ -156,6 +182,9 @@
     },
     "file_not_found": {
       "message": "The XMLTV file does not exist or is not a regular file."
+    },
+    "empty_feed": {
+      "message": "The XMLTV feed contains no current programmes."
     }
   },
   "selector": {

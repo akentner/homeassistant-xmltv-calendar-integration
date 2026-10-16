@@ -141,6 +141,32 @@
       }
     }
   },
+  "issues": {
+    "source_failing_unable_to_fetch": {
+      "title": "XMLTV-Quelle {source} schlägt dauerhaft fehl",
+      "description": "Die XMLTV-Quelle {source} schlägt seit mehr als 24 Stunden fehl: Der Feed konnte nicht heruntergeladen werden. Letzte erfolgreiche Aktualisierung: {last_success}. Die Kalender dieser Quelle zeigen weiter die letzten gültigen Daten."
+    },
+    "source_failing_invalid_feed": {
+      "title": "XMLTV-Quelle {source} schlägt dauerhaft fehl",
+      "description": "Die XMLTV-Quelle {source} schlägt seit mehr als 24 Stunden fehl: Der Feed ist keine gültige XMLTV-Datei. Letzte erfolgreiche Aktualisierung: {last_success}. Die Kalender dieser Quelle zeigen weiter die letzten gültigen Daten."
+    },
+    "source_failing_feed_too_large": {
+      "title": "XMLTV-Quelle {source} schlägt dauerhaft fehl",
+      "description": "Die XMLTV-Quelle {source} schlägt seit mehr als 24 Stunden fehl: Der Feed überschreitet die Größengrenzen. Letzte erfolgreiche Aktualisierung: {last_success}. Die Kalender dieser Quelle zeigen weiter die letzten gültigen Daten."
+    },
+    "source_failing_path_not_allowed": {
+      "title": "XMLTV-Quelle {source} schlägt dauerhaft fehl",
+      "description": "Die XMLTV-Quelle {source} schlägt seit mehr als 24 Stunden fehl: Der Dateipfad liegt nicht in einem Verzeichnis, das Home Assistant erlaubt. Letzte erfolgreiche Aktualisierung: {last_success}. Die Kalender dieser Quelle zeigen weiter die letzten gültigen Daten."
+    },
+    "source_failing_file_not_found": {
+      "title": "XMLTV-Quelle {source} schlägt dauerhaft fehl",
+      "description": "Die XMLTV-Quelle {source} schlägt seit mehr als 24 Stunden fehl: Die Datei existiert nicht oder kann nicht gelesen werden. Letzte erfolgreiche Aktualisierung: {last_success}. Die Kalender dieser Quelle zeigen weiter die letzten gültigen Daten."
+    },
+    "source_failing_empty_feed": {
+      "title": "XMLTV-Quelle {source} schlägt dauerhaft fehl",
+      "description": "Die XMLTV-Quelle {source} schlägt seit mehr als 24 Stunden fehl: Der Feed enthält keine aktuellen Sendungen. Letzte erfolgreiche Aktualisierung: {last_success}. Die Kalender dieser Quelle zeigen weiter die letzten gültigen Daten."
+    }
+  },
   "exceptions": {
     "unable_to_fetch": {
       "message": "Der XMLTV-Feed konnte nicht heruntergeladen werden."
@@ -156,6 +182,9 @@
     },
     "file_not_found": {
       "message": "Die XMLTV-Datei existiert nicht oder ist keine reguläre Datei."
+    },
+    "empty_feed": {
+      "message": "Der XMLTV-Feed enthält keine aktuellen Sendungen."
     }
   },
   "selector": {

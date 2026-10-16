@@ -7,6 +7,9 @@ gzip) in `<config>/.cache/xmltv_calendar/<key>.feed`, which HA excludes from bac
 
 The payload is replaced atomically before the metadata is saved (RESEARCH Pitfall 5). A payload whose size differs from
 the stored size is never trusted, so a crash between the two writes cannot leave a cache that is used.
+
+The same Store also holds the source's refresh health (`SourceHealth`, SRC-11, D-17), for file sources too, so a
+failure streak survives restarts and setup retries.
 """
 
 import hashlib
@@ -32,6 +35,8 @@ _LOGGER = logging.getLogger(__name__)
 
 STORE_VERSION = 1
 _SAFE_KEY = re.compile(r"[0-9A-Za-z]{1,64}")
+# Failure reasons are translation keys (snake_case); a hand-edited Store cannot inject text into an issue
+_REASON = re.compile(r"[a-z_]{1,64}")
 
 
 def cache_key(entry: ConfigEntry) -> str:
@@ -56,6 +61,10 @@ def _aware_datetime(value: object) -> datetime | None:
     except ValueError:
         return None
     return parsed if parsed.tzinfo is not None else None
+
+
+def _isoformat(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,8 +120,53 @@ class CacheMeta:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class SourceHealth:
+    """Refresh outcomes of a source: last success, the current failure streak and the last failure (D-17)."""
+
+    last_success: datetime | None = None
+    failing_since: datetime | None = None
+    last_failure_at: datetime | None = None
+    last_failure_reason: str | None = None
+    consecutive_failures: int = 0
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the stored shape (ISO 8601 times)."""
+        return {
+            "last_success": _isoformat(self.last_success),
+            "failing_since": _isoformat(self.failing_since),
+            "last_failure_at": _isoformat(self.last_failure_at),
+            "last_failure_reason": self.last_failure_reason,
+            "consecutive_failures": self.consecutive_failures,
+        }
+
+    @classmethod
+    def from_dict(cls, value: object) -> Self:
+        """Tolerant reader: anything malformed gives the default (healthy) state, never an exception (T-03-14)."""
+        if not isinstance(value, dict):
+            return cls()
+        failures = value.get("consecutive_failures")
+        reason = value.get("last_failure_reason")
+        if isinstance(failures, bool) or not isinstance(failures, int) or failures < 0:
+            return cls()
+        if reason is not None and (not isinstance(reason, str) or not _REASON.fullmatch(reason)):
+            return cls()
+        times = [value.get(key) for key in ("last_success", "failing_since", "last_failure_at")]
+        parsed = [_aware_datetime(stored) for stored in times]
+        if any(stored is not None and result is None for stored, result in zip(times, parsed, strict=True)):
+            return cls()
+        last_success, failing_since, last_failure_at = parsed
+        return cls(
+            last_success=last_success,
+            failing_since=failing_since,
+            last_failure_at=last_failure_at,
+            last_failure_reason=reason,
+            consecutive_failures=failures,
+        )
+
+
 class FeedCache:
-    """The cached payload of one source entry plus its metadata."""
+    """The cached payload of one source entry plus its metadata and the source's refresh health."""
 
     def __init__(self, hass: HomeAssistant, key: str) -> None:
         """Bind to the payload file and Store of `key` (see `cache_key`)."""
@@ -121,20 +175,38 @@ class FeedCache:
         self._store: Store[dict[str, Any]] = Store(hass, STORE_VERSION, f"{DOMAIN}.{key}", private=True)
         self._path = Path(hass.config.cache_path(DOMAIN, f"{key}.feed"))
         self._meta: CacheMeta | None = None
+        self._health = SourceHealth()
 
     @property
     def meta(self) -> CacheMeta | None:
         """The metadata of the cached payload, None when there is no cache."""
         return self._meta
 
+    @property
+    def health(self) -> SourceHealth:
+        """The source's refresh health as last loaded or saved."""
+        return self._health
+
+    def _stored(self, meta: CacheMeta | None) -> dict[str, Any]:
+        return {"meta": meta.as_dict() if meta is not None else None, "health": self._health.as_dict()}
+
+    async def async_save_health(self, health: SourceHealth) -> None:
+        """Replace the health and save it next to the metadata; a failed save is logged at DEBUG only."""
+        self._health = health
+        try:
+            await self._store.async_save(self._stored(self._meta))
+        except (OSError, HomeAssistantError) as err:
+            _LOGGER.debug("Cache %s health not saved: %s", self._key, type(err).__name__)
+
     async def async_load(self) -> None:
-        """Load the metadata; stored data that is unreadable or malformed counts as no cache."""
+        """Load the metadata and health; stored data that is unreadable or malformed counts as none."""
         try:
             data = await self._store.async_load()
         except HomeAssistantError as err:
             _LOGGER.debug("Cache %s metadata unreadable: %s", self._key, type(err).__name__)
             data = None
         self._meta = CacheMeta.from_dict(data.get("meta")) if isinstance(data, dict) else None
+        self._health = SourceHealth.from_dict(data.get("health")) if isinstance(data, dict) else SourceHealth()
 
     def valid_meta(self, source_id: str) -> CacheMeta | None:
         """Return the metadata only when it belongs to `source_id` (RESEARCH Pitfall 4)."""
@@ -178,7 +250,7 @@ class FeedCache:
                 etag=etag,
                 last_modified=last_modified,
             )
-            await self._store.async_save({"meta": meta.as_dict()})
+            await self._store.async_save(self._stored(meta))
         except (OSError, HomeAssistantError) as err:
             _LOGGER.debug("Cache %s not written: %s", self._key, type(err).__name__)
             self._meta = None
@@ -208,7 +280,7 @@ class FeedCache:
         )
         self._meta = meta
         try:
-            await self._store.async_save({"meta": meta.as_dict()})
+            await self._store.async_save(self._stored(meta))
         except (OSError, HomeAssistantError) as err:
             _LOGGER.debug("Cache %s metadata not updated: %s", self._key, type(err).__name__)
 
@@ -216,11 +288,12 @@ class FeedCache:
         """Forget a cache that turned out unusable: delete the payload and save empty metadata."""
         self._meta = None
         await self._hass.async_add_executor_job(self._unlink)
-        await self._store.async_save({"meta": None})
+        await self._store.async_save(self._stored(None))
 
     async def async_remove(self) -> None:
         """Delete the payload file and the Store, when the entry is removed (D-08)."""
         self._meta = None
+        self._health = SourceHealth()
         await self._hass.async_add_executor_job(self._unlink)
         await self._store.async_remove()
 
