@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.327" timestamp="2026-10-16T13:12:52.637484+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_diagnostics" name="test_diagnostics_end_to_end" time="0.239"><failure message="AssertionError: assert 404 == &lt;HTTPStatus.OK: 200&gt;&#10; +  where 404 = &lt;ClientResponse(http://127.0.0.1:44495/api/diagnostics/config_entry/01M4SXHAR095BBJ5RGH8HEXGYT) [404 Not Found]&gt;\n&lt;CIMu...niff', 'Server': '', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Length': '0', 'Date': 'Tue, 13 Oct 2026 06:00:00 GMT')&gt;\n.status&#10; +  and   &lt;HTTPStatus.OK: 200&gt; = HTTPStatus.OK">hass = &lt;HomeAssistant RUNNING&gt;
+hass_client = &lt;function hass_client.&lt;locals&gt;.auth_client at 0x7fdcef69eae0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fdcec45e820&gt;
+
+    async def test_diagnostics_end_to_end(
+        hass: HomeAssistant,
+        hass_client: ClientSessionGenerator,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(
+            FEED,
+            calendars=(("B", {"channels": ["zdf.de"]}), ("A", {})),
+            url=SECRET_URL,
+            headers={"ETag": SECRET_ETAG},
+        )
+    
+&gt;       result = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_diagnostics.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/components/diagnostics/__init__.py:43: in get_diagnostics_for_config_entry
+    data = await _get_diagnostics_for_config_entry(hass, hass_client, config_entry)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant RUNNING&gt;
+hass_client = &lt;function hass_client.&lt;locals&gt;.auth_client at 0x7fdcef69eae0&gt;
+config_entry = &lt;ConfigEntry entry_id=01M4SXHAR095BBJ5RGH8HEXGYT version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.LOADED unique_id=None&gt;
+
+    async def _get_diagnostics_for_config_entry(
+        hass: HomeAssistant,
+        hass_client: ClientSessionGenerator,
+        config_entry: ConfigEntry,
+    ) -&gt; JsonObjectType:
+        """Return the diagnostics config entry for the specified domain."""
+        assert await async_setup_component(hass, DOMAIN, {})
+        await hass.async_block_till_done()
+    
+        client = await hass_client()
+        response = await client.get(
+            f"/api/diagnostics/config_entry/{config_entry.entry_id}"
+        )
+&gt;       assert response.status == HTTPStatus.OK
+E       AssertionError: assert 404 == &lt;HTTPStatus.OK: 200&gt;
+E        +  where 404 = &lt;ClientResponse(http://127.0.0.1:44495/api/diagnostics/config_entry/01M4SXHAR095BBJ5RGH8HEXGYT) [404 Not Found]&gt;\n&lt;CIMu...niff', 'Server': '', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Length': '0', 'Date': 'Tue, 13 Oct 2026 06:00:00 GMT')&gt;\n.status
+E        +  and   &lt;HTTPStatus.OK: 200&gt; = HTTPStatus.OK
+
+.venv/lib/python3.14/site-packages/pytest_homeassistant_custom_component/components/diagnostics/__init__.py:33: AssertionError</failure></testcase></testsuite></testsuites>
