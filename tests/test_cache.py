@@ -3,16 +3,19 @@
 import json
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.const import STATE_UNAVAILABLE
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.xmltv_calendar import cache as cache_module
 from custom_components.xmltv_calendar.cache import cache_key
+from custom_components.xmltv_calendar.const import CONF_REFRESH_MODE, CONF_REFRESH_TIME, REFRESH_MODE_DAILY
 
 from .conftest import FEED_URL
 
@@ -33,6 +36,8 @@ OUTDATED_FEED = b"""<?xml version="1.0" encoding="UTF-8"?>
   <programme channel="zdf.de" start="20261011100000 +0000" stop="20261011110000 +0000"><title>Old</title></programme>
 </tv>
 """
+CHANGED_FEED = FEED.replace(b"Tagesschau", b"Tagesthemen")
+DAILY_18_15 = {CONF_REFRESH_MODE: REFRESH_MODE_DAILY, CONF_REFRESH_TIME: "18:15"}
 pytestmark = pytest.mark.freeze_time(NOW)
 
 
@@ -58,6 +63,13 @@ def _stored_meta(hass_storage: dict[str, Any], entry: MockConfigEntry) -> Any:
 def _serve(aioclient_mock: AiohttpClientMocker, url: str = FEED_URL, **kwargs: Any) -> None:
     aioclient_mock.clear_requests()
     aioclient_mock.get(url, **kwargs)
+
+
+async def _step_to(hass: HomeAssistant, freezer: Any, iso: str) -> None:
+    freezer.move_to(iso)
+    async_fire_time_changed(hass)
+    # Scheduled refreshes run as background tasks (download, then parse in the executor)
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 async def _restart(hass: HomeAssistant, entry: MockConfigEntry) -> None:
@@ -296,3 +308,101 @@ async def test_remove_entry_deletes_cache(
 
     assert not path.exists()
     assert f"{DOMAIN}.{entry.entry_id}" not in hass_storage
+
+
+async def test_stale_cache_shown_then_refreshed(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED)  # refresh_hours 24, cache written at NOW
+    cached = await _summaries(hass)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    freezer.move_to("2026-10-14T07:00:00+00:00")  # NOW + 25 h: the cache is stale
+    _serve(aioclient_mock, content=CHANGED_FEED)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert aioclient_mock.call_count == 0
+    assert await _summaries(hass) == cached
+
+    await _step_to(hass, freezer, "2026-10-14T07:00:02+00:00")
+
+    assert aioclient_mock.call_count == 1
+    assert "Das Erste: Tagesthemen" in await _summaries(hass)
+
+
+async def test_missed_daily_slot_refreshes_at_start(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    berlin_tz: None,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to("2026-10-13T16:00:00+00:00")  # 18:00 Berlin, before the 18:15 slot
+    entry = await setup_xmltv(FEED, options=DAILY_18_15)
+    cached = await _summaries(hass)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    freezer.move_to("2026-10-13T16:30:00+00:00")  # the 18:15 slot was missed while HA was down (D-03)
+    _serve(aioclient_mock, content=FEED)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert aioclient_mock.call_count == 0
+    assert await _summaries(hass) == cached
+
+    await _step_to(hass, freezer, "2026-10-13T16:30:02+00:00")
+
+    assert aioclient_mock.call_count == 1
+
+
+async def test_fresh_daily_cache_does_not_refresh(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    berlin_tz: None,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to("2026-10-13T16:20:00+00:00")  # 18:20 Berlin, after the 18:15 slot
+    entry = await setup_xmltv(FEED, options=DAILY_18_15)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    freezer.move_to("2026-10-13T20:00:00+00:00")
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    await _step_to(hass, freezer, "2026-10-13T20:00:02+00:00")
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert aioclient_mock.call_count == 1
+    assert entry.runtime_data.coordinator.next_refresh_at == datetime.fromisoformat("2026-10-14T16:15:00+00:00")
+
+
+async def test_stale_cache_offline_start_still_loads(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED)
+    cached = await _summaries(hass)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    freezer.move_to("2026-10-14T07:00:00+00:00")
+    _serve(aioclient_mock, exc=aiohttp.ClientError())
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+
+    await _step_to(hass, freezer, "2026-10-14T07:00:02+00:00")
+
+    coordinator = entry.runtime_data.coordinator
+    assert aioclient_mock.call_count == 1
+    assert coordinator.last_update_success is False
+    assert hass.states.get("calendar.test").state != STATE_UNAVAILABLE
+    assert await _summaries(hass) == cached
