@@ -155,29 +155,56 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         regular schedule; a failure keeps the last good data (SRC-08, D-19), extends the streak, may raise the issue
         and retries after a capped backoff (D-10). A failed first refresh without cache is recorded too, so setup
         retries count toward the issue. `UpdateFailed` is re-raised unchanged, so Home Assistant logs it once per
-        streak (RESEARCH Pitfall 8).
+        streak (RESEARCH Pitfall 8). Any other exception (a latent bug, a `MemoryError`) while reading the cache,
+        downloading or parsing is recorded as `unable_to_fetch`, backs off the same way and reaches Home Assistant as
+        `UpdateFailed` (CR-02). Cancellation is not an `Exception`: it passes through unrecorded.
         """
         is_file = self.config_entry.data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_FILE
-        if not is_file and self.data is None:
-            cached = await self._async_start_from_cache()
-            if cached is not None:
-                # Non-persistent issues are not restored after a restart: re-raise a still-failing source's issue
-                self._sync_issue(dt_util.utcnow())
-                return cached
         try:
-            epg = await (self._async_update_file() if is_file else self._async_update_url())
+            epg, from_cache = await self._async_read_source(is_file=is_file)
         except UpdateFailed as err:
-            now = dt_util.utcnow()
-            await self._async_record_failure(now, err.translation_key)
-            # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh after
-            # the target being served (an early-fired timer serves its target, CR-01)
-            failures = self._cache.health.consecutive_failures
-            base = refresh_base(now, self._next_refresh_at)
-            self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
+            await self._async_handle_failure(err.translation_key)
             raise
+        # Every failure must back off and be recorded (D-10, CR-02); CancelledError is no Exception and passes
+        except Exception as err:
+            await self._async_handle_failure(_DEFAULT_REASON)
+            # Class name only: exception text may quote feed content, the URL or the path (T-03-28)
+            _LOGGER.warning(
+                "Source %s: unexpected %s while refreshing; retrying after the backoff",
+                self.config_entry.title,
+                type(err).__name__,
+            )
+            _LOGGER.debug("Source %s: unexpected error while refreshing", self.config_entry.title, exc_info=err)
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key=_DEFAULT_REASON) from err
+        if from_cache:
+            # Non-persistent issues are not restored after a restart: re-raise a still-failing source's issue
+            self._sync_issue(dt_util.utcnow())
+            return epg
         self._set_regular_target()
         await self._async_record_success(dt_util.utcnow())
         return epg
+
+    async def _async_read_source(self, *, is_file: bool) -> tuple[EpgData, bool]:
+        """
+        Read the source once: from the disk cache at start, else from the network or the file.
+
+        Returns the data and whether it came from the cache (which set its own refresh target).
+        """
+        if not is_file and self.data is None:
+            cached = await self._async_start_from_cache()
+            if cached is not None:
+                return cached, True
+        return await (self._async_update_file() if is_file else self._async_update_url()), False
+
+    async def _async_handle_failure(self, reason: str | None) -> None:
+        """Record a failed refresh and set the retry target after the capped backoff (D-10)."""
+        now = dt_util.utcnow()
+        await self._async_record_failure(now, reason)
+        # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh after
+        # the target being served (an early-fired timer serves its target, CR-01)
+        failures = self._cache.health.consecutive_failures
+        base = refresh_base(now, self._next_refresh_at)
+        self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
 
     async def _async_record_success(self, now: datetime) -> None:
         """End the failure streak, clear the Repairs issue (D-17); keep the last failure for diagnostics."""
