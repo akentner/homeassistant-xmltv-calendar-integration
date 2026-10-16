@@ -56,7 +56,6 @@ from .const import (
     CONF_TITLE_TEMPLATE,
     CONF_URL,
     CONF_WEEKDAYS,
-    DEFAULT_REFRESH_HOURS,
     DOMAIN,
     MAX_DURATION_MINUTES,
     MAX_OFFSET_MINUTES,
@@ -266,7 +265,7 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="schedule", data_schema=schema, errors=errors)
 
     async def async_step_file(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Ask for the local file path and the refresh interval; only allowed directories can be read."""
+        """Ask for the local file path and the source settings; only allowed directories can be read."""
         errors: dict[str, str] = {}
         if user_input is not None:
             path = str(user_input[CONF_PATH]).strip()
@@ -287,16 +286,12 @@ class XmltvConfigFlow(ConfigFlow, domain=DOMAIN):
                     errors[CONF_PATH] = "file_not_found"
                 else:
                     self._data = {CONF_SOURCE_TYPE: SOURCE_TYPE_FILE, CONF_PATH: real_path}
-                    self._options = {CONF_REFRESH_HOURS: int(user_input[CONF_REFRESH_HOURS])}
+                    self._pending = _settings_from_input(user_input)
                     self._suggested_name = PurePath(real_path).name
-                    return await self.async_step_name()
+                    # No download step: a local file is read at setup, and no cache is seeded (D-11)
+                    return await self.async_step_schedule()
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_PATH): TextSelector(),
-                vol.Required(CONF_REFRESH_HOURS, default=DEFAULT_REFRESH_HOURS): _refresh_selector(),
-            }
-        )
+        schema = vol.Schema({vol.Required(CONF_PATH): TextSelector(), **_settings_fields(SourceOptions())})
         if user_input is not None:
             schema = self.add_suggested_values_to_schema(schema, user_input)
         return self.async_show_form(step_id="file", data_schema=schema, errors=errors)

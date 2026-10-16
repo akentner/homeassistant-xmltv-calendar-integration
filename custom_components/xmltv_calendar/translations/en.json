@@ -39,11 +39,25 @@
         "description": "The file is read once per refresh and shared by all calendars of this source.",
         "data": {
           "path": "File path",
-          "refresh_hours": "Refresh interval"
+          "refresh_mode": "Refresh"
         },
         "data_description": {
           "path": "Absolute path of the XMLTV file (plain or gzip), for example /media/epg/guide.xml. Only directories Home Assistant allows can be read: the media folders and those listed under allowlist_external_dirs.",
-          "refresh_hours": "How often the file is read again, in hours (1 to 168)."
+          "refresh_mode": "Read the file again at a fixed interval or once a day at a fixed time."
+        },
+        "sections": {
+          "timezone": {
+            "name": "Timezone",
+            "description": "How the times in the feed are read. Only needed when the feed's times are off.",
+            "data": {
+              "naive_timezone": "Times without offset",
+              "offset_minutes": "Offset correction"
+            },
+            "data_description": {
+              "naive_timezone": "Time zone for feed times that carry no UTC offset: UTC (the XMLTV default) or the Home Assistant time zone.",
+              "offset_minutes": "Minutes added to every programme time, from -720 to 720. Use it when a feed is off by a fixed amount."
+            }
+          }
         }
       },
       "schedule": {
