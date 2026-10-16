@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Resilient Sources
 status: executing
-stopped_at: Completed 03-08-PLAN.md
-last_updated: "2026-10-16T12:39:37.921Z"
+stopped_at: Completed 03-09-PLAN.md
+last_updated: "2026-10-16T13:32:15.771Z"
 last_activity: 2026-10-16
 last_activity_desc: Phase 03 execution started
-state_head: d79baae3d09c8254a3299bb9adc23beee541f11a
+state_head: b03f168893a2fbc8bf9f5c1265ce3298e1417f3d
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 31
-  completed_plans: 29
+  completed_plans: 30
   percent: 50
 ---
 
@@ -86,6 +86,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P06 | 9 min | 3 tasks | 8 files |
 | Phase 03 P07 | 4 min | 2 tasks | 8 files |
 | Phase 03 P08 | 7 min | 2 tasks | 8 files |
+| Phase 03 P09 | 7 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -184,6 +185,8 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-07: not-loaded entries read options from entry.options and health/cache presence from the Store (FeedCache(cache_key(entry))); diagnostics never refresh or download
 - [Phase 03]: 03-08: An interval source keeps its last valid daily refresh_time in entry.options (_options_to_store), so switching back to daily pre-fills it; from_mapping ignores the key outside daily mode
 - [Phase 03]: 03-08: Source options flow is a plain OptionsFlow reusing the setup builders; async_create_entry replaces entry.options and the single diffing listener reloads once from cache; identical values never reload
+- [Phase 03]: 03-09: refresh_base(now, target) treats a target at most EARLY_FIRE_TOLERANCE (2 s) ahead as served; success and failure targets derive from it, so an early-firing HA timer neither re-requests a daily slot nor retries after MIN_DELAY, while manual refreshes keep their targets (D-12)
+- [Phase 03]: 03-09: every non-cancellation Exception in _async_update_data (cache start, download, parse) is recorded as unable_to_fetch, backed off and re-raised as UpdateFailed(unable_to_fetch); one content-free WARNING per attempt, traceback at DEBUG; CancelledError passes through unrecorded
 
 ### Pending Todos
 
@@ -217,6 +220,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T11:26:21.953Z
-Stopped at: Completed 03-08-PLAN.md
+Last session: 2026-10-16T13:32:15.591Z
+Stopped at: Completed 03-09-PLAN.md
 Resume file: None

@@ -119,7 +119,7 @@ Plans:
   4. When a fetch or parse fails, calendars keep showing the last good data. A source that keeps failing raises a Repairs issue, which clears automatically after the next successful refresh.
   5. User downloads diagnostics for a source showing programme/channel/match counts and last success/failure, with URL and credentials redacted.
 
-**Plans**: 8/10 plans executed
+**Plans**: 9/10 plans executed
 
 Plans:
 **Wave 1**
@@ -143,7 +143,7 @@ Plans:
 - [x] 03-08-PLAN.md — Options flow for schedule and timezone settings, phase gate and UAT walkthrough (wave 6)
 
 **Gap closure** *(after verification: gaps_found)*
-- [ ] 03-09-PLAN.md — TDD gap closure CR-01/CR-02: one request per daily slot when HA's timer fires early (refresh_base), every unexpected exception recorded, backed off and reported as UpdateFailed (SRC-05, SRC-08, SRC-11) (wave 1)
+- [x] 03-09-PLAN.md — TDD gap closure CR-01/CR-02: one request per daily slot when HA's timer fires early (refresh_base), every unexpected exception recorded, backed off and reported as UpdateFailed (SRC-05, SRC-08, SRC-11) (wave 1)
 - [ ] 03-10-PLAN.md — TDD gap closure WR-02/WR-03: setup download recorded as last success for diagnostics and Repairs; test_identity.py frozen and asserting LOADED entries (SRC-12, CFG-03) (wave 1)
 
 **Notes**: Use a plain `OptionsFlow` only, never `OptionsFlowWithReload` (it conflicts with the update listener and raises an error from 2026.12). Source option changes go through the Phase 2 diffing listener. Store the raw-file cache in `hass.config.cache_path`. Research flags: `async_show_progress`, Repairs issue lifecycle.
@@ -173,5 +173,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
-| 3. Resilient Sources | 8/8 | In Progress | - |
+| 3. Resilient Sources | 9/10 | In Progress | - |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |
