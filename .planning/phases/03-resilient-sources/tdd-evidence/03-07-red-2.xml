@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="0.655" timestamp="2026-10-16T13:14:47.189636+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_diagnostics" name="test_diagnostics_end_to_end" time="0.223" /><testcase classname="tests.test_diagnostics" name="test_file_source_diagnostics" time="0.045" /><testcase classname="tests.test_diagnostics" name="test_failing_source_diagnostics" time="0.050" /><testcase classname="tests.test_diagnostics" name="test_diagnostics_for_not_loaded_entry" time="0.031"><failure message="AttributeError: 'MockConfigEntry' object has no attribute 'runtime_data'">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7ff145c5ae90&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff144506cf0&gt;
+
+    async def test_diagnostics_for_not_loaded_entry(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        # Registered before setup_xmltv's own mock, so the host is down from the start and no cache exists
+        aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+        entry = await setup_xmltv(FEED, url=FEED_URL)
+        assert entry.state is ConfigEntryState.SETUP_RETRY
+    
+&gt;       result = await async_get_config_entry_diagnostics(hass, entry)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_diagnostics.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant RUNNING&gt;
+entry = &lt;ConfigEntry entry_id=01M4SXHAR0X8T07Q4D73AD004P version=1 domain=xmltv_calendar title=Test EPG state=ConfigEntryState.SETUP_RETRY unique_id=None&gt;
+
+    async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: XmltvConfigEntry) -&gt; dict[str, Any]:  # noqa: ARG001
+        """Return the diagnostics of a source entry from a snapshot of its current state (D-21)."""
+&gt;       runtime = entry.runtime_data
+                  ^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'MockConfigEntry' object has no attribute 'runtime_data'
+
+custom_components/xmltv_calendar/diagnostics.py:96: AttributeError</failure></testcase><testcase classname="tests.test_diagnostics" name="test_diagnostics_never_refresh" time="0.051"><failure message="KeyError: 'loaded'">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7ff1446ed810&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff144505d20&gt;
+
+    async def test_diagnostics_never_refresh(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        coordinator = entry.runtime_data.coordinator
+        calls = aioclient_mock.call_count
+        data = coordinator.data
+    
+        result = await async_get_config_entry_diagnostics(hass, entry)
+        await hass.async_block_till_done()
+    
+&gt;       assert result["loaded"] is True
+               ^^^^^^^^^^^^^^^^
+E       KeyError: 'loaded'
+
+tests/test_diagnostics.py:185: KeyError</failure></testcase><testcase classname="tests.test_diagnostics" name="test_skipped_malformed_is_reported" time="0.048" /><testcase classname="tests.test_diagnostics" name="test_daily_and_timezone_options_are_shown[daily_local_offset]" time="0.048" /><testcase classname="tests.test_diagnostics" name="test_daily_and_timezone_options_are_shown[defaults_filled_in]" time="0.048" /></testsuite></testsuites>
