@@ -33,19 +33,19 @@ findings:
     title: "Test hygiene in the new tests"
   - id: CR-01
     severity: critical
-    disposition: open
+    disposition: fixed
     title: "Daily refresh fires before its slot and runs twice (and burns a backoff step on failure)"
   - id: CR-02
     severity: critical
-    disposition: open
+    disposition: fixed
     title: "An unexpected exception retries every second with a full download, unrecorded"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Setup from the flow-seeded cache never records a success (`last_success` stays None)"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`test_identity.py` is unfrozen and its fixtures have expired, so it tests an entry in SETUP_RETRY"
   - id: IN-01
     severity: info
