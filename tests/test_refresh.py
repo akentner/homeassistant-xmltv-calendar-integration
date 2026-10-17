@@ -323,3 +323,32 @@ async def test_unchanged_data_does_not_refilter(
     assert applies == 0
     assert hass.states.get("calendar.test").state != STATE_UNAVAILABLE
     assert await _summaries(hass) == before
+
+
+@pytest.mark.parametrize("response", [{"status": 304}, {"content": FEED}])
+async def test_expired_unchanged_feed_fails_without_reparse(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    response: dict[str, Any],
+) -> None:
+    entry = await setup_xmltv(FEED, headers=VALIDATORS)
+    coordinator = entry.runtime_data.coordinator
+    previous = coordinator.data
+    meta = coordinator.cache_meta
+    parses = ParseCounter(monkeypatch)
+    _serve(aioclient_mock, **response)
+    freezer.move_to("2026-10-15T06:00:00+00:00")
+
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert coordinator.last_update_success is False
+    assert coordinator.last_exception.translation_key == "empty_feed"
+    assert coordinator.health.consecutive_failures == 1
+    assert coordinator.data is previous
+    assert coordinator.cache_meta == meta
+    assert parses.calls == 0
+    assert aioclient_mock.call_count == 1

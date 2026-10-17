@@ -3,7 +3,7 @@ status: complete
 phase: 03-resilient-sources
 source: [03-VERIFICATION.md]
 started: 2026-10-16T18:25:00Z
-updated: 2026-10-16T18:45:56.174Z
+updated: 2026-10-17T13:33:33.259795Z
 ---
 
 ## Current Test
@@ -41,7 +41,12 @@ blocked: 0
 
 ## Completion Check
 
-All four tests were confirmed as passing by the user. Before phase advancement,
-the on-disk review disposition was checked: WR-01, WR-04, and WR-05 still have
-`disposition: open` in both frontmatter and table, contrary to test 4's expected
-result. Phase completion awaits recorded fixes or deferrals with reasons.
+The existing session records four passing checks. On 2026-10-17 the user chose
+option 1: fix WR-01, WR-04 and WR-05 before completing the phase. All three fixes
+are implemented and recorded as fixed in 03-REVIEW-DISPOSITION.md, with regression
+evidence in 03-FIX-VERIFICATION.md. Full suite: 821 passed, 1 existing real-feed
+skip; Ruff and formatting pass.
+
+The canonical 03-VERIFICATION.md predates these implementation changes. Its
+covered-input fingerprint must be regenerated through phase re-verification before
+phase advancement; the old human_needed verdict has not been overwritten.

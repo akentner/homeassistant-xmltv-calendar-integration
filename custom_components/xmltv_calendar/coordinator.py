@@ -37,6 +37,7 @@ from .source import (
 from .xmltv.model import EpgData
 from .xmltv.parser import FeedError, FeedTooLargeError, parse
 from .xmltv.schedule import (
+    BACKOFF_STEPS,
     MIN_DELAY,
     Schedule,
     SourceOptions,
@@ -139,10 +140,10 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         """Load the cache metadata once, before the first refresh."""
         await self._cache.async_load()
 
-    def _set_regular_target(self) -> None:
+    def _set_regular_target(self, served: datetime) -> None:
         """Target the regular refresh after the one just served; an early-fired timer serves its target (CR-01)."""
         now = dt_util.utcnow()
-        base = refresh_base(now, self._next_refresh_at)
+        base = refresh_base(now, served)
         self._next_refresh_at = next_regular(base, self._schedule())
 
     @override
@@ -157,17 +158,21 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         retries count toward the issue. `UpdateFailed` is re-raised unchanged, so Home Assistant logs it once per
         streak (RESEARCH Pitfall 8). Any other exception (a latent bug, a `MemoryError`) while reading the cache,
         downloading or parsing is recorded as `unable_to_fetch`, backs off the same way and reaches Home Assistant as
-        `UpdateFailed` (CR-02). Cancellation is not an `Exception`: it passes through unrecorded.
+        `UpdateFailed` (CR-02). Cancellation passes through unrecorded, with a safe provisional retry target.
         """
+        served = self._next_refresh_at
+        # A cancellation swallowed by HA must not re-arm an already served target every second.
+        # Success, failure and cache startup replace this fallback with their own target.
+        self._next_refresh_at = max(served, dt_util.utcnow() + BACKOFF_STEPS[0])
         is_file = self.config_entry.data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_FILE
         try:
             epg, from_cache = await self._async_read_source(is_file=is_file)
         except UpdateFailed as err:
-            await self._async_handle_failure(err.translation_key)
+            await self._async_handle_failure(err.translation_key, served)
             raise
         # Every failure must back off and be recorded (D-10, CR-02); CancelledError is no Exception and passes
         except Exception as err:
-            await self._async_handle_failure(_DEFAULT_REASON)
+            await self._async_handle_failure(_DEFAULT_REASON, served)
             # Class name only: exception text may quote feed content, the URL or the path (T-03-28)
             _LOGGER.warning(
                 "Source %s: unexpected %s while refreshing; retrying after the backoff",
@@ -180,7 +185,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             # Non-persistent issues are not restored after a restart: re-raise a still-failing source's issue
             self._sync_issue(dt_util.utcnow())
             return epg
-        self._set_regular_target()
+        self._set_regular_target(served)
         await self._async_record_success(dt_util.utcnow())
         return epg
 
@@ -196,14 +201,14 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
                 return cached, True
         return await (self._async_update_file() if is_file else self._async_update_url()), False
 
-    async def _async_handle_failure(self, reason: str | None) -> None:
+    async def _async_handle_failure(self, reason: str | None, served: datetime) -> None:
         """Record a failed refresh and set the retry target after the capped backoff (D-10)."""
         now = dt_util.utcnow()
         await self._async_record_failure(now, reason)
         # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh after
         # the target being served (an early-fired timer serves its target, CR-01)
         failures = self._cache.health.consecutive_failures
-        base = refresh_base(now, self._next_refresh_at)
+        base = refresh_base(now, served)
         self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
 
     async def _async_record_success(self, now: datetime) -> None:
@@ -317,7 +322,11 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         if payload is not None:
             try:
                 epg = await self._async_parse_payload(payload)
-            except UpdateFailed:
+            except MemoryError:
+                # A transient memory shortage must not destroy the offline fallback.
+                raise
+            except Exception:  # noqa: BLE001 - poisoned caches must fall through to a new download
+                _LOGGER.debug("Source %s: dropping a cache the parser could not read", self.config_entry.title)
                 epg = None
         if epg is None or not epg.programmes:
             _LOGGER.debug("Source %s: dropping an unusable disk cache", self.config_entry.title)
@@ -355,6 +364,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         if isinstance(fetched, NotModified):
             if self.data is not None:
                 _LOGGER.debug("Source %s unchanged", self.config_entry.title)
+                _require_programmes(self.data, self.config_entry.title)
                 await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
                 return self.data
             # No data in memory (RESEARCH Pitfall 3): the unchanged feed is the cached payload
@@ -375,6 +385,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         ):
             # A server without validators sent the cached bytes again: same feed, no parse (RESEARCH A8)
             _LOGGER.debug("Source %s unchanged (identical body)", self.config_entry.title)
+            _require_programmes(self.data, self.config_entry.title)
             await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
             return self.data
         epg = _require_programmes(await self._async_parse_payload(fetched.payload), self.config_entry.title)
@@ -420,7 +431,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             return epg
         if self.data is not None:
             _LOGGER.debug("Source %s: file unchanged", self.config_entry.title)
-            return self.data
+            return _require_programmes(self.data, self.config_entry.title)
         # Unreachable: a known signature is only passed while data is in memory
         raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch")
 
@@ -432,7 +443,8 @@ def _require_programmes(epg: EpgData, title: str) -> EpgData:
     A feed that parses but has no current programmes never replaces the last good data or the cache; on a first
     setup without cache the entry retries. A feed with fewer programmes than before is accepted as it is.
     """
-    if not epg.programmes:
+    cutoff = dt_util.utcnow() - KEEP_PAST
+    if not any(programme.stop >= cutoff for programme in epg.programmes):
         _LOGGER.debug("Source %s returned a feed without current programmes", title)
         raise UpdateFailed(translation_domain=DOMAIN, translation_key="empty_feed")
     return epg

@@ -153,3 +153,20 @@ async def test_file_source_writes_no_payload_cache(hass: HomeAssistant, file_ent
 
     assert not _payload_files(hass)
     assert file_entry.runtime_data.coordinator.cache_meta is None
+
+
+async def test_expired_unchanged_file_fails_without_reparse(
+    hass: HomeAssistant, file_entry: MockConfigEntry, freezer: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    coordinator = file_entry.runtime_data.coordinator
+    previous = coordinator.data
+    parses = ParseCounter(monkeypatch)
+    freezer.move_to("2026-10-15T06:00:00+00:00")
+
+    await _refresh(hass, file_entry)
+
+    assert coordinator.last_update_success is False
+    assert coordinator.last_exception.translation_key == "empty_feed"
+    assert coordinator.health.consecutive_failures == 1
+    assert coordinator.data is previous
+    assert parses.calls == 0

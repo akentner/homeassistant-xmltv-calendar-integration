@@ -375,3 +375,34 @@ async def test_cancelled_refresh_records_no_failure(
     assert health.last_failure_at is None
     assert coordinator.next_refresh_at == target
     assert isinstance(coordinator.last_exception, asyncio.CancelledError)
+
+
+async def test_timer_cancelled_refresh_does_not_retry_every_second(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    freezer.move_to("2026-10-13T06:00:00+00:00")
+    entry = await setup_xmltv(FEED)
+    coordinator = entry.runtime_data.coordinator
+    previous = coordinator.data
+    attempts = 0
+
+    async def cancelled(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal attempts
+        attempts += 1
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(coordinator_module, "async_fetch_url", cancelled)
+    fired_at = coordinator.next_refresh_at + timedelta(seconds=1)
+    await _step_to(hass, freezer, fired_at.isoformat())
+    assert attempts == 1
+    assert coordinator.next_refresh_at == fired_at + timedelta(minutes=5)
+    for seconds in (2, 4, 6, 10):
+        await _step_to(hass, freezer, (fired_at + timedelta(seconds=seconds)).isoformat())
+        assert attempts == 1
+    assert coordinator.data is previous
+    assert coordinator.health.consecutive_failures == 0
+    await _step_to(hass, freezer, (fired_at + timedelta(minutes=5, seconds=1)).isoformat())
+    assert attempts == 2

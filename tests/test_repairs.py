@@ -1,6 +1,7 @@
 """Repairs issue for a source that keeps failing (SRC-11, D-17, D-18)."""
 
 import gzip
+import io
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -155,7 +156,7 @@ async def test_unexpected_exception_raises_issue_after_24h(
     assert _issue(hass, entry) is None
 
 
-async def test_unexpected_cache_parse_failure_is_recorded(
+async def test_unexpected_cache_parse_failure_downloads_and_is_recorded(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
@@ -172,7 +173,7 @@ async def test_unexpected_cache_parse_failure_is_recorded(
 
     assert entry.state is ConfigEntryState.SETUP_RETRY
     assert entry.error_reason_translation_key == "unable_to_fetch"
-    assert aioclient_mock.call_count == 0
+    assert aioclient_mock.call_count == 1
     cache = FeedCache(hass, cache_key(entry))
     await cache.async_load()
     assert cache.health.consecutive_failures == 1
@@ -394,3 +395,61 @@ async def test_remove_entry_deletes_issue(
 
     assert _issue(hass, entry) is None
     assert f"{DOMAIN}.{entry.entry_id}" not in hass_storage
+
+
+async def test_cache_parser_crash_recovers_from_changed_download(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = await setup_xmltv(FEED)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    real_parse = coordinator_module.parse
+    changed = FEED.replace(b"Tagesschau", b"Tagesthemen")
+
+    def parse_except_poisoned(stream: Any, **kwargs: Any) -> Any:
+        payload = stream.read()
+        if payload == FEED:
+            msg = "poisoned cache"
+            raise RuntimeError(msg)
+
+        return real_parse(io.BytesIO(payload), **kwargs)
+
+    monkeypatch.setattr(coordinator_module, "parse", parse_except_poisoned)
+    _serve(aioclient_mock, content=changed)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert aioclient_mock.call_count == 1
+    coordinator = entry.runtime_data.coordinator
+    assert any(p.title == "Tagesthemen" for p in coordinator.data.programmes)
+    assert coordinator.health.consecutive_failures == 0
+    assert coordinator.cache_meta is not None
+
+
+async def test_cache_memory_error_preserves_offline_fallback(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = await setup_xmltv(FEED)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    def out_of_memory(*_args: Any, **_kwargs: Any) -> Any:
+        raise MemoryError
+
+    monkeypatch.setattr(coordinator_module, "parse", out_of_memory)
+    _serve(aioclient_mock, content=FEED)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert aioclient_mock.call_count == 0
+    cache = FeedCache(hass, cache_key(entry))
+    await cache.async_load()
+    assert await cache.async_read() == FEED
+    assert cache.health.consecutive_failures == 1

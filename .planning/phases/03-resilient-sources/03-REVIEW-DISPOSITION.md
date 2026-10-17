@@ -5,15 +5,15 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "\"Unchanged\" shortcuts skip the empty-feed check, so a feed that stops updating is never reported (carried forward, still open)"
   - id: WR-04
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "A swallowed `CancelledError` on a timer-fired refresh still retries every second, unrecorded (CR-02 residual)"
   - id: WR-05
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "An unexpected exception while parsing the disk cache keeps the cache, so the source never downloads and stays in SETUP_RETRY"
   - id: IN-02
     severity: info
@@ -59,7 +59,7 @@ findings:
     severity: info
     disposition: open
     title: "Diagnostics report `next_refresh` even when no timer is armed"
-open: 14
+open: 7
 total: 14
 recorded: 2026-10-16T17:50:08.718Z
 ---
@@ -68,9 +68,9 @@ recorded: 2026-10-16T17:50:08.718Z
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-04 | warning | open | - |
-| WR-05 | warning | open | - |
+| WR-01 | warning | fixed | 2026-10-17: unchanged URL/file data must retain a programme at the parser cutoff; expired data records empty_feed and keeps last good data. Tests: test_expired_unchanged_feed_fails_without_reparse (304/identical body), test_expired_unchanged_file_fails_without_reparse |
+| WR-04 | warning | fixed | 2026-10-17: provisional retry target before awaiting; success/failure use the original served target. Test: test_timer_cancelled_refresh_does_not_retry_every_second; existing early-slot and manual-refresh guards pass |
+| WR-05 | warning | fixed | 2026-10-17: parser exceptions drop the unusable cache and download again; MemoryError preserves the offline fallback. Tests: test_unexpected_cache_parse_failure_downloads_and_is_recorded, test_cache_parser_crash_recovers_from_changed_download, test_cache_memory_error_preserves_offline_fallback |
 | IN-02 | info | open | - |
 | IN-04 | info | open | - |
 | IN-06 | info | open | - |
@@ -86,3 +86,5 @@ recorded: 2026-10-16T17:50:08.718Z
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
 Re-running the gate keeps every row it can. A row the current review no longer reports is kept and its Source cell flagged, so a finding does not leave this record silently. ONE exception: when a finding id is REUSED by a different finding, the earlier decision cannot keep a row — the id is taken — and it is dropped. A RECORDED decision (anything but `open`) is named on the console when that happens; a row still at `open` is replaced silently, because `open` records no decision to lose.
+
+Validation (2026-10-17): 821 passed, 1 existing real-feed skip; Ruff check and format check pass. See 03-FIX-VERIFICATION.md for scope and remaining phase gate.
