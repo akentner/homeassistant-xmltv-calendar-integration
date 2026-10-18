@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### Phase 1: First Filtered Calendar
 
-**Goal:** User can add an XMLTV source (URL or local file) in the HA UI, attach calendars filtered by channel and include/exclude regex, and see exactly the matching programmes as correctly timed calendar events that drive calendar triggers.
+**Goal:** As a Home Assistant user, I want to add an XMLTV source (URL or local file) in the HA UI and attach calendars filtered by channel and include/exclude regex, so that I see exactly the matching programmes as correctly timed calendar events that drive calendar triggers.
 **Mode:** mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: SRC-01, SRC-02, SRC-03, SRC-04, SRC-09, SRC-13, FLT-01, FLT-02, FLT-03, FLT-04, FLT-07, EVT-01, EVT-02, EVT-05, EVT-06, AUT-01, AUT-02, CFG-01, DST-01, DST-02

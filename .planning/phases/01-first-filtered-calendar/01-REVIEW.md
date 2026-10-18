@@ -17,9 +17,39 @@ findings:
   info: 14
   total: 21
 status: issues_found
+reverified: 2026-10-18T19:54:16Z
+reverification_mode: inline
 ---
 
-# Phase 01: Code Review Report (re-review after gap-closure plan 01-11)
+# Phase 01: Code Review Report
+
+## Re-verification — 2026-10-18
+
+The report below this section is the historical 01-11 review; its frontmatter finding counts describe that review.
+This inline regression review inspected source.py, coordinator.py, __init__.py, calendar.py, config_flow.py,
+xmltv/parser.py, timeparse.py, normalize.py, filter.py, window.py and render.py, plus the CI/HACS configuration
+and requirement-linked tests. Source HEAD: 19e262dab163da4114809a248883102c93ceb9a8.
+
+Validation: 821 passed, 1 intentionally skipped (real feed), Ruff check and format check passed.
+No new blocking regression was demonstrated in the Phase 1 contract. Existing advisory findings are retained;
+this is not a claim that every historical warning has been fixed.
+
+| Existing finding | Current evidence / disposition |
+|------------------|--------------------------------|
+| CR-01 | Still fixed: malformed timestamp tracer, parser conversion guards and event-building tests pass. |
+| WR-06 | Still fixed: stream error translation is confined to iterparse reads; programming-error propagation test passes. |
+| WR-01 | Partial mitigation in Phase 2: nested repeats rejected. Overlapping alternation remains possible; no hard regex timeout. Keep open. |
+| WR-02 | Remains open: chunk list plus bytes join and retained programmes are not a universal memory bound. The generated 60 MB benchmark passes at about 102 MB peak. |
+| WR-04 | Remains open: check_file stores the resolved path, so later symlink rotation does not change the stored target. |
+| WR-07 | Existing non-blocking decision retained from UAT test 9; a duration filter is available, but there is no unconditional parser duration cap. |
+| WR-08 | Fixed in Phase 3: diagnostics exposes ParseStats, including skipped_malformed; test_diagnostics.py passes. |
+| IN-01 | Fixed in Phase 3: identical EpgData bypasses refiltering in _handle_coordinator_update. |
+| IN-14 | Fixed in Phase 2: MatchIndex._lower clamps underflow; boundary query tests pass. |
+
+The previous review's remaining warnings/info stay in REVIEW-DISPOSITION.md for separate triage.
+The HA 2026.3 compatibility floor has not been tested by this run (the harness uses HA 2026.10.1).
+
+## Historical review — 2026-10-14
 
 **Reviewed:** 2026-10-14T14:26:15Z
 **Depth:** standard

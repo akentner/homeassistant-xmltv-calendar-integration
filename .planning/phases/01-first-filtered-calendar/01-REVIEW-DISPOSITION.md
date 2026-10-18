@@ -29,11 +29,11 @@ findings:
     title: "The year window does not bound duration; one programme with an absurd stop takes over the calendar state"
   - id: WR-08
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Skipped malformed programmes are never reported, so the CR-01 fix makes broken feeds fail silently"
   - id: IN-01
     severity: info
-    disposition: open
+    disposition: fixed
     title: "A failed refresh re-filters unchanged data and repeats the missing-channel warning"
   - id: IN-02
     severity: info
@@ -85,19 +85,19 @@ findings:
     title: "`event` returns None when the current match cannot be built, hiding later valid matches"
   - id: IN-14
     severity: info
-    disposition: open
+    disposition: fixed
     title: "`async_get_events` raises `OverflowError` for queries starting near `datetime.min`"
   - id: CR-01
     severity: critical
-    disposition: open
+    disposition: fixed
     title: "One malformed programme timestamp kills the whole feed (and far-future dates crash event building)"
   - id: WR-06
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`_STREAM_ERRORS` catches `ValueError` and `LookupError`, which turns programming bugs into \"invalid feed\""
-open: 23
+open: 18
 total: 23
-recorded: 2026-10-14T14:27:50.530Z
+recorded: 2026-10-18T19:54:16Z
 ---
 
 # Phase 01: Code Review Disposition
@@ -110,8 +110,8 @@ recorded: 2026-10-14T14:27:50.530Z
 | WR-04 | warning | open | - |
 | WR-05 | warning | open | - |
 | WR-07 | warning | open | - |
-| WR-08 | warning | open | - |
-| IN-01 | info | open | - |
+| WR-08 | warning | fixed | Phase 3 diagnostics exposes skipped_malformed; test_diagnostics.py passes (2026-10-18 re-verification) |
+| IN-01 | info | fixed | Identity guard in _handle_coordinator_update; refresh/unchanged-data tests pass (2026-10-18 re-verification) |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
 | IN-04 | info | open | - |
@@ -124,7 +124,7 @@ recorded: 2026-10-14T14:27:50.530Z
 | IN-11 | info | open | - |
 | IN-12 | info | open | - |
 | IN-13 | info | open | - |
-| IN-14 | info | open | - |
+| IN-14 | info | fixed | Phase 2 MatchIndex._lower clamps underflow; boundary query tests pass (2026-10-18 re-verification) |
 | CR-01 | critical | fixed | plan 01-11 (23ea4d7, 6a4c1f3, 05fe9fe); confirmed resolved by re-review 6a98480 |
 | WR-06 | warning | fixed | plan 01-11 (6a4c1f3); confirmed resolved by re-review 6a98480 |
 

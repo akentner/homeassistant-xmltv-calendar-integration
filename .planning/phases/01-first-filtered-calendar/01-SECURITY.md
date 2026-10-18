@@ -54,7 +54,7 @@ created: "2026-10-15"
 | T-01-19 | Information disclosure | config entry unique_id | medium | mitigate | sha256 of normalized source keeps URL tokens out | closed |
 | T-01-20 | Spoofing / SSRF | probe and coordinator fetch | low | accept | Admin-only flow; http/https only | closed |
 | T-01-21 | Tampering | normalize_url scheme handling | medium | mitigate | Non-http(s) schemes rejected with invalid_url | closed |
-| T-01-22 | Denial of service | async_probe_url | medium | mitigate | PROBE_BYTES 64 KiB + DOWNLOAD_TIMEOUT | closed |
+| T-01-22 | Denial of service | config_flow.py setup download | medium | mitigate | Phase 3 replaces the probe with async_fetch_url: MAX_DOWNLOAD_BYTES 256 MiB + DOWNLOAD_TIMEOUT; feed sniffing still uses PROBE_BYTES 64 KiB | closed |
 | T-01-23 | Denial of service | CalendarSubentryFlow pattern input | medium | mitigate | first_invalid_pattern before storing; executor matching | closed |
 | T-01-24 | Elevation of privilege / DoS | CalendarSubentryFlow on unloaded source | low | mitigate | Abort source_not_loaded | closed |
 | T-01-25 | Information disclosure / legal | tests/fixtures/real_de_excerpt.xml | medium | mitigate | Not committed; only synthetic fixtures tracked | closed |
@@ -100,3 +100,16 @@ created: "2026-10-15"
 - [x] `status: verified` set in frontmatter
 
 **Approval:** verified 2026-10-15
+
+## Re-verification — 2026-10-18
+
+Inline L1 review against the existing plan-time register; no new risk acceptance. The 33 threat dispositions remain
+closed, with zero open threats at the configured high threshold. The setup-download mitigation for T-01-22 above
+now describes the Phase 3 implementation rather than the removed async_probe_url helper.
+
+Current evidence: 821 passing tests, including download/decompression caps, file allowlist and symlink checks,
+host-only error/log assertions, malformed timestamp containment, event query caps, workflow SHA pins and token
+permissions. Tests ran against source HEAD 19e262dab163da4114809a248883102c93ceb9a8. No packages were installed.
+The historical container mounts and pre-publication manual checks remain historical evidence, not fresh live checks.
+Pattern length/line limits and the Phase 2 nested-repeat rejection reduce ReDoS exposure but do not impose a regex
+execution timeout; overlapping-alternation patterns remain a documented residual, not a guarantee of bounded CPU.

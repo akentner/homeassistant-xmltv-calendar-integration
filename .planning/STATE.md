@@ -223,6 +223,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
+Phase 01 re-verification (2026-10-18): refreshed after approved User Story wording correction; 821 tests passed,
+1 real-feed test intentionally skipped, Ruff clean, all 5 TDD plans and 16/16 decisions checked. The prior
+live-trigger deferral remains in 01-UAT.md. Phase 01 stays complete; current Phase 03 position is retained.
+Next earlier-phase verification to refresh: `$gsd-execute-phase 02`.
+
 Last session: 2026-10-16T13:37:16.616Z
 Stopped at: Completed 03-10-PLAN.md
 Resume file: None
