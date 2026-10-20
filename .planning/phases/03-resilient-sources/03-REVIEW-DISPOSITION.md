@@ -5,7 +5,7 @@ titles: json
 findings:
   - id: WR-06
     severity: warning
-    disposition: open
+    disposition: deferred
     title: "The WR-05 catch-all swallows a cache-parse crash without its type or traceback, and logs the drop twice"
   - id: IN-04
     severity: info
@@ -21,7 +21,7 @@ findings:
     title: "Expired-data detection lags by `KEEP_PAST`, so a stopped grabber still reports success for a day after the calendar runs dry"
   - id: IN-09
     severity: info
-    disposition: open
+    disposition: deferred
     title: "A persistently swallowed `CancelledError` now retries every 5 min forever, with no escalation and no record"
   - id: IN-10
     severity: info
@@ -83,7 +83,7 @@ findings:
     severity: info
     disposition: open
     title: "Diagnostics report `next_refresh` even when no timer is armed"
-open: 13
+open: 11
 total: 20
 recorded: 2026-10-20T23:05:40.458Z
 ---
@@ -92,11 +92,11 @@ recorded: 2026-10-20T23:05:40.458Z
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-06 | warning | open | - |
+| WR-06 | warning | deferred | 2026-10-21 UAT test 6: accepted as non-blocking; calendars stay populated, and when the download crashes too the existing WARNING plus health recording apply. Logging fix proposed in 03-REVIEW.md (WARNING with class name, DEBUG with exc_info, one drop line) is a follow-up |
 | IN-04 | info | open | - |
 | IN-07 | info | open | - |
 | IN-08 | info | open | - |
-| IN-09 | info | open | - |
+| IN-09 | info | deferred | 2026-10-21 UAT test 6: residual of the WR-04 fix accepted; trigger is not input-reachable (a library leaking CancelledError), worst case ~288 requests/day vs ~86,400 before the fix |
 | IN-10 | info | open | - |
 | IN-11 | info | open | - |
 | IN-12 | info | open | - |

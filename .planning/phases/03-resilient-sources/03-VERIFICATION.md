@@ -62,6 +62,27 @@ covered_files:
 covered_digest: "v3:sha256:fd1fb0032497082dbaecee9f48ffc3024d237583121d2bc7a9ab1305892e7eb3"
 behavior_unverified: 0
 overrides_applied: 0
+overrides:
+  - must_have: "A later refresh of a URL source with a valid cache sends the stored ETag as If-None-Match and the stored Last-Modified as If-Modified-Since, verbatim; a 304 answer causes no download of the body, no parse and no calendar refilter, keeps coordinator.data as the identical object, counts as a successful refresh and updates the cache fetched_at (SRC-07)"
+    reason: "WR-01 fix (19e262d): a 304 counts as success only while the data in memory still holds a programme ending after now - KEEP_PAST; otherwise it is an empty_feed failure without parse and without touching the cache, so a stalled provider becomes visible"
+    accepted_by: "Alexander Kentner"
+    accepted_at: "2026-10-20T23:23:41Z"
+  - must_have: "A local file source is re-parsed only when the file's mtime or size changed; an unchanged file counts as a successful refresh, keeps the identical data object, and the allowed-path check still runs on every refresh; local files get no payload cache, and after a reload the file is parsed again (D-11)"
+    reason: "WR-01 fix (19e262d): an unchanged file counts as success only while its data still holds a current programme; expired data fails with empty_feed and keeps the data object"
+    accepted_by: "Alexander Kentner"
+    accepted_at: "2026-10-20T23:23:41Z"
+  - must_have: "The next successful refresh deletes the issue and resets the failure streak; a 304 answer and an unchanged local file count as success (D-17)"
+    reason: "WR-01 fix (19e262d): a 304 or an unchanged file with expired data in memory is an empty_feed failure, not a success"
+    accepted_by: "Alexander Kentner"
+    accepted_at: "2026-10-20T23:23:41Z"
+  - must_have: "A cached payload whose parse raises an unexpected exception at setup is recorded as a failure without any download: the entry is SETUP_RETRY with error_reason_translation_key unable_to_fetch and the stored health shows consecutive_failures 1, so setup retries count toward the 24 h issue (CR-02, D-09, D-17)"
+    reason: "WR-05 fix (19e262d): the poisoned cache is dropped and the source downloaded (aligns with 03-02 truth 5); a persistent crash is still SETUP_RETRY, unable_to_fetch, consecutive_failures 1 per attempt; MemoryError keeps the cache without download"
+    accepted_by: "Alexander Kentner"
+    accepted_at: "2026-10-20T23:23:41Z"
+  - must_have: "A refresh that ends in asyncio.CancelledError (entry unload, shutdown) records no failure and changes no refresh target: the failure handler catches Exception only, so cancellation passes through to Home Assistant unrecorded (edge SRC-08 interruption)"
+    reason: "WR-04 fix (19e262d): cancellation stays unrecorded, but a provisional target max(served, now + 5 min) is set before the read, so an HA-swallowed cancellation can no longer re-arm a served target every second"
+    accepted_by: "Alexander Kentner"
+    accepted_at: "2026-10-20T23:23:41Z"
 re_verification:
   previous_status: human_needed
   previous_score: 93/95
