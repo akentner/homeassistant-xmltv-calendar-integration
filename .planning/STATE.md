@@ -1,43 +1,43 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 03
-current_phase_name: Resilient Sources
-status: verifying
-stopped_at: Completed 03-10-PLAN.md
-last_updated: "2026-10-16T13:37:16.801Z"
-last_activity: 2026-10-16
-last_activity_desc: Phase 03 execution started
-state_head: a33aeec38e52b06e32c3cdadfd14da89907a4ae3
+current_phase: 4
+current_phase_name: Automation Extras & Release
+status: planning
+stopped_at: Phase 03 complete, ready to plan Phase 4
+last_updated: "2026-10-20T23:24:53.956Z"
+last_activity: 2026-10-21
+last_activity_desc: Phase 03 complete, transitioned to Phase 4
+state_head: b8b0889aab929956db97067bd80032c26bc175e9
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 31
   completed_plans: 31
-  percent: 50
+  percent: 75
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-15)
+See: .planning/PROJECT.md (updated 2026-10-21)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 03 — Resilient Sources
+**Current focus:** Phase 4 — Automation Extras & Release
 
 ## Current Position
 
-Phase: 03 (Resilient Sources) — READY TO EXECUTE
-Plan: 8 of 8
-Status: Phase complete — ready for verification
-Last activity: 2026-10-16 — Phase 03 execution started
+Phase: 4 — Automation Extras & Release
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-21 — Phase 03 complete, transitioned to Phase 4
 
-Progress: [█████░░░░░] 50%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 31
 - Average duration: -
 - Total execution time: 0.0 hours
 
@@ -47,6 +47,7 @@ Progress: [█████░░░░░] 50%
 |-------|-------|-------|----------|
 | 01 | 11 | - | - |
 | 02 | 10 | - | - |
+| 03 | 10 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -190,6 +191,7 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-09: every non-cancellation Exception in _async_update_data (cache start, download, parse) is recorded as unable_to_fetch, backed off and re-raised as UpdateFailed(unable_to_fetch); one content-free WARNING per attempt, traceback at DEBUG; CancelledError passes through unrecorded
 - [Phase 03]: 03-10: the setup flow seeds SourceHealth(last_success=fetched_at) with the cache metadata's fetched_at, only when FeedCache.async_write returned True; a failed write seeds nothing (WR-02)
 - [Phase 03]: 03-10: tests/test_identity.py runs frozen at 2026-10-13T06:00:00+00:00 and asserts flow-created entries LOADED, so expired fixtures fail loudly (WR-03)
+- [Phase 03]: UAT 2026-10-21: overrides accepted for 03-03 T1/T7, 03-04 T5, 03-09 T8/T9 (superseded by the WR-01/04/05 fixes in 19e262d); WR-06 and IN-09 deferred with reason in 03-REVIEW-DISPOSITION.md
 
 ### Pending Todos
 
@@ -199,7 +201,8 @@ None yet.
 
 - [Phase 1] UAT test 3 (calendar trigger with −5 min offset in a live automation) deferred; automated trigger tests cover it — see 01-UAT.md Deferred Follow-Ups
 - [Phase 2] Review warnings accepted as non-blocking in Phase 1 UAT: WR-07 (absurd in-window stop → duration cap / FLT-08), IN-14 (get_events OverflowError near year 0001 → clamp in window.py); WR-08 (skipped_malformed not logged) → Phase 3 SRC-12
-- [Phase 3] Only fixtures and the generated 60 MB feed are tracked; one reachable real URL source was exercised in Phase 1 UAT, but Phase 3 behaviour (caching, conditional requests) still needs real feeds
+- [Phase 3] Only fixtures and the generated 60 MB feed are tracked; Phase 3 caching and conditional requests were exercised in the ha-dev walkthrough (03-UAT test 1), not yet against a long-running real feed on ha-host
+- [Phase 3] Deferred review findings: WR-06 (cache-parse crash logged only at DEBUG), IN-09 (recurring swallowed CancelledError retries every 5 min); see 03-REVIEW-DISPOSITION.md
 - [Phase 3] Parse time on `ha-host` hardware is unmeasured (dev-box ha-dev: 60 MB in 2.8 s, UI stayed responsive in Phase 1 UAT)
 - Research suggested deferring FLT-09, EVT-07 and EVT-08 to v2, but REQUIREMENTS.md keeps them in v1 (mapped to Phases 2 and 4)
 - Event-loop gap under the 60 MB benchmark is 86-164 ms on the dev box (limit 250 ms): CI benchmark job may be flaky on slower runners; 01-09 ran on the dev-laptop ha-dev only (60 MB parse 2.8 s in-container), ha-host still unmeasured (RESEARCH A2)
@@ -223,11 +226,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Phase 01 re-verification (2026-10-18): refreshed after approved User Story wording correction; 821 tests passed,
-1 real-feed test intentionally skipped, Ruff clean, all 5 TDD plans and 16/16 decisions checked. The prior
-live-trigger deferral remains in 01-UAT.md. Phase 01 stays complete; current Phase 03 position is retained.
-Next earlier-phase verification to refresh: `$gsd-execute-phase 02`.
-
-Last session: 2026-10-16T13:37:16.616Z
-Stopped at: Completed 03-10-PLAN.md
+Last session: 2026-10-21
+Stopped at: Phase 03 complete (UAT 6/6, verification passed), ready to plan Phase 4
 Resume file: None

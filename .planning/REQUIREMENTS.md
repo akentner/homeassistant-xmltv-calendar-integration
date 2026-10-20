@@ -11,14 +11,14 @@
 - [x] **SRC-02**: User can add an XMLTV source by local file path (validated against HA allowed paths)
 - [x] **SRC-03**: Gzip-compressed sources are read transparently (detected by content, not file extension)
 - [x] **SRC-04**: User can set a refresh interval per source
-- [ ] **SRC-05**: User can alternatively schedule a source to refresh once daily at a fixed time (e.g. 18:15 for a feed generated at 18:00)
-- [ ] **SRC-06**: Downloaded source data is cached on disk; an HA restart or entry reload uses the cache and does not re-fetch while the cache is still fresh for the configured schedule
-- [ ] **SRC-07**: Remote sources are re-downloaded only when changed (ETag / If-Modified-Since)
-- [ ] **SRC-08**: A failed fetch or parse keeps the last good data; calendars keep working
+- [x] **SRC-05**: User can alternatively schedule a source to refresh once daily at a fixed time (e.g. 18:15 for a feed generated at 18:00)
+- [x] **SRC-06**: Downloaded source data is cached on disk; an HA restart or entry reload uses the cache and does not re-fetch while the cache is still fresh for the configured schedule
+- [x] **SRC-07**: Remote sources are re-downloaded only when changed (ETag / If-Modified-Since)
+- [x] **SRC-08**: A failed fetch or parse keeps the last good data; calendars keep working
 - [x] **SRC-09**: Large feeds (50+ MB) are parsed without blocking the HA event loop and with bounded memory
-- [ ] **SRC-10**: User can configure per source that timestamps without offset are local time, and/or apply a time offset correction
-- [ ] **SRC-11**: User sees a Repairs issue when a source fails persistently; it clears on success
-- [ ] **SRC-12**: User can download diagnostics for a source (URL/credentials redacted; programme/channel/match counts, last success/failure)
+- [x] **SRC-10**: User can configure per source that timestamps without offset are local time, and/or apply a time offset correction
+- [x] **SRC-11**: User sees a Repairs issue when a source fails persistently; it clears on success
+- [x] **SRC-12**: User can download diagnostics for a source (URL/credentials redacted; programme/channel/match counts, last success/failure)
 - [x] **SRC-13**: Duplicate sources (same normalized URL/path) are rejected during setup
 
 ### Filter
@@ -51,14 +51,14 @@
 - [x] **AUT-01**: Calendar works with calendar triggers (start/end, offsets) and `calendar.get_events`
 - [x] **AUT-02**: Calendar state is `on` while a matching programme airs; attributes show the current/next match
 - [ ] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
-- [ ] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
+- [x] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
 - [ ] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
 
 ### Configuration UX
 
 - [x] **CFG-01**: All setup is possible via UI (config flow for source, subentry flow for calendars); no YAML
-- [ ] **CFG-02**: User can edit source settings (refresh, timezone options) via options flow
-- [ ] **CFG-03**: User sees a progress indicator while a source is downloaded during setup
+- [x] **CFG-02**: User can edit source settings (refresh, timezone options) via options flow
+- [x] **CFG-03**: User sees a progress indicator while a source is downloaded during setup
 - [ ] **CFG-04**: UI is available in English and German
 
 ### Distribution
@@ -105,14 +105,14 @@
 | SRC-02 | Phase 1 | Complete |
 | SRC-03 | Phase 1 | Complete |
 | SRC-04 | Phase 1 | Complete |
-| SRC-05 | Phase 3 | Gaps Found |
-| SRC-06 | Phase 3 | Gaps Found |
-| SRC-07 | Phase 3 | Gaps Found |
-| SRC-08 | Phase 3 | Gaps Found |
+| SRC-05 | Phase 3 | Complete |
+| SRC-06 | Phase 3 | Complete |
+| SRC-07 | Phase 3 | Complete |
+| SRC-08 | Phase 3 | Complete |
 | SRC-09 | Phase 1 | Complete |
-| SRC-10 | Phase 3 | Gaps Found |
-| SRC-11 | Phase 3 | Gaps Found |
-| SRC-12 | Phase 3 | Gaps Found |
+| SRC-10 | Phase 3 | Complete |
+| SRC-11 | Phase 3 | Complete |
+| SRC-12 | Phase 3 | Complete |
 | SRC-13 | Phase 1 | Complete |
 | FLT-01 | Phase 1 | Complete |
 | FLT-02 | Phase 1 | Complete |
@@ -136,11 +136,11 @@
 | AUT-01 | Phase 1 | Complete |
 | AUT-02 | Phase 1 | Complete |
 | AUT-03 | Phase 4 | Pending |
-| AUT-04 | Phase 3 | Gaps Found |
+| AUT-04 | Phase 3 | Complete |
 | AUT-05 | Phase 4 | Pending |
 | CFG-01 | Phase 1 | Complete |
-| CFG-02 | Phase 3 | Gaps Found |
-| CFG-03 | Phase 3 | Gaps Found |
+| CFG-02 | Phase 3 | Complete |
+| CFG-03 | Phase 3 | Complete |
 | CFG-04 | Phase 4 | Pending |
 | DST-01 | Phase 1 | Complete |
 | DST-02 | Phase 1 | Complete |

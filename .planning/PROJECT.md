@@ -24,11 +24,12 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 - ✓ Event title is configurable via template (e.g. `{channel}: {title}`); default includes the channel — Phase 2
 - ✓ Event description carries programme details (subtitle, description, category, episode where available), overridable via description template — Phase 2
 - ✓ Live filter preview in the flow (match count + next matches) before saving; calendars editable in place without re-downloading the source — Phase 2
+- ✓ Refresh schedule configurable and editable per source: interval or daily at a fixed time — Phase 3
+- ✓ Complete setup and later editing of all settings via Config Flow, Subentry Flow and Options Flow (no YAML), with a progress indicator during the setup download — Phase 3
+- ✓ Sources are resilient: disk cache across restarts, conditional requests (ETag / If-Modified-Since), last good data kept on failure, backoff, Repairs issue after 24 h of failures, diagnostics, timezone options, manual refresh via `update_entity` — Phase 3
 
 ### Active
 
-- [ ] Refresh interval is configurable per source (set at creation since Phase 1; later editing in Phase 3)
-- [ ] Complete setup and later editing of all settings via Config Flow + Options Flow (no YAML)
 - [ ] Distributed as HACS repository (hacs.json, releases, CI with hassfest + HACS validation) — custom-repo install + green CI since Phase 1; tagged releases in Phase 4
 
 ### Out of Scope
@@ -65,7 +66,10 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 | Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | ✓ Good — Phase 2 (restricted placeholder templates for title and description, validated in the flow) |
 | Preview renders feed text literally | Feed text is untrusted; HA renders the flow description as Markdown (marked GFM) | ✓ Good — Phase 2 (HTML/Markdown/autolink/tilde escaping, whitespace collapsed; verified live in ha-dev) |
 | German UI translation (de.json) alongside en.json | User runs HA in German; parity tests keep keys/placeholders in sync | ✓ Good — quick 261015-su3 |
-| UI-only configuration | User preference, editable via Options Flow | — Pending |
+| UI-only configuration | User preference, editable via Options Flow | ✓ Good — Phase 3 (source options flow reloads once from cache; no YAML anywhere) |
+| Stale-while-revalidate disk cache per URL source | Restarts and reloads must not re-download a large feed; calendars show cached data at once | ✓ Good — Phase 3 (UAT: one download per setup, none on restart or options save) |
+| Unchanged data counts as success only while it still holds a current programme | A stalled provider answering 304 must become visible instead of silently emptying the calendar | ✓ Good — Phase 3 (WR-01 fix; 3 plan truths accepted by override in 03-VERIFICATION.md) |
+| Every non-cancellation exception on a refresh is a recorded, backed-off failure | No exception may turn into a faster retry against the feed host | ✓ Good — Phase 3 (residuals WR-05 setup-retry cadence and IN-09 accepted; WR-06 logging deferred) |
 | HACS distribution | Standard install/update path | ✓ Good — Phase 1 (HACS accepts custom repo, hassfest/HACS CI green) |
 
 ## Evolution
@@ -86,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-15 after Phase 2*
+*Last updated: 2026-10-21 after Phase 3*

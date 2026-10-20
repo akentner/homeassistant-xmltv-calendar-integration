@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: First Filtered Calendar** - One source with channel + regex filtered calendars showing correct events in HA; pure library, scaffold and CI first (completed 2026-10-15)
 - [x] **Phase 2: Precise Filters & Preview** - Field-scoped Unicode-safe regex, duration and time-window filters, title/description templates, live preview, instant reconfigure (completed 2026-10-15)
-- [ ] **Phase 3: Resilient Sources** - Disk cache, conditional GET, daily schedule, timezone options, options flow, setup progress, last-good data, Repairs, diagnostics
+- [x] **Phase 3: Resilient Sources** - Disk cache, conditional GET, daily schedule, timezone options, options flow, setup progress, last-good data, Repairs, diagnostics (completed 2026-10-21)
 - [ ] **Phase 4: Automation Extras & Release** - Next-match sensor, new-match event, past-match retention, blueprint, German translation, README, tagged HACS releases
 
 ## Phase Details
@@ -119,7 +119,7 @@ Plans:
   4. When a fetch or parse fails, calendars keep showing the last good data. A source that keeps failing raises a Repairs issue, which clears automatically after the next successful refresh.
   5. User downloads diagnostics for a source showing programme/channel/match counts and last success/failure, with URL and credentials redacted.
 
-**Plans**: 10/10 plans executed
+**Plans**: 10/10 plans complete
 
 Plans:
 **Wave 1**
@@ -173,5 +173,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
-| 3. Resilient Sources | 10/10 | In Progress | - |
+| 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
 | 4. Automation Extras & Release | 0/TBD | Not started | - |
