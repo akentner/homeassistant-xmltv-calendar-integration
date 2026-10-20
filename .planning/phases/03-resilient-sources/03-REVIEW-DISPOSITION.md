@@ -3,6 +3,38 @@ phase: 03
 review: 03-REVIEW.md
 titles: json
 findings:
+  - id: WR-06
+    severity: warning
+    disposition: open
+    title: "The WR-05 catch-all swallows a cache-parse crash without its type or traceback, and logs the drop twice"
+  - id: IN-04
+    severity: info
+    disposition: open
+    title: "A 304 without data in memory reads the cache without the source check (carried forward, still open)"
+  - id: IN-07
+    severity: info
+    disposition: open
+    title: "Test hygiene (carried forward, partially in scope)"
+  - id: IN-08
+    severity: info
+    disposition: open
+    title: "Expired-data detection lags by `KEEP_PAST`, so a stopped grabber still reports success for a day after the calendar runs dry"
+  - id: IN-09
+    severity: info
+    disposition: open
+    title: "A persistently swallowed `CancelledError` now retries every 5 min forever, with no escalation and no record"
+  - id: IN-10
+    severity: info
+    disposition: open
+    title: "`MemoryError` on the cache keeps the payload, but the entry stays in SETUP_RETRY with no download"
+  - id: IN-11
+    severity: info
+    disposition: open
+    title: "The WR-05 tests do not prove that the cache path was exercised and dropped"
+  - id: IN-12
+    severity: info
+    disposition: open
+    title: "`test_timer_cancelled_refresh_does_not_retry_every_second` relies on the frozen clock equalling the fire time exactly"
   - id: WR-01
     severity: warning
     disposition: fixed
@@ -19,18 +51,10 @@ findings:
     severity: info
     disposition: open
     title: "Cache seeding runs before the final duplicate check, and now also overwrites the Store's health (carried forward, still open)"
-  - id: IN-04
-    severity: info
-    disposition: open
-    title: "A 304 without data in memory reads the cache without the source check (carried forward, still open)"
   - id: IN-06
     severity: info
     disposition: open
     title: "The seeded `fetched_at` and `last_success` are the time of the name step, not of the download"
-  - id: IN-07
-    severity: info
-    disposition: open
-    title: "Test hygiene in the new tests"
   - id: CR-01
     severity: critical
     disposition: fixed
@@ -59,26 +83,32 @@ findings:
     severity: info
     disposition: open
     title: "Diagnostics report `next_refresh` even when no timer is armed"
-open: 7
-total: 14
-recorded: 2026-10-16T17:50:08.718Z
+open: 13
+total: 20
+recorded: 2026-10-20T23:05:40.458Z
 ---
 
 # Phase 03: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | fixed | 2026-10-17: unchanged URL/file data must retain a programme at the parser cutoff; expired data records empty_feed and keeps last good data. Tests: test_expired_unchanged_feed_fails_without_reparse (304/identical body), test_expired_unchanged_file_fails_without_reparse |
-| WR-04 | warning | fixed | 2026-10-17: provisional retry target before awaiting; success/failure use the original served target. Test: test_timer_cancelled_refresh_does_not_retry_every_second; existing early-slot and manual-refresh guards pass |
-| WR-05 | warning | fixed | 2026-10-17: parser exceptions drop the unusable cache and download again; MemoryError preserves the offline fallback. Tests: test_unexpected_cache_parse_failure_downloads_and_is_recorded, test_cache_parser_crash_recovers_from_changed_download, test_cache_memory_error_preserves_offline_fallback |
-| IN-02 | info | open | - |
+| WR-06 | warning | open | - |
 | IN-04 | info | open | - |
-| IN-06 | info | open | - |
 | IN-07 | info | open | - |
-| CR-01 | critical | fixed | 03-09 (af12ce8, 8283e60): `refresh_base` on success and failure path; re-review confirmed resolved |
-| CR-02 | critical | fixed | 03-09 (4271ad6): one failure handler for every `Exception`; re-review confirmed resolved (residual gap tracked as WR-04) |
-| WR-02 | warning | fixed | 03-10 (f0cefd7): setup download seeded as last_success; re-review confirmed resolved |
-| WR-03 | warning | fixed | 03-10 (bb521c1, 77c9a14): identity tests frozen at fixture date, assert LOADED; re-review confirmed resolved |
+| IN-08 | info | open | - |
+| IN-09 | info | open | - |
+| IN-10 | info | open | - |
+| IN-11 | info | open | - |
+| IN-12 | info | open | - |
+| WR-01 | warning | fixed | 2026-10-17: unchanged URL/file data must retain a programme at the parser cutoff; expired data records empty_feed and keeps last good data. Tests: test_expired_unchanged_feed_fails_without_reparse (304/identical body), test_expired_unchanged_file_fails_without_reparse (not in the current review) |
+| WR-04 | warning | fixed | 2026-10-17: provisional retry target before awaiting; success/failure use the original served target. Test: test_timer_cancelled_refresh_does_not_retry_every_second; existing early-slot and manual-refresh guards pass (not in the current review) |
+| WR-05 | warning | fixed | 2026-10-17: parser exceptions drop the unusable cache and download again; MemoryError preserves the offline fallback. Tests: test_unexpected_cache_parse_failure_downloads_and_is_recorded, test_cache_parser_crash_recovers_from_changed_download, test_cache_memory_error_preserves_offline_fallback (not in the current review) |
+| IN-02 | info | open | - (not in the current review) |
+| IN-06 | info | open | - (not in the current review) |
+| CR-01 | critical | fixed | 03-09 (af12ce8, 8283e60): `refresh_base` on success and failure path; re-review confirmed resolved (not in the current review) |
+| CR-02 | critical | fixed | 03-09 (4271ad6): one failure handler for every `Exception`; re-review confirmed resolved (residual gap tracked as WR-04) (not in the current review) |
+| WR-02 | warning | fixed | 03-10 (f0cefd7): setup download seeded as last_success; re-review confirmed resolved (not in the current review) |
+| WR-03 | warning | fixed | 03-10 (bb521c1, 77c9a14): identity tests frozen at fixture date, assert LOADED; re-review confirmed resolved (not in the current review) |
 | IN-01 | info | open | - (not in the current review) |
 | IN-03 | info | open | - (not in the current review) |
 | IN-05 | info | open | - (not in the current review) |
@@ -86,5 +116,3 @@ recorded: 2026-10-16T17:50:08.718Z
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
 Re-running the gate keeps every row it can. A row the current review no longer reports is kept and its Source cell flagged, so a finding does not leave this record silently. ONE exception: when a finding id is REUSED by a different finding, the earlier decision cannot keep a row — the id is taken — and it is dropped. A RECORDED decision (anything but `open`) is named on the console when that happens; a row still at `open` is replaced silently, because `open` records no decision to lose.
-
-Validation (2026-10-17): 821 passed, 1 existing real-feed skip; Ruff check and format check pass. See 03-FIX-VERIFICATION.md for scope and remaining phase gate.
