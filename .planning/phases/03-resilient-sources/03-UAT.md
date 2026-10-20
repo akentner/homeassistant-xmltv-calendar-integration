@@ -1,14 +1,19 @@
 ---
-status: complete
+status: testing
 phase: 03-resilient-sources
 source: [03-VERIFICATION.md]
 started: 2026-10-16T18:25:00Z
-updated: 2026-10-17T13:33:33.259795Z
+updated: 2026-10-20T23:14:55Z
 ---
 
 ## Current Test
 
-[testing complete]
+number: 5
+name: Accept or reject the 5 plan truths superseded by the 19e262d fixes
+expected: |
+  Each of 03-03 T1, 03-03 T7, 03-04 T5, 03-09 T8, 03-09 T9 is carried as PASSED (override) with
+  accepted_by/accepted_at in 03-VERIFICATION.md, or explicitly rejected (then re-planned as a gap)
+awaiting: user response
 
 ## Tests
 
@@ -28,12 +33,20 @@ result: pass
 expected: Each of WR-01, WR-04, WR-05 has disposition fixed or deferred-with-reason in 03-REVIEW-DISPOSITION.md before the phase is marked complete (WR-04 is the swallowed-CancelledError fast retry; verifier recommends the small provisional-target fix before release)
 result: pass
 
+### 5. Accept or reject the 5 plan truths superseded by the 19e262d fixes
+expected: Each of 03-03 T1, 03-03 T7, 03-04 T5 (304 / unchanged file is success only while data holds a programme ending after now - 1 day), 03-09 T8 (cache-parse crash now drops the cache and downloads), 03-09 T9 (CancelledError now sets a provisional target >= now + 5 min) is carried as PASSED (override, block ready in 03-VERIFICATION.md) or explicitly rejected
+result: [pending]
+
+### 6. Confirm retry-cadence residuals and set WR-06 disposition
+expected: (a) WR-05 residual (deterministic parser crash downloads once per HA setup retry, 5 s doubling to 600 s) and (b) IN-09 (5-min fixed retry on a recurring swallowed CancelledError) are each accepted with a reason or scheduled as follow-up; WR-06 (cache-parse catch-all logs only DEBUG, no exc_info) has disposition fixed or deferred-with-reason in 03-REVIEW-DISPOSITION.md
+result: [pending]
+
 ## Summary
 
-total: 4
+total: 6
 passed: 4
 issues: 0
-pending: 0
+pending: 2
 skipped: 0
 blocked: 0
 
