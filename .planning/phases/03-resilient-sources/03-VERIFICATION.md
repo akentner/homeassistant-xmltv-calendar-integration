@@ -1,8 +1,8 @@
 ---
 phase: 03-resilient-sources
-verified: 2026-10-16T18:20:00Z
+verified: 2026-10-20T23:12:14Z
 status: human_needed
-score: 93/95 must-haves verified
+score: 90/95 must-haves verified
 covered_files:
   - .planning/phases/03-resilient-sources/03-01-PLAN.md
   - .planning/phases/03-resilient-sources/03-01-SUMMARY.md
@@ -59,77 +59,58 @@ covered_files:
   - tests/xmltv/test_parser.py
   - tests/xmltv/test_schedule.py
   - tests/xmltv/test_timeparse.py
-covered_digest: "v3:sha256:0652f1725300ce0250136a87a93c0c5532ad9d689ef95487d568fde4e22c4332"
-behavior_unverified: 2
+covered_digest: "v3:sha256:fd1fb0032497082dbaecee9f48ffc3024d237583121d2bc7a9ab1305892e7eb3"
+behavior_unverified: 0
 overrides_applied: 0
 re_verification:
-  previous_status: gaps_found
-  previous_score: 70/79
+  previous_status: human_needed
+  previous_score: 93/95
   gaps_closed:
-    - "CR-01: a daily slot is requested once even when HA's timer fires up to ~0.95 s early; a fast failure at the slot backs off 5 min (03-01 truth 1, 03-01 prohibition)"
-    - "CR-02: every non-cancellation Exception during cache start, download or parse is recorded as unable_to_fetch, backs off and reaches HA as UpdateFailed; the Repairs issue appears after 24 h (03-04 truths 3 and 8, roadmap SC 4)"
-    - "WR-02: a flow-created source reports the setup download as last_success in coordinator health, diagnostics and Repairs text (03-07 truth 3, roadmap SC 5)"
-    - "WR-03: tests/test_identity.py runs frozen at 2026-10-13 and asserts LOADED entries (03-01 truth 11)"
+    - "WR-04 (advisory): an HA-swallowed CancelledError on a timer-fired refresh no longer retries every second; a provisional target max(served, now + 5 min) is set before any await (coordinator.py:163-166), test_timer_cancelled_refresh_does_not_retry_every_second passes"
+    - "WR-05 (advisory): an unexpected cache-parse exception drops the cache and downloads (coordinator.py:323-334); verifier repro: the cache is parsed, dropped and replaced by the changed download in one setup"
+    - "WR-01 (advisory): 304, identical-body and unchanged-file shortcuts reject data with no programme ending after now - KEEP_PAST as empty_feed, before async_touch (coordinator.py:367, :388, :434, :446-447)"
+    - "Backstop truths 03-04 T11 (debouncer serialization) and 03-05 T10 (options save during a parse) are no longer behavior-unverified: human UAT pass recorded in 03-UAT.md tests 2 and 3"
   gaps_remaining: []
   regressions: []
 advisory:
-  - finding: "WR-04: a CancelledError that HA swallows (the refresh task itself is not being cancelled) on a timer-fired refresh leaves _next_refresh_at at the served, now past, target; HA re-arms at MIN_DELAY and retries about once per second, unrecorded and invisible"
+  - finding: "WR-06: the WR-05 catch-all in _async_parse_cached logs a cache-parse crash only at DEBUG, without the exception class or exc_info, and logs the drop twice; when the following download parses, nothing is recorded in health and nothing reaches the default log"
     category: other
-    reason: "Reproduced by the verifier (6 attempts in 11 s, consecutive_failures 0, next_refresh_at stuck at 2026-10-14T06:00Z). Non-blocking: not reachable from feed content or modelled network failures (Python 3.14 asyncio.timeout and aiohttp ClientTimeout raise TimeoutError; real task cancellation is re-raised by HA and unload sets _shutdown_requested, so the stale timer is a no-op). Needs a runtime/library bug that leaks CancelledError. Cheap fix: set a provisional target (served or now + 5 min) at the start of _async_update_data. Recommended as a follow-up before release; resolves the literal wording of the 03-01/03-09 prohibition."
-    evidence_status: "deterministic repro with injected CancelledError; no input-reachable trigger found"
-  - finding: "WR-05: an unexpected exception while parsing the disk cache at setup keeps the cache, so setup retries re-parse the same cache and never download (stays in SETUP_RETRY until the cache is removed)"
+    reason: "Confirmed by verifier repro (state LOADED, consecutive_failures 0, no WARNING line). Non-blocking: the calendars stay populated, so the source has not failed from the user's point of view, and when the download crashes too the existing WARNING plus health recording apply. It weakens CR-02's goal of making latent parser bugs visible. Fix proposed in 03-REVIEW.md (WARNING with class name, DEBUG with exc_info, one drop line). Disposition still 'open'."
+    evidence_status: "code inspection coordinator.py:328-333 plus scratchpad repro; no failing must-have"
+  - finding: "IN-09: an HA-swallowed CancelledError that keeps recurring retries every 5 min forever (fixed BACKOFF_STEPS[0], no escalation, no record, not capped by the regular slot)"
     category: other
-    reason: "Reproduced (8 cache parses, 0 downloads, SETUP_RETRY over 20 min). Non-blocking: this is exactly 03-09 truth 8 as planned; zero network cost; every attempt is recorded (consecutive_failures, content-free WARNING), and the unable_to_fetch Repairs issue appears after 24 h, so it is visible. The cache is only written after those same bytes parsed with programmes, so a crash on it needs an integration-upgrade bug (a deterministic bug would also crash on a fresh download; the proposed drop-and-download fix would then download on every setup retry, up to every 10 min) or a transient MemoryError (keeping the offline fallback is right). Cost: one cache parse per HA setup retry (5 s doubling, capped at 600 s). Residual: the setup-retry text says 'Unable to download' although nothing was downloaded, and a fixed upstream feed is never fetched. Follow-up, not a goal blocker."
-    evidence_status: "deterministic repro with injected RuntimeError on the cache parse"
-  - finding: "WR-01: the 304 / identical-body / unchanged-file shortcuts skip the empty-feed check, so a provider that stops updating is reported as success and calendars silently run dry"
-    category: other
-    reason: "Carried forward as advisory from the initial verification; outside every plan's must-haves (304 is success by D-17). Still disposition 'open' in 03-REVIEW-DISPOSITION.md: needs a fix plan or an explicit 'deferred' with reason."
-    evidence_status: "none provided (design gap, no failing must-have)"
-behavior_unverified_items:
-  - truth: "A manual update_entity that arrives while a scheduled refresh runs is serialized by the coordinator's debouncer lock, so health, cache and the refresh target are never written by two refreshes at once (03-04 truth 11, restated as 03-09 truth 11; verification: backstop)"
-    test: "Start a scheduled refresh against a slow feed and fire homeassistant.update_entity on the calendar while the download is running"
-    expected: "The two refreshes run one after the other; the Store holds one consistent CacheMeta/SourceHealth and consecutive_failures changes by at most 1 per refresh"
-    why_human: "Backstop truth relying on HA's _debounced_refresh.async_lock(); no test exercises concurrent refreshes"
-  - truth: "An options save during a running parse cannot mix old and new timezone settings: the reload replaces the coordinator and the old result is discarded (03-05 truth 10; verification: backstop)"
-    test: "Change the timezone option in the options flow while a large-feed parse is running"
-    expected: "After the reload the events reflect only the new timezone options; nothing from the old coordinator's parse is shown"
-    why_human: "Backstop truth; no test exercises an options save during an in-flight parse"
+    reason: "Residual of the WR-04 fix, the same non-input-reachable trigger the previous verification accepted (a library or runtime leaking CancelledError while the refresh task is not cancelled). About 288 requests a day in the worst case, against roughly 86,400 before the fix. Part of the prohibition judgment in human_verification[1]."
+    evidence_status: "code inspection coordinator.py:163-166; encoded by tests/test_schedule_refresh.py:399-408"
 human_verification:
-  - test: "ha-dev walkthrough (03-08 human-check): add a URL source (progress dialog, collapsed timezone section), restart HA, save options, run update_entity against the real feed, check curl -sI for ETag/Last-Modified, download diagnostics, check German texts"
-    expected: "One download per setup; no download on restart or options save; update_entity sends validators; diagnostics redacted and show last_success right after setup; no tracebacks or blocking-call warnings"
-    why_human: "Visual flow, real feed server behaviour and HA runtime logs cannot be checked from the test suite"
-  - test: "Debouncer serialization (backstop, see behavior_unverified_items[0])"
-    expected: "Two refreshes run one after the other with consistent health and cache"
-    why_human: "Backstop truth without behavioural test"
-  - test: "Options save during a running parse (backstop, see behavior_unverified_items[1])"
-    expected: "Only the new timezone options show after the reload"
-    why_human: "Backstop truth without behavioural test"
-  - test: "Decide on the flagged prohibition 'MUST NOT contact the feed host more often than the user's schedule ... no exception, anticipated or not ... turns into a faster retry' (03-01, 03-09): accept WR-04 as a non-input-reachable residual (set disposition deferred with reason) or schedule the provisional-target fix; likewise set dispositions for WR-05 and WR-01"
-    expected: "Each of WR-01, WR-04, WR-05 has disposition fixed or deferred-with-reason in 03-REVIEW-DISPOSITION.md before the phase is marked complete"
-    why_human: "Judgment-tier prohibition: the verifier's verdict (holds for every input-reachable exception, violated only by an injected CancelledError) is non-authoritative"
+  - test: "Accept or reject the 5 plan truths whose literal wording the user-approved 19e262d fixes (WR-01, WR-04, WR-05) superseded: 03-03 T1, 03-03 T7, 03-04 T5 (a 304 / unchanged file counts as success, now only while the data in memory still holds a programme ending after now - 1 day), 03-09 T8 (cache-parse crash 'without any download', now drops the cache and downloads), 03-09 T9 (CancelledError 'changes no refresh target', now sets a provisional target of at least now + 5 min). Paste the override block from the report into this frontmatter, or reject one and re-plan it as a gap"
+    expected: "Each of the 5 truths is carried as PASSED (override) with accepted_by/accepted_at, or explicitly rejected; a re-run of verification then reaches passed (or gaps_found for rejected ones)"
+    why_human: "The verifier may not accept a deviation from a planned must-have on the user's behalf. 03-UAT.md records the user's choice to fix WR-01/04/05, but no override entry exists"
+  - test: "Confirm the non-authoritative judgment-tier prohibition verdicts after 19e262d, especially 03-01/03-09 'MUST NOT contact the feed host more often than the schedule ... no exception turns into a faster retry'. Two residuals: (a) WR-05 path, a deterministic parser crash on both cached and downloaded bytes now downloads once per HA setup retry (verifier repro: 8 downloads in 20 min, 5 s doubling up to 600 s, then 1 per 10 min; 0 downloads before the fix; the same cadence as the long-accepted 'no cache + failed first download' path, 03-02 T7), (b) IN-09, 5-min fixed retry on a recurring HA-swallowed CancelledError. Also set the disposition of WR-06 (fixed or deferred with reason) in 03-REVIEW-DISPOSITION.md"
+    expected: "Each residual accepted with a reason (deferred), or scheduled as a follow-up; WR-06 has disposition fixed or deferred-with-reason before the phase is marked complete"
+    why_human: "Judgment-tier prohibition: the verifier's verdict (holds for every input-reachable path; the residuals need an integration bug or a library that leaks CancelledError) is non-authoritative and must not be absorbed into a passed verdict"
 ---
 
 # Phase 3: Resilient Sources Verification Report
 
 **Phase Goal:** Sources keep every calendar populated at minimal network and CPU cost: cached across restarts, refreshed on the user's schedule and only when changed, tolerant of failures and timezone quirks, editable later, and visible to the user when something goes wrong.
-**Mode:** mvp (user story in all PLAN files, unchanged from the initial verification)
-**Verified:** 2026-10-16T18:20:00Z
+**Mode:** mvp (user story in all PLAN files; the outcome clause "every calendar stays populated at minimal network and CPU cost" is the success condition)
+**Verified:** 2026-10-20T23:12:14Z
 **Status:** human_needed
-**Re-verification:** Yes, after gap closure (03-09: CR-01/CR-02, 03-10: WR-02/WR-03; commits 6f5a1b3..acde918)
+**Re-verification:** Yes. The previous report (2026-10-16T18:20Z, human_needed, 93/95) went stale when commit 19e262d changed `coordinator.py` and four test modules. The rerun fully re-verifies what 19e262d touched and regression-checks everything else.
 
 ## User Flow Coverage
 
 | Step | Expected | Evidence | Status |
 |------|----------|----------|--------|
-| Add a URL source | Progress dialog, schedule step, timezone section, one HTTP request, last success recorded | `test_url_source_end_to_end_with_progress_and_seeded_cache` now also asserts `health.last_success == NOW`, diagnostics `last_success`/`fetched_at == NOW`, `call_count == 1` | VERIFIED (visual part in UAT) |
-| Restart / reload | Filled from disk cache, no download while fresh | `test_restart_uses_fresh_cache`, `test_reload_uses_fresh_cache`, `test_stale_cache_offline_start_still_loads` (regression: pass) | VERIFIED |
-| Refreshed on the user's schedule | Once per daily slot / interval | `refresh_base` (`schedule.py:180-190`) used in `_set_regular_target` (`coordinator.py:142-146`) and `_async_handle_failure` (`:199-207`). Verifier repro with HA's real timer, stepping 16:14:58Z..16:15:03.5Z in 0.5 s steps: call_count 1 -> 2 and stays 2, next target 2026-10-14T16:15Z. Direct refresh at 16:14:59.05Z: no further request at 16:15:01/03/20 | VERIFIED (CR-01 closed) |
-| Only when changed | 304 / identical body / unchanged file: no download body, no parse | `test_refresh.py`, `test_file_source.py` (regression: pass) | VERIFIED |
-| Tolerant of failures | Last good data kept; capped backoff; recorded | `except Exception` clause (`coordinator.py:169-178`). Verifier repro: `parse` raising `MemoryError` on a timer-fired refresh, then 20 s of 2 s steps: 1 request, `consecutive_failures 1`, `unable_to_fetch`, next target +5 min. `aiohttp.ClientPayloadError`: 1 request, data object unchanged. Residuals WR-04/WR-05 (advisory, see below) | VERIFIED |
-| Timezone quirks | Naive = local and/or offset correction | `test_timezone_options.py` (regression: pass) | VERIFIED |
-| Editable later | Options flow, single reload, no download | `test_options_flow.py` (regression: pass) | VERIFIED |
-| Visible when something goes wrong | Repairs after >24 h for every failure kind; diagnostics with last success | `test_unexpected_exception_raises_issue_after_24h`, `test_seeded_source_issue_names_setup_download` ("2026-10-13 08:00", not "-"), diagnostics step 7 | VERIFIED (WR-01 stalled-feed case remains advisory) |
-| Outcome | Calendars stay populated at minimal network and CPU cost | CR-01 and CR-02 loops gone (reproduced closed). Only the injected-CancelledError path (WR-04) still loops | VERIFIED, with one flagged residual |
+| Add a URL source | Progress dialog, schedule step, timezone section, one HTTP request, last success recorded | `test_url_source_end_to_end_with_progress_and_seeded_cache` passes (`call_count == 1`, `health.last_success == NOW`). `config_flow.py` is unchanged since the last verification | VERIFIED |
+| Restart / reload | Filled from disk cache, no download while fresh | `test_restart_uses_fresh_cache`, `test_reload_uses_fresh_cache` and `test_stale_cache_offline_start_still_loads` pass. The cache-start path (`_async_start_from_cache`) is unchanged | VERIFIED |
+| Refreshed on the user's schedule | One request per daily slot or interval | `_set_regular_target(served)` and `_async_handle_failure(..., served)` use `refresh_base(now, served)`, and `served = self._next_refresh_at` is captured at `coordinator.py:163`, so this is equivalent to the 03-09 code. `test_daily_slot_served_once_when_timer_fires_early`, `test_daily_fast_failure_before_slot_backs_off_five_minutes`, both manual-refresh guards and `test_timer_cancelled_refresh_does_not_retry_every_second` pass | VERIFIED |
+| Only when changed | 304 / identical body / unchanged file: no body, no parse | All `test_refresh.py` and `test_file_source.py` cases pass. A new condition applies: the kept data must still hold a programme ending after now - 1 day (WR-01) | VERIFIED (see human item 1 for the changed success semantics) |
+| Tolerant of failures | Last good data kept; capped backoff; recorded | `test_failures_keep_last_good_data`, `test_unexpected_exception_backs_off_and_is_recorded` and `test_expired_unchanged_*` pass (`coordinator.data is previous`). WR-05: a poisoned cache now falls through to a download, confirmed by verifier repro | VERIFIED |
+| Timezone quirks | Naive = local and/or offset correction | `test_timezone_options.py` and the parser tables pass. Unchanged | VERIFIED |
+| Editable later | Options flow, single reload, no download | `test_options_flow.py` passes. Unchanged | VERIFIED |
+| Visible when something goes wrong | Repairs after more than 24 h; diagnostics with last success | `test_persistent_failure_raises_and_clears_issue`, `test_unexpected_exception_raises_issue_after_24h`, `test_seeded_source_issue_names_setup_download` and `test_diagnostics_*` pass. A stalled provider (WR-01) is now reported as `empty_feed`, about 1 day after its last programme ends (IN-08). A cache-only parser crash that the download repairs is invisible (WR-06, advisory) | VERIFIED |
+| Outcome | Calendars stay populated at minimal network and CPU cost | All four loop or blind-spot residuals from the previous report are closed or reduced. Two residuals remain for the prohibition judgment (human item 2) | VERIFIED, pending human items |
 
 ## Goal Achievement
 
@@ -137,165 +118,182 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| SC1 | Progress during setup download; options flow switches interval/daily and edits timezone; source options reload, calendar edits do not | VERIFIED | Regression: `test_config_flow.py`, `test_options_flow.py`, `test_reconfigure.py` pass |
-| SC2 | Restart/reload uses fresh cache; unchanged feed not re-downloaded/re-parsed; update_entity refreshes immediately | VERIFIED | Regression: `test_cache.py`, `test_refresh.py` pass; `test_manual_refresh_*` guards pass |
-| SC3 | Naive timestamps local and/or offset correction | VERIFIED | Regression: `test_timezone_options.py`, parser tables pass |
-| SC4 | Failure keeps last good data; persistent failure raises a Repairs issue that clears on success | VERIFIED (was FAILED) | `test_unexpected_exception_backs_off_and_is_recorded` (data `is previous`, calendar not unavailable, one request in 10 s), `test_unexpected_exception_raises_issue_after_24h`, verifier MemoryError repro |
-| SC5 | Diagnostics with counts, last success/failure, redaction | VERIFIED (was partial) | `config_flow.py:357-366` seeds `SourceHealth(last_success=fetched_at)` only when `async_write` returns True; step 7 asserts coordinator and diagnostics values |
+| SC1 | Progress during the setup download. The options flow switches between interval and daily and edits timezone options. Source option saves reload; calendar edits do not | VERIFIED | `test_config_flow.py`, `test_options_flow.py` and `test_reconfigure.py` pass. Untouched by 19e262d |
+| SC2 | Restart/reload uses a fresh cache. An unchanged feed is not re-downloaded or re-parsed. update_entity refreshes immediately | VERIFIED | `test_cache.py`, `test_refresh.py` (304, identical body, update_entity ×2) and `test_file_source.py` pass. The expired-data variants still skip the body and the parse (`parses.calls == 0`, `call_count == 1`) |
+| SC3 | Naive timestamps read as local time and/or an offset correction | VERIFIED | `test_timezone_options.py` and the parser tables pass |
+| SC4 | A failure keeps the last good data. A persistent failure raises a Repairs issue that clears on success | VERIFIED | Failure tests pass. The WR-01 fix keeps `data is previous` and `cache_meta == meta` |
+| SC5 | Diagnostics with counts, last success/failure, redaction | VERIFIED | `test_diagnostics.py` and step 7 of the URL flow test pass |
 
-### Previous Gaps (full 3-level re-check)
+### Re-verified areas changed by 19e262d (full three-level check)
 
-| Gap | Exists | Substantive | Wired / behaviour | Status |
-|-----|--------|-------------|-------------------|--------|
-| CR-01 early fire | `EARLY_FIRE_TOLERANCE`, `refresh_base` in `schedule.py` (pure, `test_purity.py` passes) | Returns target only when `now < target <= now + 2 s` | Both target computations call `refresh_base(now, self._next_refresh_at)`; tests `test_daily_slot_served_once_when_timer_fires_early`, `test_daily_fast_failure_before_slot_backs_off_five_minutes`, guards `test_manual_refresh_before_slot_keeps_the_slot`, `test_manual_refresh_restarts_the_interval` pass; real-timer repro closed | CLOSED |
-| CR-02 unexpected exceptions | `_async_read_source`, `_async_handle_failure`, `except Exception as err` | Records, sets backoff, logs class name only, re-raises `UpdateFailed(unable_to_fetch) from err` | Cache start, download and parse are all inside the guarded `try`; 4 named tests pass; MemoryError repro closed | CLOSED |
-| WR-02 last_success after flow | `SourceHealth` imported and saved in `_async_seed_cache` | Same `fetched_at` as CacheMeta; only after a successful write | Coordinator `_async_setup` loads the Store before the first refresh; seed awaited before `async_create_entry`; step 7 and issue test pass | CLOSED |
-| WR-03 unfrozen identity tests | `pytestmark = pytest.mark.freeze_time(NOW)` | 3 `ConfigEntryState.LOADED` asserts, 1 single-download assert | All other fixture-loading modules checked: frozen per module or by `freezer` | CLOSED |
+| Change | Exists | Substantive | Wired / behaviour | Status |
+|--------|--------|-------------|-------------------|--------|
+| WR-04 provisional target | `served` and `max(served, utcnow() + BACKOFF_STEPS[0])` (`coordinator.py:163-166`) | Set before the first await. Success, failure and cache start each overwrite it | `test_timer_cancelled_refresh_does_not_retry_every_second`: 1 attempt over 10 s, retry at +5 min. The early-fire, fast-failure and manual guards pass, so CR-01 is intact | CLOSED |
+| WR-05 poisoned cache | `except MemoryError: raise` / `except Exception` (`:325-330`) | Drops via the unchanged `async_drop` path; `MemoryError` keeps the payload | Verifier repro: parse order `['cache', 'download']`, LOADED, cache replaced with the changed body, 1 request. `test_unexpected_cache_parse_failure_downloads_and_is_recorded` and `test_cache_memory_error_preserves_offline_fallback` pass | CLOSED (WR-06 advisory) |
+| WR-01 expiry check | `_require_programmes` with `stop >= utcnow() - KEEP_PAST` (`:446-447`) | Called on the 304 (`:367`), identical-body (`:388`) and unchanged-file (`:434`) paths, each before `async_touch` | `test_expired_unchanged_feed_fails_without_reparse[304, body]` and `test_expired_unchanged_file_fails_without_reparse` pass: `empty_feed`, data and meta kept, no parse | CLOSED (IN-08 info) |
 
 ### Plan Must-Have Truths
 
 | Plan | Truths | Verified | Not verified | Notes |
 |------|--------|----------|--------------|-------|
-| 03-01 schedule engine | 11 | 11 | none | T1 and T11 now verified (CR-01, WR-03 closed) |
-| 03-02 disk cache | 11 | 11 | none | Regression pass. T5 "a cached payload that no longer parses is deleted and downloaded again" holds for `FeedError`/empty parses; an unexpected exception is deliberately kept (03-09 T8, WR-05) |
-| 03-03 conditional refresh | 8 | 8 | none | Regression pass |
-| 03-04 failure health / Repairs / backoff | 11 | 10 | T11 backstop | T3 and T8 now verified (CR-02 closed) |
-| 03-05 timezone options | 10 | 9 | T10 backstop | Regression pass |
-| 03-06 setup flow | 8 | 8 | none | Regression pass; still one download in total |
-| 03-07 diagnostics | 6 | 6 | none | T3 now verified (WR-02 closed) |
-| 03-08 options flow | 9 | 9 | none | UAT part of T9 queued |
-| 03-09 gap closure CR-01/CR-02 | 10 (T11 = 03-04 T11, deduplicated) | 10 | none | T9 (CancelledError records nothing, keeps target) holds as written; its timer-fired consequence is WR-04 |
-| 03-10 gap closure WR-02/WR-03 | 6 | 6 | none | Seed before `async_create_entry` verified in code order (`config_flow.py:334-335`) and by the test reading health right after the flow |
+| 03-01 schedule engine | 11 | 11 | none | T1 still holds through `refresh_base(now, served)`. The prohibition is in human item 2 |
+| 03-02 disk cache | 11 | 11 | none | T5 now holds without the earlier caveat: an unexpected exception also drops and re-downloads (repro). `MemoryError` keeps the cache (IN-10), which is not "no longer parses" |
+| 03-03 conditional refresh | 8 | 6 | T1, T7 (UNCERTAIN) | Both still hold for current data (tests pass). For data with no programme ending after now - 1 day, a 304 or an unchanged file now counts as failure `empty_feed` (WR-01 fix), against the literal "counts as a successful refresh". Override requested |
+| 03-04 failure health / Repairs / backoff | 11 | 10 | T5 (UNCERTAIN) | Same WR-01 reason: "a 304 answer and an unchanged local file count as success". T11 (backstop) is now VERIFIED by human UAT (03-UAT.md test 2) |
+| 03-05 timezone options | 10 | 10 | none | T10 (backstop) is now VERIFIED by human UAT (03-UAT.md test 3) |
+| 03-06 setup flow | 8 | 8 | none | Unchanged |
+| 03-07 diagnostics | 6 | 6 | none | Unchanged |
+| 03-08 options flow | 9 | 9 | none | UAT walkthrough recorded as passed (03-UAT.md test 1) |
+| 03-09 gap closure CR-01/CR-02 | 10 (T11 = 03-04 T11) | 8 | T8, T9 (UNCERTAIN) | T8 says "recorded as a failure **without any download**". It now downloads once per attempt (`test_unexpected_cache_parse_failure_downloads_and_is_recorded` asserts `call_count == 1`); SETUP_RETRY, `unable_to_fetch` and `consecutive_failures 1` still hold. T9 says CancelledError "changes no refresh target". It now sets a provisional target of at least now + 5 min; `test_cancelled_refresh_records_no_failure` passes only because its target lies 23 h ahead. Override requested |
+| 03-10 gap closure WR-02/WR-03 | 6 | 6 | none | Unchanged |
 
-**Score:** 93/95 (5 roadmap SCs + 90 plan truths). The 2 not verified are backstop truths without behavioural evidence (PRESENT_BEHAVIOR_UNVERIFIED, routed to human).
+**Score:** 90/95 (5 roadmap SCs + 90 plan truths). Behavior-unverified: 0.
 
-### Prohibitions
+The 5 unverified truths are UNCERTAIN, not FAILED, for three reasons:
 
-| Plan | Prohibition | Tier | Verdict (non-authoritative) |
-|------|-------------|------|-----------------------------|
-| 03-01 / 03-09 | MUST NOT contact the feed host more often than the schedule; no exception and no early timer turns into a faster retry | judgment | Holds for the early-firing timer and every `Exception` (reproduced). Literal violation only via an injected, HA-swallowed `CancelledError` (WR-04). **unverified-prohibition: human review recommended** |
-| 03-02 | No download at start/reload/options save while the cache is fresh | judgment | Holds |
-| 03-03 | No re-download/re-parse of unchanged feeds; validators kept on manual refresh | judgment | Holds |
-| 03-04 | Never blank or disable calendars while last good data exists | judgment | Holds; new test asserts `coordinator.data is previous` and the calendar stays available on unexpected exceptions |
-| 03-07 | No programme content or filter patterns in diagnostics | judgment | Holds |
-| 03-10 | Never report a last success that did not happen | judgment | Holds: health is seeded only inside `if await cache.async_write(...)` |
+- In each case the observable deviation is a deliberate change. The previous verification recommended it as a fix for a flagged defect: WR-01 was a design gap, WR-04 a literal prohibition violation, WR-05 a residual.
+- 03-UAT.md records that the user chose these fixes.
+- The phase goal is better served by the new behaviour.
 
-### WR-04 / WR-05 decision (requested by the orchestrator)
+What is missing is only the override that lets the verifier carry them as PASSED. If the user rejects any of them, that truth becomes FAILED and a gap.
 
-Both are **non-blocking warnings** (recorded under `advisory`), not gaps. They are not regressions; they are residuals of the CR-02 fix that the plan encoded on purpose (03-09 T8, T9).
+#### Suggested overrides (paste into this frontmatter if accepted)
 
-- **WR-04 (swallowed CancelledError, 1 s retry):** reproduced, 6 attempts in 11 s with nothing recorded. It does not block because no input or modelled failure reaches it:
-  - The refresh only awaits aiohttp with `ClientTimeout` (`source.py:220`), executor jobs and Store saves. On Python 3.14 a timeout is `TimeoutError`, which is an `Exception` and handled.
-  - When the refresh task itself is cancelled, HA re-raises the error (`update_coordinator.py:575-580`).
-  - After an unload, `_shutdown_requested` makes the re-armed timer a no-op (`:445`).
-  - What remains is a library or runtime that leaks `CancelledError`. Feed content cannot trigger that, unlike CR-02, where a malformed feed could crash the parser or a large one raise `MemoryError`.
-  - It still breaks the literal wording of the prohibition, so it is flagged for a human decision. The fix is small: set a provisional target at the start of `_async_update_data`. Doing it before release is recommended.
-- **WR-05 (cache-parse crash keeps the cache, setup never downloads):** reproduced, 8 parses, 0 downloads, SETUP_RETRY. It does not block the goal:
-  - Network cost is zero.
-  - CPU cost is bounded by HA's setup-retry backoff (5 s doubling, capped at 600 s).
-  - Every attempt is recorded and logs a WARNING, and the Repairs issue appears after 24 h, so "visible" holds.
-  - The cache is written only after those bytes parsed successfully with programmes. A crash on them therefore means an integration bug, which a fresh download would hit too (and the suggested fix would turn into a download on every retry), or a transient `MemoryError`, where keeping the offline fallback is correct.
-  - Two residuals: the misleading "Unable to download" setup text, and a fixed upstream feed is never fetched until the cache is removed. Both are follow-up material.
+```yaml
+overrides:
+  - must_have: "A later refresh of a URL source with a valid cache sends the stored ETag as If-None-Match and the stored Last-Modified as If-Modified-Since, verbatim; a 304 answer causes no download of the body, no parse and no calendar refilter, keeps coordinator.data as the identical object, counts as a successful refresh and updates the cache fetched_at (SRC-07)"
+    reason: "WR-01 fix (19e262d): a 304 counts as success only while the data in memory still holds a programme ending after now - KEEP_PAST; otherwise it is an empty_feed failure without parse and without touching the cache, so a stalled provider becomes visible"
+    accepted_by: "{name}"
+    accepted_at: "{ISO timestamp}"
+  - must_have: "A local file source is re-parsed only when the file's mtime or size changed; an unchanged file counts as a successful refresh, keeps the identical data object, and the allowed-path check still runs on every refresh; local files get no payload cache, and after a reload the file is parsed again (D-11)"
+    reason: "WR-01 fix (19e262d): an unchanged file counts as success only while its data still holds a current programme; expired data fails with empty_feed and keeps the data object"
+    accepted_by: "{name}"
+    accepted_at: "{ISO timestamp}"
+  - must_have: "The next successful refresh deletes the issue and resets the failure streak; a 304 answer and an unchanged local file count as success (D-17)"
+    reason: "WR-01 fix (19e262d): a 304 or an unchanged file with expired data in memory is an empty_feed failure, not a success"
+    accepted_by: "{name}"
+    accepted_at: "{ISO timestamp}"
+  - must_have: "A cached payload whose parse raises an unexpected exception at setup is recorded as a failure without any download: the entry is SETUP_RETRY with error_reason_translation_key unable_to_fetch and the stored health shows consecutive_failures 1, so setup retries count toward the 24 h issue (CR-02, D-09, D-17)"
+    reason: "WR-05 fix (19e262d): the poisoned cache is dropped and the source downloaded (aligns with 03-02 truth 5); a persistent crash is still SETUP_RETRY, unable_to_fetch, consecutive_failures 1 per attempt; MemoryError keeps the cache without download"
+    accepted_by: "{name}"
+    accepted_at: "{ISO timestamp}"
+  - must_have: "A refresh that ends in asyncio.CancelledError (entry unload, shutdown) records no failure and changes no refresh target: the failure handler catches Exception only, so cancellation passes through to Home Assistant unrecorded (edge SRC-08 interruption)"
+    reason: "WR-04 fix (19e262d): cancellation stays unrecorded, but a provisional target max(served, now + 5 min) is set before the read, so an HA-swallowed cancellation can no longer re-arm a served target every second"
+    accepted_by: "{name}"
+    accepted_at: "{ISO timestamp}"
+```
+
+### Prohibitions (judgment tier, non-authoritative verdicts)
+
+| Plan | Prohibition | Verdict |
+|------|-------------|---------|
+| 03-01 / 03-09 | MUST NOT contact the feed host more often than the schedule; no exception and no early timer turns into a faster retry | Holds for the early-firing timer, every `Exception` on a scheduled refresh, and an HA-swallowed CancelledError (the 1 s loop is gone). Two residuals: (a) a deterministic crash on cached and downloaded bytes downloads once per HA setup retry, up to 1 per 10 min (repro); (b) a recurring swallowed CancelledError retries every 5 min (IN-09). **unverified-prohibition: human review recommended** (human item 2) |
+| 03-02 | No download at start, reload or options save while the cache is fresh | Holds. A cache that crashes the parser is unusable, not valid, so 03-02 T5 applies |
+| 03-03 | No re-download or re-parse of unchanged feeds; validators kept on manual refresh | Holds. The expired-data variants also skip the body and the parse |
+| 03-04 | Never blank or disable calendars while last good data exists | Holds. WR-01 failures keep `coordinator.data is previous`, and `available` is `data is not None` |
+| 03-07 | No programme content or filter patterns in diagnostics | Holds (unchanged) |
+| 03-10 | Never report a last success that did not happen | Holds (unchanged) |
 
 ### Required Artifacts
 
-`verify.artifacts`: every plan passes. 03-01 6/6, 03-02 6/6, 03-03 6/6, 03-04 6/6, 03-05 4/4, 03-06 6/6, 03-07 3/3, 03-08 4/4, 03-09 5/5, 03-10 3/3.
+`verify.artifacts` passes for every plan: 03-01 6/6, 03-02 6/6, 03-03 6/6, 03-04 6/6, 03-05 4/4, 03-06 6/6, 03-07 3/3, 03-08 4/4, 03-09 5/5, 03-10 3/3.
 
 | Artifact | Status | Details |
 |----------|--------|---------|
-| `xmltv/schedule.py` | VERIFIED | `EARLY_FIRE_TOLERANCE`, `refresh_base`; still HA-free (purity test passes) |
-| `coordinator.py` | VERIFIED | Single guarded read, shared failure handler, `refresh_base` on both target paths |
-| `config_flow.py` | VERIFIED | Health seeded with the cache write |
-| `tests/test_schedule_refresh.py`, `tests/test_repairs.py`, `tests/xmltv/test_schedule.py`, `tests/test_config_flow.py`, `tests/test_identity.py` | VERIFIED | New tests substantive; all pass |
-| Remaining Phase 3 artifacts | VERIFIED (regression) | Unchanged since the initial verification; suite green |
+| `coordinator.py` | VERIFIED | Provisional target, served-target base, poisoned-cache fall-through, expiry check on the unchanged shortcuts |
+| `tests/test_schedule_refresh.py`, `tests/test_repairs.py`, `tests/test_refresh.py`, `tests/test_file_source.py` | VERIFIED | 6 new or renamed tests, all collected and passing |
+| Remaining Phase 3 artifacts | VERIFIED (regression) | Unchanged since the previous verification; the suite is green |
 
 ### Key Link Verification
 
-`verify.key-links`: every plan verifies, 26/26 across the 10 plans (03-09: 3/3, 03-10: 2/2). Spot-checked by hand:
+`verify.key-links`: 25/26. The failing link is 03-09 link 1, whose pattern `refresh_base\(now, self\._next_refresh_at\)` is stale. The link is still wired by manual check:
 
-- `refresh_base(now, self._next_refresh_at)` at `coordinator.py:145` and `:206`.
-- `translation_key=_DEFAULT_REASON) from err` at `:178`.
-- `_async_record_failure(` reached from `_async_handle_failure`, which leads to `_sync_issue`.
-- `async_save_health(` at `config_flow.py:366`.
-- `_health(coordinator.health)` in `diagnostics.py`.
+- `served = self._next_refresh_at` is captured at `coordinator.py:163`.
+- `refresh_base(now, served)` is used at `:146` (`_set_regular_target`) and at `:211` (`_async_handle_failure`).
+- Both results feed `next_regular(base, self._schedule())`.
+
+The rename was needed: the WR-04 provisional target overwrites `_next_refresh_at` before the read, so the original value has to be passed explicitly. Status: WIRED (pattern needs updating in a later doc touch; not a gap).
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data | Source | Real data | Status |
 |----------|------|--------|-----------|--------|
-| Calendar entities | `coordinator.data` | Download, then executor parse, or the cached payload | yes | FLOWING |
-| Repairs issue | `SourceHealth` | `_async_record_failure`, now for every `Exception` | yes | FLOWING |
-| Diagnostics | health, cache_meta, stats | live coordinator, or the Store for unloaded entries; flow seed supplies last_success | yes | FLOWING |
+| Calendar entities | `coordinator.data` | Download then executor parse, or the cached payload | yes | FLOWING |
+| Repairs issue | `SourceHealth` | `_async_record_failure`, now also for expired unchanged data (`empty_feed`) | yes | FLOWING |
+| Diagnostics | health, cache_meta, stats | Live coordinator, or the Store for unloaded entries | yes | FLOWING |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| Full suite (run once) | `uv run pytest tests/ -q -rs` | 815 passed, 1 skipped (real-feed check deferred), 0 "Lingering", 49.9 s | PASS |
-| Lint/format | `uv run ruff check . && uv run ruff format --check .` | clean; 62 files formatted | PASS |
-| Gap-closure tests (named) | `pytest ... -k "fires_early or fast_failure_before_slot or manual_refresh or unexpected or cancelled or seeded or identity or refresh_base or early_fire"` | 29 passed | PASS |
-| CR-01 real-timer repro (scratch copy) | Step 16:14:58Z to 16:15:03.5Z in 0.5 s steps, daily 18:15 Berlin | counts `[1,1,1,1,2,2,2,2,2,2,2,2]`, next 2026-10-14T16:15Z | PASS |
-| CR-01 direct early refresh | `async_refresh` at 16:14:59.05Z, then step 16:15:01, 16:15:03, 16:20 | counts `[2,2,2,2]` | PASS |
-| CR-02 repro (MemoryError in parse, timer path) | Step past target, then 10 steps of 2 s | 1 request, failures 1, next +5 min | PASS |
-| WR-04 repro (CancelledError from fetch, timer path) | Step past target, then 6 steps of 2 s | 6 attempts, failures 0, next stuck at past target | FAIL (advisory) |
-| WR-05 repro (RuntimeError on cache parse at setup) | 40 steps of 30 s | 8 parses, 0 downloads, SETUP_RETRY | as planned (advisory) |
+| Full suite (run once) | `uv run pytest tests/ -q -rs -p no:cacheprovider` | 821 passed, 1 skipped (real-feed gate), 0 "Lingering", 50.9 s | PASS |
+| Lint and format | `uv run ruff check . && uv run ruff format --check .` | Clean; 62 files formatted | PASS |
+| Fix tests exist | `pytest --collect-only` grep | `test_expired_unchanged_feed_fails_without_reparse[×2]`, `test_expired_unchanged_file_fails_without_reparse`, `test_timer_cancelled_refresh_does_not_retry_every_second`, `test_cache_parser_crash_recovers_from_changed_download`, `test_cache_memory_error_preserves_offline_fallback`, `test_unexpected_cache_parse_failure_downloads_and_is_recorded` collected (passed in the full run) | PASS |
+| WR-05 cache path really runs (IN-11 gap) | Scratchpad test: parse spy, poisoned cached bytes, changed download | Parse order `['cache', 'download']`, LOADED, 1 request, cache now holds the changed body, `consecutive_failures 0`, no WARNING | PASS (confirms WR-06) |
+| WR-05 cost for a deterministic crash | Scratchpad test: parse always raises; 40 × 30 s steps | Request counts `[1,2,3,4,4,5,5,5,6,…,7,…,8]`: 8 downloads in 20 min, SETUP_RETRY, one content-free WARNING per attempt | As traced (human item 2) |
 
-The repros ran in a throwaway copy under the session scratchpad. The repository was not modified.
+The repros ran from the session scratchpad. The repository was not modified: `git status` shows only the pre-existing `.planning/config.json` and `.planning/intel/`.
 
 ### Probe Execution
 
-There are no `scripts/*/tests/probe-*.sh` files, and no plan declares a probe, so Step 7c does not apply.
+There are no `scripts/*/tests/probe-*.sh` files, and no plan declares a probe. Step 7c does not apply.
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| SRC-05 | 03-01, 03-06, 03-08, 03-09 | Daily fixed-time refresh | SATISFIED | CR-01 closed (tests and real-timer repro) |
+| SRC-05 | 03-01, 03-06, 03-08, 03-09 | Daily fixed-time refresh | SATISFIED | Early-fire and manual guards pass after 19e262d |
 | SRC-06 | 03-02 | Disk cache, no re-fetch while fresh | SATISFIED | `test_cache.py` |
-| SRC-07 | 03-03 | Conditional re-download | SATISFIED | `test_refresh.py`, `test_file_source.py` |
-| SRC-08 | 03-04, 03-09 | Failed fetch/parse keeps last good data | SATISFIED | `test_failures_keep_last_good_data`, `test_unexpected_exception_backs_off_and_is_recorded` |
+| SRC-07 | 03-03 | Conditional re-download | SATISFIED | `test_refresh.py`, `test_file_source.py`. The success semantics for expired data are in human item 1 |
+| SRC-08 | 03-04, 03-09 | Failed fetch/parse keeps last good data | SATISFIED | Failure tests; WR-01 and WR-05 tests keep the data |
 | SRC-10 | 03-05, 03-06, 03-08 | Naive = local and/or offset correction | SATISFIED | `test_timezone_options.py` |
-| SRC-11 | 03-04, 03-09 | Repairs on persistent failure, clears on success | SATISFIED | `test_persistent_failure_raises_and_clears_issue`, `test_unexpected_exception_raises_issue_after_24h` |
-| SRC-12 | 03-07, 03-10 | Diagnostics with counts, last success/failure, redaction | SATISFIED | `test_diagnostics_end_to_end`, step 7 of the URL flow test |
+| SRC-11 | 03-04, 03-09 | Repairs on persistent failure, clears on success | SATISFIED | Repairs tests. A stalled feed is now also reported |
+| SRC-12 | 03-07, 03-10 | Diagnostics with counts, last success/failure, redaction | SATISFIED | `test_diagnostics.py`, step 7 of the flow test |
 | CFG-02 | 03-08 | Options flow for refresh and timezone | SATISFIED | `test_options_flow.py` |
-| CFG-03 | 03-06, 03-10 | Progress during setup download | SATISFIED (visual check in UAT) | `progress_action == "download"`, single download |
-| AUT-04 | 03-03 | Manual refresh via update_entity | SATISFIED | `test_update_entity_refreshes_now_with_validators`, manual-refresh guards |
+| CFG-03 | 03-06, 03-10 | Progress during the setup download | SATISFIED | `progress_action == "download"`, single download; UAT passed |
+| AUT-04 | 03-03 | Manual refresh via update_entity | SATISFIED | `test_update_entity_*`, manual-refresh guards |
 
-All 10 IDs are claimed by at least one plan, and REQUIREMENTS.md maps no other ID to Phase 3, so none are orphaned. The "Gaps Found" statuses in REQUIREMENTS.md (commit 21e69d6) were set on purpose and are not a gap. They can go back to Complete once the human items are resolved.
+All 10 IDs are claimed by at least one plan, and REQUIREMENTS.md maps no other ID to Phase 3, so none are orphaned. REQUIREMENTS.md still shows "Gaps Found" for these IDs (commit 21e69d6). They can go to Complete once the two human items are resolved.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `coordinator.py` | 162-185 | No target set when a swallowed `CancelledError` exits the refresh (WR-04) | Warning (advisory) | 1 s retry loop on a library-leaked CancelledError only |
-| `coordinator.py` | 193-196, 308-326 | Cache kept on an unexpected cache-parse exception (WR-05) | Warning (advisory) | Stuck in SETUP_RETRY without downloading; recorded and visible |
-| `coordinator.py` | 355-379, 421-423 | Unchanged shortcuts skip the empty-feed check (WR-01) | Warning (advisory, carried forward) | A stalled provider is never reported |
-| `config_flow.py` | 357 | `fetched_at` taken at the name step, not at download completion (IN-06) | Info | Seconds-to-minutes late last_success; a slot between download and name step counts as served |
-| tests | | Duplicated `_raise_runtime_error`, tautological `test_early_fire_tolerance` (IN-07) | Info | Hygiene |
+| `coordinator.py` | 328-333 | Catch-all logs at DEBUG only, with no class name or `exc_info`; duplicate drop line (WR-06) | Warning (advisory) | A latent parser bug triggered only by cached bytes vanishes without a trace; disposition open |
+| `coordinator.py` | 163-166 | Fixed 5-min provisional retry on recurring swallowed cancellations (IN-09) | Info (advisory) | No escalation, no record |
+| `coordinator.py` | 370-374 | 304 without data reads the cache without `valid_meta` (IN-04, carried) | Info | Needs a 304 to an unconditional request. With WR-05 a poisoned cache there now causes a second, unconditional request in the same refresh |
+| `coordinator.py` | 446-447 | Expiry cut-off is `KEEP_PAST` (1 day), so a stalled feed is reported about a day late (IN-08) | Info | Docstring at `:441` still says "when it holds programmes" |
+| tests | `test_repairs.py:400-430`, `test_schedule_refresh.py:399-400` | WR-05 tests don't prove the cache path ran (IN-11); exact frozen-clock equality (IN-12); duplicated raisers (IN-07) | Info | The verifier repro covers IN-11 |
 
-The files changed since `659c9e6` contain no TBD/FIXME/XXX/TODO/HACK markers. The `PLACEHOLDERS` hits in `config_flow.py` are identifiers, not markers. Under the re-verification evidence gate, nothing is promoted to blocker: CR-01/CR-02 are closed by tests and repros, and WR-04/WR-05 are justified above as non-blocking.
+The 5 files changed by 19e262d contain no TBD/FIXME/XXX/TODO/HACK markers. Re-verification evidence gate: WR-06 sits in a file modified since the prior `verified:` timestamp, but it is a Warning, not a Blocker, so nothing is promoted to a gap.
 
 ### Human Verification Required
 
-1. **ha-dev walkthrough (03-08 human-check).** Covers the progress dialog and collapsed timezone section; one download per setup; no download on restart or options save; update_entity against the real feed sends validators; `curl -sI` for ETag/Last-Modified; diagnostics redacted, with last_success present right after setup; German texts; no tracebacks or blocking-call warnings.
-2. **Debouncer serialization (backstop).** Fire update_entity during a running scheduled refresh. Expected: the refreshes run one after the other, with consistent health and cache.
-3. **Options save during a running parse (backstop).** Expected: only the new timezone options are visible after the reload.
-4. **Prohibition decision and dispositions.** Decide WR-04: fix it with the provisional target (recommended, small), or set `deferred` with the non-input-reachable rationale. Set dispositions for WR-05 and WR-01 in 03-REVIEW-DISPOSITION.md.
+1. **Override decision for 5 superseded truths.** The truths are 03-03 T1, 03-03 T7, 03-04 T5, 03-09 T8 and 03-09 T9. Their literal wording was overtaken by the WR-01, WR-04 and WR-05 fixes the user chose in 03-UAT.md. To accept, paste the suggested override block above into this frontmatter, with your name and a timestamp. To reject a truth, re-plan it as a gap.
+2. **Prohibition verdict and WR-06 disposition.**
+   - Confirm or defer the two residuals of the "no faster retry" prohibition:
+     - A deterministic parser crash now downloads once per HA setup retry, up to 1 per 10 min.
+     - A recurring swallowed CancelledError retries every 5 min.
+   - Set WR-06 to fixed or deferred (with a reason) in 03-REVIEW-DISPOSITION.md.
+
+The four UAT items in 03-UAT.md (walkthrough, debouncer serialization, options save during a parse, WR dispositions) were recorded before 19e262d. The fix commit does not touch the setup flow, the reload, HA's debouncer lock or the normal-path refresh logic, and those paths are covered by passing tests, so the UAT results carry forward.
 
 ### Gaps Summary
 
-All four previous gaps are closed, and the verifier confirmed each fix independently:
+There are no gaps. Commit 19e262d did what 03-FIX-VERIFICATION.md claims, and the verifier confirmed each fix independently:
 
-- **CR-01:** an early-firing HA timer now serves its slot once, and a fast failure backs off 5 min.
-- **CR-02:** every `Exception` is recorded, backed off, surfaced as `UpdateFailed(unable_to_fetch)` and raised in Repairs after 24 h. The once-per-second download loop is gone.
-- **WR-02:** a flow-created source reports its setup download as last_success.
-- **WR-03:** the identity tests run frozen and assert LOADED.
+- **WR-04:** the 1 s retry loop on a swallowed cancellation is gone.
+- **WR-05:** a poisoned cache is dropped and re-downloaded (scratchpad repro); `MemoryError` keeps the offline fallback.
+- **WR-01:** a stalled feed is now reported as `empty_feed` without a re-parse.
 
-There are no regressions: 815 tests pass, Ruff is clean, and all 10 plans pass the artifact and key-link checks.
+There are no regressions: 821 tests pass, Ruff is clean, and all 10 plans pass the artifact check. The one failing key-link pattern is a stale rename, still wired.
 
-The phase goal is achieved. The status is `human_needed` rather than `passed` for three reasons: two backstop truths have no behavioural test, the end-of-phase UAT walkthrough is still pending, and the judgment-tier prohibition is flagged. WR-04, WR-05 and WR-01 are non-blocking follow-ups that need a disposition. WR-04 is the one worth fixing before release.
+The phase goal is achieved. The status is `human_needed`, not `passed`, for two reasons:
+
+- Five planned truths now read differently from the code, by the user's own choice. Only the user can accept that with an override.
+- The judgment-tier network-cost prohibition has two residual paths that need a recorded decision. WR-06 also needs a disposition.
 
 ---
 
-_Verified: 2026-10-16T18:20:00Z_
+_Verified: 2026-10-20T23:12:14Z_
 _Verifier: Claude (gsd-verifier)_
