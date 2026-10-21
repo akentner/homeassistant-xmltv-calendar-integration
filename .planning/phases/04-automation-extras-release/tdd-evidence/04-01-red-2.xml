@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="26" time="0.883" timestamp="2026-10-21T10:28:37.012207+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_sensor" name="test_next_match_sensor_shows_next_start" time="0.181" /><testcase classname="tests.test_sensor" name="test_sensor_shares_the_calendar_device" time="0.053" /><testcase classname="tests.test_sensor" name="test_next_match_attributes" time="0.058"><failure message="AssertionError: assert {'channel': '...missing', ...} == {'channel': '...0+02:00', ...}&#10;  &#10;  Differing items:&#10;  {'end': 'missing'} != {'end': '2026-10-13T13:30:00+02:00'}&#10;  {'summary': 'missing'} != {'summary': 'Das Erste: Formel 1: Großer Preis von Mexiko'}&#10;  {'channel_id': 'missing'} != {'channel_id': 'daserste.de'}&#10;  {'subtitle': 'missing'} != {'subtitle': 'Qualifying'}&#10;  {'channel': 'missing'} != {'channel': 'Das Erste'}...&#10;  &#10;  ...Full output truncated (5 lines hidden), use '-vv' to show">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f2c4a506850&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f2c40cc7950&gt;
+
+    async def test_next_match_attributes(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        await setup_xmltv(BASIC_FEED, calendars=F1)
+    
+        attributes = hass.states.get(SENSOR).attributes
+&gt;       assert {key: attributes.get(key, "missing") for key in MATCH_KEYS} == {
+            "title": "Formel 1: Großer Preis von Mexiko",
+            "summary": "Das Erste: Formel 1: Großer Preis von Mexiko",
+            "channel": "Das Erste",
+            "channel_id": "daserste.de",
+            "start": "2026-10-13T12:00:00+02:00",
+            "end": "2026-10-13T13:30:00+02:00",
+            "subtitle": "Qualifying",
+            "episode": None,
+            "description": None,
+        }
+E       AssertionError: assert {'channel': '...missing', ...} == {'channel': '...0+02:00', ...}
+E         
+E         Differing items:
+E         {'end': 'missing'} != {'end': '2026-10-13T13:30:00+02:00'}
+E         {'summary': 'missing'} != {'summary': 'Das Erste: Formel 1: Großer Preis von Mexiko'}
+E         {'channel_id': 'missing'} != {'channel_id': 'daserste.de'}
+E         {'subtitle': 'missing'} != {'subtitle': 'Qualifying'}
+E         {'channel': 'missing'} != {'channel': 'Das Erste'}...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_sensor.py:65: AssertionError</failure></testcase><testcase classname="tests.test_sensor" name="test_match_texts_are_not_recorded" time="0.058"><failure message="AssertionError: assert {'description...', 'subtitle'} &lt;= frozenset({&lt;S...: 'options'&gt;})&#10;  &#10;  Extra items in the left set:&#10;  'subtitle'&#10;  'episode'&#10;  'description'">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f2c41de5350&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f2c41d689e0&gt;
+
+    async def test_match_texts_are_not_recorded(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        await setup_xmltv(BASIC_FEED, calendars=F1)
+    
+        state = hass.states.get(SENSOR)
+        assert state.state_info is not None
+&gt;       assert {"description", "subtitle", "episode"} &lt;= state.state_info["unrecorded_attributes"]
+E       AssertionError: assert {'description...', 'subtitle'} &lt;= frozenset({&lt;S...: 'options'&gt;})
+E         
+E         Extra items in the left set:
+E         'subtitle'
+E         'episode'
+E         'description'
+
+tests/test_sensor.py:90: AssertionError</failure></testcase><testcase classname="tests.test_sensor" name="test_airing_match_is_not_next" time="0.053" /><testcase classname="tests.test_sensor" name="test_no_future_match_is_unknown_but_available" time="0.058" /><testcase classname="tests.test_sensor" name="test_same_start_picks_feed_order" time="0.052"><failure message="KeyError: 'channel_id'">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f2c40c29040&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f2c41c26090&gt;
+
+    async def test_same_start_picks_feed_order(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        # Formel 1 (daserste.de) and heute (zdf.de) both start at 12:00 +0200
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        await setup_xmltv(BASIC_FEED, calendars=(("Test", {}),))
+    
+        state = hass.states.get("sensor.test_next_programme")
+        assert state.state == "2026-10-13T10:00:00+00:00"
+&gt;       assert state.attributes["channel_id"] == "daserste.de"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'channel_id'
+
+tests/test_sensor.py:134: KeyError</failure></testcase><testcase classname="tests.test_sensor" name="test_german_entity_ids[de-sensor.formel_1_nachste_sendung]" time="0.062" /><testcase classname="tests.test_sensor" name="test_german_entity_ids[en-sensor.formel_1_next_programme]" time="0.052" /><testcase classname="tests.xmltv.test_window" name="test_len" time="0.014" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_includes_programme_ending_at_range_start" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_excludes_programme_starting_at_range_end" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_spanning_programme" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_long_programme_lookback" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_overlapping_sorted_by_start" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_empty_index" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_current_or_next_boundaries" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_current_or_next_prefers_earliest_airing_match" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_queries_near_datetime_min_do_not_overflow" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_next_after[empty]" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_next_after[before-first]" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_next_after[start-equals-now]" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_next_after[inside-airing]" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_next_after[equal-starts-input-order]" time="0.005" /><testcase classname="tests.xmltv.test_window" name="test_next_after[at-last-start]" time="0.006" /><testcase classname="tests.xmltv.test_window" name="test_next_after[after-last]" time="0.007" /></testsuite></testsuites>

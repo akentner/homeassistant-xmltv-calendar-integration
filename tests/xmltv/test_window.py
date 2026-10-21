@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from custom_components.xmltv_calendar.xmltv.model import Programme
 from custom_components.xmltv_calendar.xmltv.window import MatchIndex
 
@@ -89,3 +91,27 @@ def test_queries_near_datetime_min_do_not_overflow() -> None:
     t = datetime.min.replace(tzinfo=UTC)
     assert INDEX.overlapping(t, t + timedelta(hours=1)) == []
     assert INDEX.current_or_next(t) is L
+
+
+X = _programme("X", _at(12), _at(13))
+Y = _programme("Y", _at(14), _at(15))
+Z = _programme("Z", _at(14), _at(14, 30))
+# Y and Z start together; Y comes first in the input
+NEXT_INDEX = MatchIndex([Y, Z, X])
+
+
+@pytest.mark.parametrize(
+    ("index", "now", "expected"),
+    [
+        pytest.param(MatchIndex([]), _at(12), None, id="empty"),
+        pytest.param(NEXT_INDEX, _at(11), "X", id="before-first"),
+        pytest.param(NEXT_INDEX, _at(12), "Y", id="start-equals-now"),
+        pytest.param(NEXT_INDEX, _at(12, 30), "Y", id="inside-airing"),
+        pytest.param(NEXT_INDEX, _at(13), "Y", id="equal-starts-input-order"),
+        pytest.param(NEXT_INDEX, _at(14), None, id="at-last-start"),
+        pytest.param(NEXT_INDEX, _at(16), None, id="after-last"),
+    ],
+)
+def test_next_after(index: MatchIndex, now: datetime, expected: str | None) -> None:
+    programme = index.next_after(now)
+    assert (programme.title if programme is not None else None) == expected
