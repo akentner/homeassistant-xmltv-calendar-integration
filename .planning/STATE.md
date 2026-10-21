@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-06-PLAN.md
-last_updated: "2026-10-21T10:11:07.854Z"
+stopped_at: Completed 04-07-PLAN.md
+last_updated: "2026-10-21T10:17:56.477Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: 5bda8ed9d68c4683980febb6f0b6129af9ab08ac
+state_head: 21d9a55f06306d84db409cd92ac7bd70a3eff466
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 37
+  completed_plans: 38
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-10-21 — Phase 04 execution started
 
@@ -95,6 +95,7 @@ Progress: [████████░░] 75%
 | Phase 04 P04 | 10min | 3 tasks | 8 files |
 | Phase 04 P05 | 15 min | 3 tasks | 13 files |
 | Phase 04 P06 | 14 min | 3 tasks | 12 files |
+| Phase 04 P07 | 4 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -213,6 +214,7 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-06: Stored calendar key retention_days (int 0..7, default 1; bool/non-numeric/non-finite read as 1, clamp, fractions round down) is the last key of ADVANCED_DEFAULTS and with_defaults; retention cutoff now - retention_days prunes retained programmes and the seen-set (replaces KEEP_PAST in calendar.py)
 - [Phase 04]: 04-06: Retained past matches are stored as raw programme data plus channel name in the match store ({calendars: {sid: {seen, retained}}, source: {naive_timezone, offset_minutes}}), captured on every refilter (previous and new matches), on entity removal and on HA stop; feed wins on UID collision; filter edits re-check retained programmes; a changed timezone fingerprint drops retained programmes and keeps seen-sets; MAX_RETAINED 5000 latest per calendar
 - [Phase 04]: 04-06: Diagnostics calendar rows are {title, matches (feed), retained (shown in addition, inside the window)}; get_events hides retained programmes whose window ended even without a refilter
+- [Phase 04]: 04-07: Keep past matches (days) is the last advanced field, NumberSelector 0..7 box without unit; a cleared field stores the default 1, never 0 (D-15)
 
 ### Pending Todos
 
@@ -247,6 +249,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T10:11:07.587Z
-Stopped at: Completed 04-06-PLAN.md
+Last session: 2026-10-21T10:17:56.213Z
+Stopped at: Completed 04-07-PLAN.md
 Resume file: None

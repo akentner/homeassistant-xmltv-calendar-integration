@@ -43,7 +43,7 @@
 - [x] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template
 - [x] **EVT-05**: Event start/end are correct and timezone-aware for all XMLTV timestamp variants; missing stop times are inferred
 - [x] **EVT-06**: Events have stable UIDs across refreshes
-- [ ] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
+- [x] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
 - [x] **EVT-08**: An HA event is fired when a new matching programme appears in the feed (not on first refresh, not again after restart)
 
 ### Automation
@@ -132,7 +132,7 @@
 | EVT-04 | Phase 2 | Complete |
 | EVT-05 | Phase 1 | Complete |
 | EVT-06 | Phase 1 | Complete |
-| EVT-07 | Phase 4 | Pending |
+| EVT-07 | Phase 4 | Complete |
 | EVT-08 | Phase 4 | Complete |
 | AUT-01 | Phase 1 | Complete |
 | AUT-02 | Phase 1 | Complete |
