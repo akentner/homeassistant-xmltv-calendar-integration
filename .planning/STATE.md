@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-10-21T09:53:51.738Z"
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-10-21T10:11:07.854Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: 72f6cc4043972e10540f2e4cf1728c0507180272
+state_head: 5bda8ed9d68c4683980febb6f0b6129af9ab08ac
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 36
+  completed_plans: 37
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-10-21 — Phase 04 execution started
 
@@ -94,6 +94,7 @@ Progress: [████████░░] 75%
 | Phase 04 P03 | 2 min | 2 tasks | 4 files |
 | Phase 04 P04 | 10min | 3 tasks | 8 files |
 | Phase 04 P05 | 15 min | 3 tasks | 13 files |
+| Phase 04 P06 | 14 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -209,6 +210,9 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-05: Last-fetch sensor vocabularies fixed: trigger startup/scheduled/retry/revalidate/manual, outcome downloaded/not_modified/unchanged/read/cache_start/failed, cache fresh_hit/stale_hit/written/touched/write_failed/dropped/none; attributes = RefreshAttempt.as_dict order without time, then last_success, next_refresh, consecutive_failures, matches; diagnostics last_attempt uses the same as_dict
 - [Phase 04]: 04-05: Run trigger = startup while coordinator.data is None, else the _target_kind of the target HA's timer serves (captured in a _handle_refresh_interval override), else manual; read before the cancellation fallback marks the target retry
 - [Phase 04]: 04-05: Store shape {meta, health, attempt}; success/failure save the run with the health in one save, a cache start via async_save_attempt; RefreshAttempt.from_dict validates every field (vocabularies, reason pattern, status 100..599, counts >= 0, finite duration) and reads anything else as no run
+- [Phase 04]: 04-06: Stored calendar key retention_days (int 0..7, default 1; bool/non-numeric/non-finite read as 1, clamp, fractions round down) is the last key of ADVANCED_DEFAULTS and with_defaults; retention cutoff now - retention_days prunes retained programmes and the seen-set (replaces KEEP_PAST in calendar.py)
+- [Phase 04]: 04-06: Retained past matches are stored as raw programme data plus channel name in the match store ({calendars: {sid: {seen, retained}}, source: {naive_timezone, offset_minutes}}), captured on every refilter (previous and new matches), on entity removal and on HA stop; feed wins on UID collision; filter edits re-check retained programmes; a changed timezone fingerprint drops retained programmes and keeps seen-sets; MAX_RETAINED 5000 latest per calendar
+- [Phase 04]: 04-06: Diagnostics calendar rows are {title, matches (feed), retained (shown in addition, inside the window)}; get_events hides retained programmes whose window ended even without a refilter
 
 ### Pending Todos
 
@@ -243,6 +247,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T09:53:51.470Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-10-21T10:11:07.587Z
+Stopped at: Completed 04-06-PLAN.md
 Resume file: None
