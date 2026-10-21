@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-10-21T08:34:20.099Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-10-21T09:18:02.459Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: f527fa9e17e54c5f6b7dc64890efe29bf10b3b2a
+state_head: 55a835225531e205f9376ddfcbaa6c55f62130dd
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 32
+  completed_plans: 33
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-10-21 — Phase 04 execution started
 
@@ -90,6 +90,7 @@ Progress: [████████░░] 75%
 | Phase 03 P09 | 7 min | 3 tasks | 5 files |
 | Phase 03 P10 | 3 min | 2 tasks | 3 files |
 | Phase 04 P01 | 8 min | 3 tasks | 10 files |
+| Phase 04 P02 | 41 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -196,6 +197,8 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-01: next-match sensor value and attributes come from one MatchIndex.next_after lookup; no match or no calendar yet = unknown without attributes, unavailable only without source data
 - [Phase 04]: 04-01: XmltvRuntimeData.add_entities is dict[Platform, callback] plus runtime.sensors; the update listener adds each platform's entities for new subentries (sensor.async_add_subentry_sensors)
 - [Phase 04]: 04-01: calendar sends signal_matches(subentry_id) after every refilter and template-only write; sensor re-arms async_track_point_in_utc_time at the next start
+- [Phase 04]: Blueprint notify_entity is optional; default action is if-guarded on notify_entity | count > 0 so users replacing the actions need no notify entity
+- [Phase 04]: Blueprint description variable uses | default('') because CalendarEvent.as_dict() omits a missing description
 
 ### Pending Todos
 
@@ -230,6 +233,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T08:34:19.859Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-10-21T09:18:02.218Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
