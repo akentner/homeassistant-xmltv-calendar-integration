@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
     from .calendar import XmltvCalendarEntity
     from .coordinator import XmltvCoordinator
+    from .match_store import MatchStore
 
 
 @dataclass
@@ -19,6 +20,8 @@ class XmltvRuntimeData:
 
     coordinator: XmltvCoordinator
     source_snapshot: tuple[dict[str, Any], dict[str, Any]]
+    # Persisted per-calendar match records (new-match seen-set, EVT-08)
+    match_store: MatchStore
     calendars: dict[str, XmltvCalendarEntity] = field(default_factory=dict)
     # One callback per set-up platform: the listener adds entities for subentries added later (RESEARCH Pitfall 2)
     add_entities: dict[Platform, AddConfigEntryEntitiesCallback] = field(default_factory=dict)

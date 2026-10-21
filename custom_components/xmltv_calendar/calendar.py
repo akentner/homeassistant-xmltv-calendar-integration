@@ -1,6 +1,7 @@
 """Calendar platform: one entity (and one device) per calendar subentry."""
 
 import logging
+from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, override
 
@@ -14,10 +15,11 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
+from .const import DOMAIN, EVENT_NEW_MATCH, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
 from .xmltv import render
 from .xmltv.filter import PATTERN_ERRORS, FilterSpec
+from .xmltv.matches import new_matches
 from .xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
@@ -39,6 +41,13 @@ PARALLEL_UPDATES = 0
 MAX_EVENTS_PER_QUERY = 5000
 # CalendarEvent construction costs about 34 µs each; larger slices are built in the executor (RESEARCH Pitfall 5)
 EXECUTOR_BUILD_THRESHOLD = 200
+
+# Why a calendar refilters; only new feed data after the entity's first refilter announces new matches (D-10, D-11)
+REFILTER_INITIAL = "initial"  # entity added: new calendar, HA start, entry reload (also after source option changes)
+REFILTER_DATA = "data"  # the coordinator has new feed data
+REFILTER_CONFIG = "config"  # the calendar's filter was edited in place
+# Payload keys of the new-match event taken from describe_match (D-07); entity_id and calendar are added
+EVENT_MATCH_KEYS = ("title", "summary", "channel", "channel_id", "start", "end", "uid")
 
 
 def device_info(subentry_id: str, title: str) -> DeviceInfo:
@@ -127,12 +136,14 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         self._epg: EpgData | None = None
         self._index = MatchIndex(())
         self._generation = 0
+        # True once a refilter completed: the matches it saw are the silent baseline (D-10)
+        self._baseline_ready = False
 
     @override
     async def async_added_to_hass(self) -> None:
         """Filter the current data once the entity exists."""
         await super().async_added_to_hass()
-        await self._async_refilter()
+        await self._async_refilter(REFILTER_INITIAL)
 
     @property
     @override
@@ -148,10 +159,19 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             # Unchanged data, e.g. a success/failure transition: the matches are still valid (RESEARCH Pattern 5)
             self.async_write_ha_state()
             return
-        self._entry.async_create_task(self.hass, self._async_refilter(), name=f"{DOMAIN} refilter {self.entity_id}")
+        self._entry.async_create_task(
+            self.hass, self._async_refilter(REFILTER_DATA), name=f"{DOMAIN} refilter {self.entity_id}"
+        )
 
-    async def _async_refilter(self) -> None:
-        """Apply the filter off the loop; a newer run wins over an older one still in flight."""
+    async def _async_refilter(self, reason: str) -> None:
+        """
+        Apply the filter off the loop; a newer run wins over an older one still in flight.
+
+        Every match joins the calendar's persisted seen-set. Unseen future matches are announced only for new feed
+        data after a baseline exists, so additions, restarts, reloads and edits stay silent (D-08..D-11). A config
+        refilter that supersedes an in-flight data refilter absorbs that run's new matches silently: rare, an edit
+        during a refresh (RESEARCH Pattern 1).
+        """
         self._generation += 1
         generation = self._generation
         epg = self.coordinator.data
@@ -160,6 +180,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if self._spec is None:  # stored pattern does not compile: no matches, other calendars unaffected
             self._epg = epg
             self._index = MatchIndex(())
+            self._baseline_ready = True
             self.async_write_ha_state()
             async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
             return
@@ -169,8 +190,14 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         )
         if generation != self._generation:
             return
+        store = self._entry.runtime_data.match_store
+        record = store.get(self._subentry_id)
+        new, seen = new_matches(result.matches, record.seen, dt_util.utcnow())
+        store.put(self._subentry_id, replace(record, seen=seen))
+        fire = reason == REFILTER_DATA and self._baseline_ready
         self._epg = epg
         self._index = MatchIndex(result.matches)
+        self._baseline_ready = True
         if result.missing_channels:
             _LOGGER.warning(
                 "Calendar %s: selected channels not in the feed: %s",
@@ -179,6 +206,21 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             )
         self.async_write_ha_state()
         async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
+        if fire:
+            self._fire_new_match_events(new)
+
+    def _fire_new_match_events(self, new: Sequence[Programme]) -> None:
+        """Fire one xmltv_calendar_new_match event per new match with JSON-safe values (D-07, Pitfall 6)."""
+        for programme in new:
+            match = self.describe_match(programme)
+            self.hass.bus.async_fire(
+                EVENT_NEW_MATCH,
+                {
+                    "entity_id": self.entity_id,
+                    "calendar": self._subentry_title,
+                    **{key: match[key] for key in EVENT_MATCH_KEYS},
+                },
+            )
 
     def next_match(self, now: datetime) -> Programme | None:
         """Return the earliest match starting strictly after `now`; an airing match never counts (D-01)."""
@@ -243,7 +285,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if self.hass is None:  # not added yet: async_added_to_hass filters (Pitfall 10)
             return
         if refilter:
-            await self._async_refilter()
+            await self._async_refilter(REFILTER_CONFIG)
         elif write_state:  # a refilter sends the signal itself
             self.async_write_ha_state()
             async_dispatcher_send(self.hass, signal_matches(self._subentry_id))

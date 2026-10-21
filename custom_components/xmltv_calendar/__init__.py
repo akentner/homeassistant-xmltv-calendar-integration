@@ -10,6 +10,7 @@ from .calendar import XmltvCalendarEntity
 from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator, issue_id
 from .data import XmltvConfigEntry, XmltvRuntimeData
+from .match_store import MatchStore
 from .sensor import async_add_subentry_sensors
 
 if TYPE_CHECKING:
@@ -22,9 +23,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> boo
     """Download and parse the source once, then set up one calendar per subentry."""
     coordinator = XmltvCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+    # Loaded before the platforms: entities read their seen-sets in their first refilter (no I/O in constructors)
+    match_store = MatchStore(hass, cache_key(entry))
+    await match_store.async_load()
     entry.runtime_data = XmltvRuntimeData(
         coordinator=coordinator,
         source_snapshot=(dict(entry.data), dict(entry.options)),
+        match_store=match_store,
     )
     # The only update listener: subentry add, remove and edit (title or data) never re-download the source
     entry.async_on_unload(entry.add_update_listener(_async_entry_updated))
@@ -62,8 +67,10 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bool:
-    """Unload the calendar platform."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    """Unload the platforms, then write the match store now so a reload never loads stale records (Pitfall 3)."""
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await entry.runtime_data.match_store.async_flush()
+    return unloaded
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> None:

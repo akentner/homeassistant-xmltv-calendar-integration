@@ -74,6 +74,10 @@ MAX_DURATION_MINUTES = 10080  # one week
 DEFAULT_DURATION = timedelta(minutes=60)  # D-12
 KEEP_PAST = timedelta(days=1)
 
+# New-match event (EVT-08): event type (D-07, one-way door) and the per-calendar cap per refresh (D-12)
+EVENT_NEW_MATCH = f"{DOMAIN}_new_match"
+MAX_NEW_MATCH_EVENTS = 50
+
 __all__ = [
     "CONF_ADVANCED",
     "CONF_CASE_SENSITIVE",
@@ -103,8 +107,10 @@ __all__ = [
     "DEFAULT_OFFSET_MINUTES",
     "DEFAULT_REFRESH_HOURS",
     "DOMAIN",
+    "EVENT_NEW_MATCH",
     "KEEP_PAST",
     "MAX_DURATION_MINUTES",
+    "MAX_NEW_MATCH_EVENTS",
     "MAX_OFFSET_MINUTES",
     "MAX_REFRESH_HOURS",
     "MIN_OFFSET_MINUTES",
