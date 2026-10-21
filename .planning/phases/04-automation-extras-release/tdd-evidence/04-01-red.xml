@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.320" timestamp="2026-10-21T10:25:48.493252+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_sensor" name="test_next_match_sensor_shows_next_start" time="0.190"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7feea3049550&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7feea0c85e80&gt;
+
+    async def test_next_match_sensor_shows_next_start(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        await setup_xmltv(BASIC_FEED, calendars=F1)
+    
+        state = hass.states.get("sensor.f1_next_programme")
+&gt;       assert state is not None
+E       assert None is not None
+
+tests/test_sensor.py:27: AssertionError</failure></testcase><testcase classname="tests.test_sensor" name="test_sensor_shares_the_calendar_device" time="0.047"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7feea2f965d0&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7feea08f7950&gt;
+
+    async def test_sensor_shares_the_calendar_device(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        entry = await setup_xmltv(BASIC_FEED, calendars=F1)
+        (subentry_id,) = entry.subentries
+    
+        registry = er.async_get(hass)
+        sensor = registry.async_get("sensor.f1_next_programme")
+        calendar = registry.async_get("calendar.f1")
+&gt;       assert sensor is not None
+E       assert None is not None
+
+tests/test_sensor.py:45: AssertionError</failure></testcase></testsuite></testsuites>
