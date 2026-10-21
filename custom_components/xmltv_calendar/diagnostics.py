@@ -7,7 +7,8 @@ as presence flags. Programme text and the calendars' filter patterns are never r
 finished result as a safety net for a key that someone adds to the allow-list by mistake.
 
 Diagnostics only read the state recorded so far: they never start a refresh or a download, so asking for them while
-the source fails or refreshes returns the last recorded state.
+the source fails or refreshes returns the last recorded state. `last_attempt` is the source's last refresh run with
+the same fields, in the same order, as the last-fetch sensor (AUT-06, D-22): vocabulary strings, flags and counts.
 """
 
 import dataclasses
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 
     from homeassistant.core import HomeAssistant
 
-    from .cache import CacheMeta, SourceHealth
+    from .cache import CacheMeta, RefreshAttempt, SourceHealth
     from .data import XmltvConfigEntry, XmltvRuntimeData
 
 # Safety net, not the mechanism: keys that would carry credentials or raw validators. They are not part of the result,
@@ -84,6 +85,10 @@ def _cache(meta: CacheMeta | None) -> dict[str, Any] | None:
     }
 
 
+def _attempt(attempt: RefreshAttempt | None) -> dict[str, Any] | None:
+    return attempt.as_dict() if attempt is not None else None
+
+
 def _calendars(entry: XmltvConfigEntry, runtime: XmltvRuntimeData) -> list[dict[str, Any]]:
     """Return title and match count of every calendar of the source, sorted by title; no filter settings."""
     rows = []
@@ -98,7 +103,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: XmltvCo
     Return the diagnostics of a source entry from a snapshot of its current state (D-21).
 
     An entry that is not loaded (for example SETUP_RETRY) has no coordinator: its options are read from the entry and
-    its health and cache metadata from the Store, so a source that never loaded can still be diagnosed.
+    its health, last run and cache metadata from the Store, so a source that never loaded can still be diagnosed.
     """
     source = async_redact_data(dict(entry.data), {CONF_URL: _redact_url, CONF_PATH: _redact_path})
     runtime: XmltvRuntimeData | None = getattr(entry, "runtime_data", None)
@@ -110,6 +115,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: XmltvCo
             "source": source,
             "options": SourceOptions.from_mapping(entry.options).as_options(),
             "health": _health(cache.health),
+            "last_attempt": _attempt(cache.attempt),
             "cache": _cache(cache.meta),
             "stats": None,
             "calendars": [],
@@ -123,6 +129,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: XmltvCo
         "source": source,
         "options": coordinator.source_options.as_options(),
         "health": _health(coordinator.health),
+        "last_attempt": _attempt(coordinator.last_attempt),
         "cache": _cache(coordinator.cache_meta),
         "stats": dataclasses.asdict(data.stats) if data is not None else None,
         "calendars": _calendars(entry, runtime),

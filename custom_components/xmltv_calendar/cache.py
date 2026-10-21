@@ -15,6 +15,7 @@ so the last-fetch sensor and diagnostics show it after a restart. The stored sha
 
 import hashlib
 import logging
+import math
 import re
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -172,8 +173,32 @@ ATTEMPT_OUTCOMES = ("downloaded", "not_modified", "unchanged", "read", "cache_st
 ATTEMPT_CACHE = ("fresh_hit", "stale_hit", "written", "touched", "write_failed", "dropped", "none")
 
 
-def _optional_int(value: object) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
+_HTTP_STATUS_MIN = 100
+_HTTP_STATUS_MAX = 599
+
+
+def _int_at_least(value: object, minimum: int) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= minimum
+
+
+def _valid_status(value: object) -> bool:
+    if value is None:
+        return True
+    return isinstance(value, int) and not isinstance(value, bool) and _HTTP_STATUS_MIN <= value <= _HTTP_STATUS_MAX
+
+
+def _valid_count(value: object) -> bool:
+    return value is None or _int_at_least(value, 0)
+
+
+def _valid_duration(value: object) -> bool:
+    if value is None:
+        return True
+    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+
+
+def _valid_reason(value: object) -> bool:
+    return value is None or (isinstance(value, str) and _REASON.fullmatch(value) is not None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,30 +241,45 @@ class RefreshAttempt:
 
     @classmethod
     def from_dict(cls, value: object) -> Self | None:
-        """Tolerant reader: anything malformed gives None (no run recorded)."""
+        """
+        Tolerant reader: None unless every field is valid, never an exception (T-04-15).
+
+        Valid means an aware ISO time, trigger, outcome and cache from their vocabularies, a reason matching the
+        translation-key pattern, an HTTP status in 100..599, boolean flags, counts >= 0 and a finite duration >= 0.
+        """
         if not isinstance(value, dict):
             return None
         time = _aware_datetime(value.get("time"))
-        trigger = value.get("trigger")
-        outcome = value.get("outcome")
-        cache = value.get("cache")
-        if time is None or not isinstance(trigger, str) or not isinstance(outcome, str) or not isinstance(cache, str):
-            return None
-        reason = value.get("failure_reason")
+        fields = {key: value.get(key) for key in ("trigger", "outcome", "cache", "failure_reason", "http_status")}
+        flags = (value.get("sent_etag"), value.get("sent_last_modified"))
+        counts = (value.get("bytes"), value.get("programmes"), value.get("channels"))
         duration = value.get("parse_duration")
+        valid = (
+            time is not None
+            and fields["trigger"] in ATTEMPT_TRIGGERS
+            and fields["outcome"] in ATTEMPT_OUTCOMES
+            and fields["cache"] in ATTEMPT_CACHE
+            and _valid_reason(fields["failure_reason"])
+            and _valid_status(fields["http_status"])
+            and all(isinstance(flag, bool) for flag in flags)
+            and all(_valid_count(count) for count in counts)
+            and _valid_duration(duration)
+        )
+        if not valid or time is None:
+            return None
         return cls(
             time=time,
-            trigger=trigger,
-            outcome=outcome,
-            http_status=_optional_int(value.get("http_status")),
-            failure_reason=reason if isinstance(reason, str) else None,
-            cache=cache,
-            sent_etag=value.get("sent_etag") is True,
-            sent_last_modified=value.get("sent_last_modified") is True,
-            payload_bytes=_optional_int(value.get("bytes")),
-            programmes=_optional_int(value.get("programmes")),
-            channels=_optional_int(value.get("channels")),
-            parse_duration=float(duration) if isinstance(duration, int | float) else None,
+            trigger=fields["trigger"],
+            outcome=fields["outcome"],
+            http_status=fields["http_status"],
+            failure_reason=fields["failure_reason"],
+            cache=fields["cache"],
+            sent_etag=flags[0],
+            sent_last_modified=flags[1],
+            payload_bytes=counts[0],
+            programmes=counts[1],
+            channels=counts[2],
+            parse_duration=float(duration) if duration is not None else None,
         )
 
 
