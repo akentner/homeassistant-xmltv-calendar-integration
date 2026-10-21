@@ -330,3 +330,47 @@ def test_release_workflow_shape() -> None:
         assert jobs[name]["permissions"] == {"contents": "read"}, name
     assert jobs["ci"]["uses"] == "./.github/workflows/ci.yml"
     assert jobs["validate"]["uses"] == "./.github/workflows/validate.yml"
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="the release job script needs bash")
+@pytest.mark.parametrize(
+    ("tag", "prerelease"),
+    [("v0.1.0", False), ("v0.2.0-rc1", True)],
+    ids=["release", "prerelease"],
+)
+def test_release_job_flags(tag: str, prerelease: bool, tmp_path: Path) -> None:
+    script = _job_script(_load_workflow("release.yml"), "release")
+    repository = "akentner/homeassistant-xmltv-calendar-integration"
+    args_file = tmp_path / "args"
+    stub = tmp_path / "gh"
+    stub.write_text(f'#!/usr/bin/env bash\nprintf "%s\\n" "$@" >> "{args_file}"\n', encoding="utf-8")
+    stub.chmod(0o755)
+    env = {
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "GITHUB_REF_NAME": tag,
+        "GITHUB_REPOSITORY": repository,
+        "GH_TOKEN": "dummy",
+    }
+    result = _run_bash(script, env, tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    expected = ["release", "create", tag, "--repo", repository, "--verify-tag", "--generate-notes"]
+    if prerelease:
+        expected.append("--prerelease")
+    assert args_file.read_text(encoding="utf-8").splitlines() == expected
+
+
+@pytest.mark.skipif(shutil.which("shellcheck") is None, reason="shellcheck is not installed")
+@workflow_files
+def test_workflow_scripts_pass_shellcheck(filename: str) -> None:
+    for step in _steps(_load_workflow(filename)):
+        if "run" not in step:
+            continue
+        # Fixed argv from this test file; the script goes in on stdin
+        result = subprocess.run(
+            ["shellcheck", "--shell=bash", "-"],  # noqa: S607
+            input=step["run"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, f"{filename}: {step.get('name', step['run'])}\n{result.stdout}"
