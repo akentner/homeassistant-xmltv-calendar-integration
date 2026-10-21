@@ -89,11 +89,14 @@ async def test_remove_calendar_removes_entity_and_device(
     assert device_registry.async_get_device_by_identifier((DOMAIN, b_id), entry.entry_id) is not None
     a_events = await _summaries(hass, "calendar.a")
     runtime = entry.runtime_data
+    assert hass.states.get("sensor.b_next_programme") is not None
 
     assert hass.config_entries.async_remove_subentry(entry, b_id)
     await hass.async_block_till_done()
 
     assert hass.states.get("calendar.b") is None
+    assert hass.states.get("sensor.b_next_programme") is None  # the calendar's next-match sensor goes with it
+    assert er.async_get(hass).async_get("sensor.b_next_programme") is None
     assert device_registry.async_get_device_by_identifier((DOMAIN, b_id), entry.entry_id) is None
     assert entry.runtime_data is runtime
     assert b_id not in runtime.calendars

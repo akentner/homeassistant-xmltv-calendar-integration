@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="26" time="1.755" timestamp="2026-10-21T10:30:53.397149+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_sensor" name="test_next_match_sensor_shows_next_start" time="0.202" /><testcase classname="tests.test_sensor" name="test_sensor_shares_the_calendar_device" time="0.052" /><testcase classname="tests.test_sensor" name="test_next_match_attributes" time="0.050" /><testcase classname="tests.test_sensor" name="test_match_texts_are_not_recorded" time="0.053" /><testcase classname="tests.test_sensor" name="test_airing_match_is_not_next" time="0.056" /><testcase classname="tests.test_sensor" name="test_no_future_match_is_unknown_but_available" time="0.052" /><testcase classname="tests.test_sensor" name="test_same_start_picks_feed_order" time="0.050" /><testcase classname="tests.test_sensor" name="test_german_entity_ids[de-sensor.formel_1_nachste_sendung]" time="0.057" /><testcase classname="tests.test_sensor" name="test_german_entity_ids[en-sensor.formel_1_next_programme]" time="0.050" /><testcase classname="tests.test_sensor" name="test_sensor_moves_on_at_match_start" time="0.059"><failure message="AssertionError: assert '2026-10-13T10:00:00+00:00' == '2026-10-13T18:00:00+00:00'&#10;  &#10;  - 2026-10-13T18:00:00+00:00&#10;  ?             ^&#10;  + 2026-10-13T10:00:00+00:00&#10;  ?             ^">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f8c41e16c50&gt;
+berlin_tz = None
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f8c3c82b750&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f8c3d655640&gt;
+
+    async def test_sensor_moves_on_at_match_start(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        await setup_xmltv(BASIC_FEED, calendars=F1)
+        calls = aioclient_mock.call_count
+        assert hass.states.get(SENSOR).state == "2026-10-13T10:00:00+00:00"
+    
+        # At the race's start it no longer counts: the sensor moves on to Tagesschau without a refresh (D-06)
+        await _step_to(hass, freezer, "2026-10-13T10:00:00+00:00")
+        state = hass.states.get(SENSOR)
+&gt;       assert state.state == "2026-10-13T18:00:00+00:00"
+E       AssertionError: assert '2026-10-13T10:00:00+00:00' == '2026-10-13T18:00:00+00:00'
+E         
+E         - 2026-10-13T18:00:00+00:00
+E         ?             ^
+E         + 2026-10-13T10:00:00+00:00
+E         ?             ^
+
+tests/test_sensor.py:188: AssertionError</failure></testcase><testcase classname="tests.test_sensor" name="test_sensor_follows_new_feed_data" time="0.058" /><testcase classname="tests.test_sensor" name="test_sensor_follows_filter_and_template_edits" time="0.055" /><testcase classname="tests.test_sensor" name="test_template_edit_with_invalid_pattern_reaches_sensor" time="0.052"><failure message="AssertionError: assert 'Das Erste: F...is von Mexiko' == 'Formel 1: Gr...is von Mexiko'&#10;  &#10;  - Formel 1: Großer Preis von Mexiko&#10;  + Das Erste: Formel 1: Großer Preis von Mexiko&#10;  ? +++++++++++">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f8c3c7e5010&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f8c3ea233d0&gt;
+
+    async def test_template_edit_with_invalid_pattern_reaches_sensor(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        entry = await setup_xmltv(BASIC_FEED, calendars=F1)
+        (subentry_id,) = entry.subentries
+        assert hass.states.get(SENSOR).attributes["summary"] == "Das Erste: Formel 1: Großer Preis von Mexiko"
+    
+        # Stored data bypassing the flow: the pattern does not compile, so the calendar keeps its filter and matches
+        # (T-02-01) and only the new template applies, without a refilter
+        assert hass.config_entries.async_update_subentry(
+            entry,
+            entry.subentries[subentry_id],
+            data={"channels": ["daserste.de"], "include": "(", "title_template": "{title}"},
+        )
+        await hass.async_block_till_done()
+    
+        state = hass.states.get(SENSOR)
+        assert state.state == "2026-10-13T10:00:00+00:00"
+&gt;       assert state.attributes["summary"] == "Formel 1: Großer Preis von Mexiko"
+E       AssertionError: assert 'Das Erste: F...is von Mexiko' == 'Formel 1: Gr...is von Mexiko'
+E         
+E         - Formel 1: Großer Preis von Mexiko
+E         + Das Erste: Formel 1: Großer Preis von Mexiko
+E         ? +++++++++++
+
+tests/test_sensor.py:269: AssertionError</failure></testcase><testcase classname="tests.test_sensor" name="test_calendar_added_later_gets_a_sensor" time="0.055"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f8c3c846890&gt;
+berlin_tz = None
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f8c3d89c9f0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f8c3ea361f0&gt;
+
+    async def test_calendar_added_later_gets_a_sensor(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        freezer.move_to("2026-10-13T06:00:00+00:00")
+        entry = await setup_xmltv(BASIC_FEED, calendars=F1)
+        calls = aioclient_mock.call_count
+        runtime = entry.runtime_data
+    
+        result = await complete_calendar_flow(hass, entry, {"name": "Late", "channels": ["zdf.de"]})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+    
+        state = hass.states.get("sensor.late_next_programme")
+&gt;       assert state is not None
+E       assert None is not None
+
+tests/test_sensor.py:289: AssertionError</failure></testcase><testcase classname="tests.test_sensor" name="test_invalid_stored_pattern_gives_unknown" time="0.053" /><testcase classname="tests.test_sensor" name="test_sensor_unavailable_without_data" time="0.051" /><testcase classname="tests.test_init" name="test_two_calendars_one_download" time="0.066" /><testcase classname="tests.test_init" name="test_add_calendar_via_flow_no_refetch" time="0.066" /><testcase classname="tests.test_init" name="test_remove_calendar_removes_entity_and_device" time="0.058" /><testcase classname="tests.test_init" name="test_rename_source_does_not_reload" time="0.051" /><testcase classname="tests.test_init" name="test_options_change_reloads_once" time="0.072" /><testcase classname="tests.test_init" name="test_data_change_reloads_once" time="0.060" /><testcase classname="tests.test_init" name="test_preexisting_subentries_get_one_entity_each" time="0.058" /><testcase classname="tests.test_init" name="test_identical_filters_make_two_entities" time="0.056" /><testcase classname="tests.test_init" name="test_zero_calendars_loads" time="0.045" /><testcase classname="tests.test_init" name="test_add_and_remove_order_does_not_change_events" time="0.065" /></testsuite></testsuites>
