@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.348" timestamp="2026-10-21T11:40:12.075669+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_last_fetch_sensor" name="test_download_shows_last_fetch" time="0.204"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f37a95e56f0&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_download_shows_last_fetch(
+        hass: HomeAssistant, setup_xmltv: Callable[..., Awaitable[MockConfigEntry]]
+    ) -&gt; None:
+        await setup_xmltv(FEED, calendars=(("Test", {}),))
+    
+        state = hass.states.get(SENSOR)
+&gt;       assert state is not None
+E       assert None is not None
+
+tests/test_last_fetch_sensor.py:39: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_last_fetch_is_diagnostic_and_disabled_by_default" time="0.054"><failure message="assert None is not None">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f37a820b690&gt;
+
+    async def test_last_fetch_is_diagnostic_and_disabled_by_default(
+        hass: HomeAssistant, setup_xmltv: Callable[..., Awaitable[MockConfigEntry]]
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED, calendars=(("Test", {}),))
+        (subentry_id,) = entry.subentries
+    
+        registry = er.async_get(hass)
+        sensor = registry.async_get(SENSOR)
+        calendar = registry.async_get("calendar.test")
+&gt;       assert sensor is not None
+E       assert None is not None
+
+tests/test_last_fetch_sensor.py:72: AssertionError</failure></testcase></testsuite></testsuites>
