@@ -86,7 +86,10 @@ async def test_diagnostics_end_to_end(
         "inferred_stops": 0,
         "dropped_past": 0,
     }
-    assert result["calendars"] == [{"title": "A", "matches": 4}, {"title": "B", "matches": 2}]
+    assert result["calendars"] == [
+        {"title": "A", "matches": 4, "retained": 0},
+        {"title": "B", "matches": 2, "retained": 0},
+    ]
     assert result["next_refresh"] == "2026-10-14T06:00:00+00:00"
     last_attempt = result["last_attempt"]
     assert isinstance(last_attempt["parse_duration"], float)
@@ -136,7 +139,7 @@ async def test_file_source_diagnostics(hass: HomeAssistant, feed_path: Path) -> 
 
     assert result["source"] == {"source_type": "file", "path": "**REDACTED**/guide.xml"}
     assert result["cache"] is None
-    assert result["calendars"] == [{"title": "Test", "matches": 4}]
+    assert result["calendars"] == [{"title": "Test", "matches": 4, "retained": 0}]
     assert str(feed_path.parent) not in json.dumps(result)
 
 
@@ -166,7 +169,32 @@ async def test_failing_source_diagnostics(
     }
     # The last good data stays in memory and is still described (D-19)
     assert result["stats"]["programmes"] == 4
-    assert result["calendars"] == [{"title": "Test", "matches": 4}]
+    assert result["calendars"] == [{"title": "Test", "matches": 4, "retained": 0}]
+
+
+async def test_retained_matches_are_listed_apart(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED, calendars=(("F1", {"channels": ["daserste.de"]}),))
+    assert (await async_get_config_entry_diagnostics(hass, entry))["calendars"] == [
+        {"title": "F1", "matches": 2, "retained": 0}
+    ]
+
+    # The race ended at 11:30Z and the next feed drops it: it is retained, shown in addition to the feed (D-19)
+    race = FEED.split(b'<programme channel="daserste.de" start="20261013120000 +0200"', 1)
+    without_race = race[0] + race[1].split(b"</programme>", 1)[1]
+    freezer.move_to("2026-10-13T12:00:00+00:00")
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, content=without_race)
+    await entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+    assert result["calendars"] == [{"title": "F1", "matches": 1, "retained": 1}]
+    assert "Formel" not in json.dumps(result)
 
 
 async def test_diagnostics_for_not_loaded_entry(
