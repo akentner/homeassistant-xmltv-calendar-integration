@@ -51,15 +51,14 @@ def new_matches(
 
 
 def split_announcements(new: Sequence[Programme], limit: int) -> tuple[list[Programme], int]:
-    """RED stub (04-04 Task 2): no cap yet, everything is announced."""
-    del limit
-    return list(new), 0
+    """Return the first `limit` of the already ordered new matches and how many are left unannounced (D-12)."""
+    return list(new[:limit]), max(len(new) - limit, 0)
 
 
 def prune_seen(seen: Mapping[str, int], cutoff: datetime) -> dict[str, int]:
-    """RED stub (04-04 Task 2): nothing is pruned yet."""
-    del cutoff
-    return dict(seen)
+    """Return the entries whose programme stopped at or after `cutoff`; older ones can never fire again (D-13)."""
+    limit = int(cutoff.timestamp())
+    return {uid: stop for uid, stop in seen.items() if stop >= limit}
 
 
 def records_to_dict(records: Mapping[str, CalendarMatches]) -> dict[str, Any]:

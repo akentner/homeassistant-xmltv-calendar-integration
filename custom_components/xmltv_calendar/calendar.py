@@ -15,11 +15,11 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, EVENT_NEW_MATCH, SUBENTRY_TYPE_CALENDAR
+from .const import DOMAIN, EVENT_NEW_MATCH, KEEP_PAST, MAX_NEW_MATCH_EVENTS, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
 from .xmltv import render
 from .xmltv.filter import PATTERN_ERRORS, FilterSpec
-from .xmltv.matches import new_matches
+from .xmltv.matches import new_matches, prune_seen, split_announcements
 from .xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
@@ -192,8 +192,10 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             return
         store = self._entry.runtime_data.match_store
         record = store.get(self._subentry_id)
-        new, seen = new_matches(result.matches, record.seen, dt_util.utcnow())
-        store.put(self._subentry_id, replace(record, seen=seen))
+        now = dt_util.utcnow()
+        new, seen = new_matches(result.matches, record.seen, now)
+        # Entries ended before the retention window can never fire again (D-13); 04-06 makes the window per calendar
+        store.put(self._subentry_id, replace(record, seen=prune_seen(seen, now - KEEP_PAST)))
         fire = reason == REFILTER_DATA and self._baseline_ready
         self._epg = epg
         self._index = MatchIndex(result.matches)
@@ -210,8 +212,20 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             self._fire_new_match_events(new)
 
     def _fire_new_match_events(self, new: Sequence[Programme]) -> None:
-        """Fire one xmltv_calendar_new_match event per new match with JSON-safe values (D-07, Pitfall 6)."""
-        for programme in new:
+        """
+        Fire one xmltv_calendar_new_match event per new match with JSON-safe values (D-07, Pitfall 6).
+
+        At most MAX_NEW_MATCH_EVENTS fire, earliest start first; the rest are already in the seen-set (D-12).
+        """
+        announced, suppressed = split_announcements(new, MAX_NEW_MATCH_EVENTS)
+        if suppressed:
+            _LOGGER.warning(
+                "Calendar %s: %d new matches not announced (limit %d per refresh)",
+                self.entity_id,
+                suppressed,
+                MAX_NEW_MATCH_EVENTS,
+            )
+        for programme in announced:
             match = self.describe_match(programme)
             self.hass.bus.async_fire(
                 EVENT_NEW_MATCH,
