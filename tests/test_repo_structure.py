@@ -174,6 +174,32 @@ def test_readme_documents_hacs_install_and_floor() -> None:
     assert "2026.3" in text
 
 
+README_REQUIRED_TEXT = (
+    "xmltv_calendar_new_match",
+    "redirect/blueprint_import",
+    "15 minutes",
+    "mode: queued",
+    "Next programme",
+    "Last fetch",
+    "Keep past matches",
+    "homeassistant.update_entity",
+    "ISO 8601",
+    "unknown",
+    "overlapping",
+    "allowlist_external_dirs",
+    "daily",
+    "channel_id",
+    "uid",
+)
+
+
+def test_readme_documents_automation_and_limitations() -> None:
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert [needle for needle in README_REQUIRED_TEXT if needle not in text] == []
+    # The placeholder sentence about a later guide is gone
+    assert "later release" not in text.lower()
+
+
 def test_validate_workflow_has_hassfest_and_hacs_jobs() -> None:
     document = _load_workflow("validate.yml")
     assert document["name"] == "Validate"
