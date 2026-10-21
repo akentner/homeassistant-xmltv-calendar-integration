@@ -1,0 +1,1 @@
+No external API integration: Phase 4 adds HA-internal entities, an HA bus event, an HA Store, a blueprint and a GitHub Actions release workflow (CI tooling run by GitHub, not called by the integration at runtime); the only network access remains the existing feed download from Phases 1-3.

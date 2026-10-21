@@ -161,7 +161,27 @@ Plans:
   4. Every config, subentry and options flow step, error and abort reason is shown in German when HA runs in German, and in English otherwise.
   5. Pushing a version tag publishes a GitHub release whose version matches `manifest.json`, and HACS offers it for install/update. The README documents setup, regex filter examples, automation examples and calendar limitations (15-min trigger window, overlapping events).
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1**
+- [ ] 04-01-PLAN.md — Next-match sensor per calendar: next start, match attributes, live updates, calendars added later (AUT-03) (wave 1)
+- [ ] 04-02-PLAN.md — Blueprint "notify before a matching programme starts" (mode queued, negative lead time) with end-to-end tests (AUT-05) (wave 1)
+- [ ] 04-03-PLAN.md — Tag-triggered release workflow (tag == manifest version, reusable CI/Validate, gh release) with executable tag-check tests (DST-03) (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 04-04-PLAN.md — New-match event xmltv_calendar_new_match with a persisted per-source match store, silent baselines, burst cap (EVT-08) (wave 2)
+- [ ] 04-05-PLAN.md — Last-fetch diagnostic sensor: every refresh run with trigger, outcome, HTTP status, cache handling; persisted; diagnostics (AUT-06) (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 04-06-PLAN.md — Past matches retained per calendar (retention_days, default 1) across feed drops and restarts, merged by UID (EVT-07) (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 04-07-PLAN.md — "Keep past matches (days)" in the calendar's advanced options, applied in place, English and German (EVT-07, CFG-04) (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 04-08-PLAN.md — Code-derived EN/DE translation completeness, README, release readiness; user pushes v0.1.0 after UAT (CFG-04, DST-04, DST-03) (wave 5)
+
 **Notes**: EVT-07 and EVT-08 share one persisted match store (HA `Store`) holding the seen-set and retained past matches. Copy the release workflow (tag == manifest version) from mqtt-actions.
 
 ## Progress
@@ -174,4 +194,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
-| 4. Automation Extras & Release | 0/TBD | Not started | - |
+| 4. Automation Extras & Release | 0/8 | Planned | - |
