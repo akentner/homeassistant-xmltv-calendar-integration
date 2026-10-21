@@ -16,10 +16,15 @@ Users can automate around matches beyond plain calendar triggers, and they can i
 - **added in this discussion:** a "last fetch" diagnostic sensor per calendar device (new requirement, proposed ID **AUT-06**; the planner adds it to REQUIREMENTS.md and the Phase 4 requirement list in ROADMAP.md)
 
 Requirements: AUT-03, AUT-05, AUT-06 (new), EVT-07, EVT-08, CFG-04, DST-03, DST-04.
-Not in this phase: the refresh bug reported during this discussion (handled separately via `/gsd-debug`, see Blocker below), the v2 filters (FLT-12..14), episode normalization (EVT-09).
+Not in this phase: the v2 filters (FLT-12..14), episode normalization (EVT-09).
 
-### Blocker (outside this phase's plans)
-The user ran a calendar for several days on their test HA instance. New entries only showed up after a **manual reload of the integration**. Scheduled refreshes, the cache or the refilter apparently did not bring new feed data into the calendar. The root cause is unknown. It is handled in a **separate `/gsd-debug` session** before or alongside Phase 4 planning. EVT-07, EVT-08 and the next-match sensor all depend on refreshes that work, so Phase 4 verification must not pass while the bug is open. The new last-fetch sensor (D-20..D-24) is meant to make this kind of problem visible without a debugger.
+### Former blocker (resolved 2026-10-21, no code defect)
+The user ran a calendar for several days on their test HA instance. New entries only showed up after a **manual reload of the integration**. The `/gsd-debug` session `.planning/debug/resolved/kalender-aktualisiert-sich-ers.md` found:
+- The host ran the end-of-Phase-2 build (`93ad979`).
+- A multi-day refresh test passes on both that build and current main (`tests/test_multiday_refresh.py`, commit `c28b0c4`).
+- The symptom is the designed 24 h interval anchored to the last restart or reload, so new feed days appear up to 24 h late.
+
+The user closed it as expected behaviour. The recommendation is the daily-at mode for the source. On current main, a reload with a fresh cache no longer re-downloads; the manual refresh is `homeassistant.update_entity`. Residual unverified causes R2 and R3 are listed in the session file. The last-fetch sensor (D-20..D-24) makes a real recurrence visible.
 
 </domain>
 
@@ -147,7 +152,7 @@ The user ran a calendar for several days on their test HA instance. New entries 
 <deferred>
 ## Deferred Ideas
 
-- **Refresh bug (calendar only updates after manual reload):** not deferred as an idea but handled outside this phase's plans via `/gsd-debug` (see Blocker in Phase Boundary).
+- **Refresh bug (calendar only updates after manual reload):** resolved via `/gsd-debug` as expected behaviour (see "Former blocker" in Phase Boundary).
 - Earlier backlog items still open: per-source channel ID → friendly name mapping (Phase 1), time placeholders in templates (Phase 2), source URL/path reconfigure, multiple daily refresh times, free IANA timezone, fixable Repairs flow (Phase 3).
 
 </deferred>
