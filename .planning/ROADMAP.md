@@ -153,7 +153,7 @@ Plans:
 **Goal:** User can automate around matches beyond plain calendar triggers (next-match sensor, new-match event, recent past matches, ready-made blueprint) and install a documented, bilingual, tagged release via HACS.
 **Mode:** mvp
 **Depends on**: Phase 3
-**Requirements**: AUT-03, AUT-05, EVT-07, EVT-08, CFG-04, DST-03, DST-04
+**Requirements**: AUT-03, AUT-05, AUT-06, EVT-07, EVT-08, CFG-04, DST-03, DST-04
 **Success Criteria** (what must be TRUE):
   1. Each calendar has a next-match timestamp sensor with title, channel, start and end attributes, updated as matches pass or the feed changes.
   2. An HA event fires when a new matching programme appears in the feed, but not on the first refresh and not again after a restart. Matches from the past N days (configurable, up to 7) stay visible in the calendar after the feed drops them, also across restarts.

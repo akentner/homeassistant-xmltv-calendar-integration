@@ -53,6 +53,7 @@
 - [x] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
 - [x] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
 - [x] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
+- [ ] **AUT-06**: Each calendar device has a diagnostic "Last fetch" sensor (disabled by default) showing when the source last ran a refresh, what started it and how it ended (HTTP status, cache handling, counts), without URL or credentials
 
 ### Configuration UX
 
@@ -138,6 +139,7 @@
 | AUT-03 | Phase 4 | Complete |
 | AUT-04 | Phase 3 | Complete |
 | AUT-05 | Phase 4 | Complete |
+| AUT-06 | Phase 4 | Pending |
 | CFG-01 | Phase 1 | Complete |
 | CFG-02 | Phase 3 | Complete |
 | CFG-03 | Phase 3 | Complete |
@@ -148,10 +150,10 @@
 | DST-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 45 total
-- Mapped to phases: 45
+- v1 requirements: 46 total
+- Mapped to phases: 46
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-12*
-*Last updated: 2026-10-12 after roadmap creation (traceability mapped)*
+*Last updated: 2026-10-21 after AUT-06 added in Phase 4 discussion*
