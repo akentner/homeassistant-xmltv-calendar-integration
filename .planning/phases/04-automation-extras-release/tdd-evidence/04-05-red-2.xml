@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="19" time="1.277" timestamp="2026-10-21T11:44:51.678851+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_last_fetch_sensor" name="test_download_shows_last_fetch" time="0.215" /><testcase classname="tests.test_last_fetch_sensor" name="test_last_fetch_is_diagnostic_and_disabled_by_default" time="0.060" /><testcase classname="tests.test_last_fetch_sensor" name="test_not_modified_run" time="0.067"><failure message="AssertionError: assert {'bytes': Non...'failed', ...} == {'bytes': Non...odified', ...}&#10;  &#10;  Omitting 5 identical items, use -vv to show&#10;  Differing items:&#10;  {'outcome': 'failed'} != {'outcome': 'not_modified'}&#10;  {'cache': 'none'} != {'cache': 'touched'}&#10;  {'http_status': None} != {'http_status': 304}&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f9614606fd0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f9614605f90&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f9602f949e0&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_not_modified_run(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED, headers={"ETag": '"v1"'})
+        assert await async_setup_component(hass, "homeassistant", {})
+        coordinator = entry.runtime_data.coordinator
+        listener_calls: list[None] = []
+        unsubscribe = coordinator.async_add_listener(lambda: listener_calls.append(None))
+        _serve(aioclient_mock, status=304)
+        freezer.move_to(LATER)
+    
+        await hass.services.async_call("homeassistant", "update_entity", {"entity_id": "calendar.test"}, blocking=True)
+        await hass.async_block_till_done()
+        unsubscribe()
+    
+        # The data object did not change, so no coordinator listener ran, yet the sensor shows the run
+        assert listener_calls == []
+        assert hass.states.get(SENSOR).state == LATER
+&gt;       assert _pick(
+            _attributes(hass),
+            "trigger",
+            "outcome",
+            "http_status",
+            "cache",
+            "sent_etag",
+            "bytes",
+            "parse_duration",
+            "programmes",
+        ) == {
+            "trigger": "manual",
+            "outcome": "not_modified",
+            "http_status": 304,
+            "cache": "touched",
+            "sent_etag": True,
+            "bytes": None,
+            "parse_duration": None,
+            "programmes": 4,
+        }
+E       AssertionError: assert {'bytes': Non...'failed', ...} == {'bytes': Non...odified', ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'outcome': 'failed'} != {'outcome': 'not_modified'}
+E         {'cache': 'none'} != {'cache': 'touched'}
+E         {'http_status': None} != {'http_status': 304}
+E         Use -v to get more diff
+
+tests/test_last_fetch_sensor.py:134: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_identical_body_run" time="0.066"><failure message="AssertionError: assert {'bytes': Non...'failed', ...} == {'bytes': 846...changed', ...}&#10;  &#10;  Omitting 3 identical items, use -vv to show&#10;  Differing items:&#10;  {'cache': 'none'} != {'cache': 'touched'}&#10;  {'bytes': None} != {'bytes': 846}&#10;  {'outcome': 'failed'} != {'outcome': 'unchanged'}&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f961486afd0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f9603f87690&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_identical_body_run(
+        hass: HomeAssistant,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        freezer.move_to(LATER)
+    
+        await entry.runtime_data.coordinator.async_refresh()
+        await hass.async_block_till_done()
+    
+        assert hass.states.get(SENSOR).state == LATER
+&gt;       assert _pick(_attributes(hass), "trigger", "outcome", "http_status", "cache", "sent_etag", "bytes") == {
+            "trigger": "manual",
+            "outcome": "unchanged",
+            "http_status": 200,
+            "cache": "touched",
+            "sent_etag": False,
+            "bytes": len(FEED),
+        }
+E       AssertionError: assert {'bytes': Non...'failed', ...} == {'bytes': 846...changed', ...}
+E         
+E         Omitting 3 identical items, use -vv to show
+E         Differing items:
+E         {'cache': 'none'} != {'cache': 'touched'}
+E         {'bytes': None} != {'bytes': 846}
+E         {'outcome': 'failed'} != {'outcome': 'unchanged'}
+E         Use -v to get more diff
+
+tests/test_last_fetch_sensor.py:169: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_scheduled_run" time="0.063"><failure message="AssertionError: assert 'manual' == 'scheduled'&#10;  &#10;  - scheduled&#10;  + manual">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f9611387ce0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f9602f6c510&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_scheduled_run(
+        hass: HomeAssistant,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        target = entry.runtime_data.coordinator.next_refresh_at
+    
+        await _step_to(hass, freezer, target + timedelta(seconds=1))
+    
+        assert hass.states.get(SENSOR).state == (target + timedelta(seconds=1)).isoformat()
+&gt;       assert _attributes(hass)["trigger"] == "scheduled"
+E       AssertionError: assert 'manual' == 'scheduled'
+E         
+E         - scheduled
+E         + manual
+
+tests/test_last_fetch_sensor.py:191: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_failed_run_and_retry" time="0.064"><failure message="AssertionError: assert '2026-10-13T06:00:00+00:00' == '2026-10-13T07:00:00+00:00'&#10;  &#10;  - 2026-10-13T07:00:00+00:00&#10;  ?             ^&#10;  + 2026-10-13T06:00:00+00:00&#10;  ?             ^">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f96102485f0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f9602f88050&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f9603fd8040&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_failed_run_and_retry(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        coordinator = entry.runtime_data.coordinator
+        _serve(aioclient_mock, status=500)
+        freezer.move_to(LATER)
+    
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+    
+        state = hass.states.get(SENSOR)
+&gt;       assert state.state == LATER
+E       AssertionError: assert '2026-10-13T06:00:00+00:00' == '2026-10-13T07:00:00+00:00'
+E         
+E         - 2026-10-13T07:00:00+00:00
+E         ?             ^
+E         + 2026-10-13T06:00:00+00:00
+E         ?             ^
+
+tests/test_last_fetch_sensor.py:210: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_cache_start_and_revalidate" time="0.065"><failure message="AssertionError: assert '2026-10-13T06:00:00+00:00' == '2026-10-14T07:00:00+00:00'&#10;  &#10;  - 2026-10-14T07:00:00+00:00&#10;  ?          ^  ^&#10;  + 2026-10-13T06:00:00+00:00&#10;  ?          ^  ^">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f96113af790&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f96113af240&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f9603e1ceb0&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_cache_start_and_revalidate(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)  # refresh_hours 24, cache written at NOW
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        freezer.move_to("2026-10-14T07:00:00+00:00")  # NOW + 25 h: the cache is stale
+        _serve(aioclient_mock, content=CHANGED_FEED)
+    
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    
+        assert aioclient_mock.call_count == 0
+&gt;       assert hass.states.get(SENSOR).state == "2026-10-14T07:00:00+00:00"
+E       AssertionError: assert '2026-10-13T06:00:00+00:00' == '2026-10-14T07:00:00+00:00'
+E         
+E         - 2026-10-14T07:00:00+00:00
+E         ?          ^  ^
+E         + 2026-10-13T06:00:00+00:00
+E         ?          ^  ^
+
+tests/test_last_fetch_sensor.py:254: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_file_source_runs" time="0.054"><failure message="AssertionError: assert {'bytes': Non...'failed', ...} == {'bytes': 846...: 'read', ...}&#10;  &#10;  Omitting 4 identical items, use -vv to show&#10;  Differing items:&#10;  {'bytes': None} != {'bytes': 846}&#10;  {'outcome': 'failed'} != {'outcome': 'read'}&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+feed_path = PosixPath('/tmp/akentner/pytest-of-akentner/pytest-196/test_file_source_runs0/guide.xml')
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_file_source_runs(hass: HomeAssistant, feed_path: Path) -&gt; None:
+        hass.config.allowlist_external_dirs = {str(feed_path.parent)}
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Local",
+            data={"source_type": "file", "path": str(feed_path)},
+            options={"refresh_hours": 24},
+            subentries_data=[ConfigSubentryData(subentry_type="calendar", title="Test", data={}, unique_id=None)],
+        )
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert entry.state is ConfigEntryState.LOADED
+    
+        attributes = _attributes(hass)
+&gt;       assert _pick(attributes, "trigger", "outcome", "http_status", "cache", "bytes", "programmes") == {
+            "trigger": "startup",
+            "outcome": "read",
+            "http_status": None,
+            "cache": "none",
+            "bytes": len(FEED),
+            "programmes": 4,
+        }
+E       AssertionError: assert {'bytes': Non...'failed', ...} == {'bytes': 846...: 'read', ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'bytes': None} != {'bytes': 846}
+E         {'outcome': 'failed'} != {'outcome': 'read'}
+E         Use -v to get more diff
+
+tests/test_last_fetch_sensor.py:305: AssertionError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_same_instant_runs_keep_the_latest" time="0.064"><failure message="AssertionError: assert {'outcome': '...:00:00+00:00'} == {'outcome': '...:00:00+00:00'}&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing items:&#10;  {'outcome': 'failed'} != {'outcome': 'unchanged'}&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f96113af020&gt;
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...b0b3295dfc18184f690aa94', ...}}, 'key': 'xmltv_calendar.01M4SXHAR0Z0D27WN537P4RXWJ', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f9602f5a1f0&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_same_instant_runs_keep_the_latest(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        coordinator = entry.runtime_data.coordinator
+        _serve(aioclient_mock, content=CHANGED_FEED)
+    
+        # Two manual refreshes at the same frozen instant: a download, then the same body again
+        await coordinator.async_refresh()
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+    
+        stored = hass_storage[f"{DOMAIN}.{entry.entry_id}"]["data"]["attempt"]
+        assert isinstance(stored, dict)
+&gt;       assert _pick(stored, "time", "outcome") == {"time": NOW, "outcome": "unchanged"}
+E       AssertionError: assert {'outcome': '...:00:00+00:00'} == {'outcome': '...:00:00+00:00'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'outcome': 'failed'} != {'outcome': 'unchanged'}
+E         Use -v to get more diff
+
+tests/test_last_fetch_sensor.py:343: AssertionError</failure></testcase><testcase classname="tests.test_source" name="test_download_cap_retries_setup" time="0.037" /><testcase classname="tests.test_source" name="test_body_within_download_cap_loads" time="0.052" /><testcase classname="tests.test_source" name="test_decompressed_cap_retries_setup" time="0.031" /><testcase classname="tests.test_source" name="test_fetch_failures_retry_setup[http-500]" time="0.029" /><testcase classname="tests.test_source" name="test_fetch_failures_retry_setup[http-404]" time="0.032" /><testcase classname="tests.test_source" name="test_fetch_failures_retry_setup[timeout]" time="0.032" /><testcase classname="tests.test_source" name="test_fetch_failures_retry_setup[client-error]" time="0.030" /><testcase classname="tests.test_source" name="test_logs_name_host_only" time="0.061" /><testcase classname="tests.test_source" name="test_failure_logs_name_host_only" time="0.032" /><testcase classname="tests.test_source" name="test_http_status_is_reported" time="0.030" /></testsuite></testsuites>

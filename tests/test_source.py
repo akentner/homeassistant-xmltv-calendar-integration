@@ -11,6 +11,7 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 
 from custom_components.xmltv_calendar import coordinator, source
+from custom_components.xmltv_calendar.source import SourceUnavailableError, async_fetch_url
 from custom_components.xmltv_calendar.xmltv import parser
 
 from .conftest import FEED_URL
@@ -18,6 +19,7 @@ from .conftest import FEED_URL
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 NOW = "2026-10-13T06:00:00+00:00"
@@ -127,3 +129,22 @@ async def test_failure_logs_name_host_only(
     assert "s3cret" not in caplog.text
     assert "/guide.xml" not in caplog.text
     assert any("epg.example.com" in record.getMessage() for record in caplog.records)
+
+
+async def test_http_status_is_reported(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    aioclient_mock.get(FEED_URL, content=BASIC_FEED)
+    fetched = await async_fetch_url(hass, FEED_URL)
+    assert isinstance(fetched, source.Fetched)
+    assert fetched.status == 200
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, status=500)
+    with pytest.raises(SourceUnavailableError) as server_error:
+        await async_fetch_url(hass, FEED_URL)
+    assert server_error.value.status == 500
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+    with pytest.raises(SourceUnavailableError) as client_error:
+        await async_fetch_url(hass, FEED_URL)
+    assert client_error.value.status is None
