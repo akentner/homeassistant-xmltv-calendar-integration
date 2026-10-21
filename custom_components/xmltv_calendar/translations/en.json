@@ -34,6 +34,9 @@
           }
         }
       },
+      "download": {
+        "title": "Downloading the feed"
+      },
       "file": {
         "title": "Local XMLTV file",
         "description": "The file is read once per refresh and shared by all calendars of this source.",

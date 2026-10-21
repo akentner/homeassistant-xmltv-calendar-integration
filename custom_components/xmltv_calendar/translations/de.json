@@ -34,6 +34,9 @@
           }
         }
       },
+      "download": {
+        "title": "Feed wird heruntergeladen"
+      },
       "file": {
         "title": "Lokale XMLTV-Datei",
         "description": "Die Datei wird pro Aktualisierung einmal gelesen und von allen Kalendern dieser Quelle gemeinsam genutzt.",
