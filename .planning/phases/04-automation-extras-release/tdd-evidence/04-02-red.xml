@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.309" timestamp="2026-10-21T10:36:29.782182+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_blueprint" name="test_overlapping_programmes_notify_once_each" time="0.226"><failure message="AssertionError: blueprint missing: blueprints/automation/xmltv_calendar/notify_before_programme.yaml&#10;assert False&#10; +  where False = is_file()&#10; +    where is_file = PosixPath('/home/akentner/Projects/homeassistant-xmltv-calendar-integration/blueprints/automation/xmltv_calendar/notify_before_programme.yaml').is_file">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f4728ddd550&gt;
+berlin_tz = None
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f4728e03690&gt;
+
+    async def test_overlapping_programmes_notify_once_each(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        # Formel 1 (Das Erste) and heute (ZDF) both start 10:00 UTC (12:00 Berlin); 09:30 is a 15-minute boundary
+        start = datetime(2026, 10, 13, 9, 30, tzinfo=UTC)
+        freezer.move_to(start.isoformat())
+        await setup_xmltv(BASIC_FEED, calendars=(("Test", {}),))
+&gt;       _install_blueprint(hass)
+
+tests/test_blueprint.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+hass = &lt;HomeAssistant RUNNING&gt;
+
+    def _install_blueprint(hass: HomeAssistant) -&gt; None:
+        """Copy the shipped blueprint into the test config dir, where use_blueprint looks for it."""
+&gt;       assert BLUEPRINT.is_file(), f"blueprint missing: {BLUEPRINT.relative_to(ROOT)}"
+E       AssertionError: blueprint missing: blueprints/automation/xmltv_calendar/notify_before_programme.yaml
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/akentner/Projects/homeassistant-xmltv-calendar-integration/blueprints/automation/xmltv_calendar/notify_before_programme.yaml').is_file
+
+tests/test_blueprint.py:24: AssertionError</failure></testcase></testsuite></testsuites>
