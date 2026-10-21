@@ -161,13 +161,13 @@ Plans:
   4. Every config, subentry and options flow step, error and abort reason is shown in German when HA runs in German, and in English otherwise.
   5. Pushing a version tag publishes a GitHub release whose version matches `manifest.json`, and HACS offers it for install/update. The README documents setup, regex filter examples, automation examples and calendar limitations (15-min trigger window, overlapping events).
 
-**Plans**: 2/8 plans executed
+**Plans**: 3/8 plans executed
 
 Plans:
 **Wave 1**
 - [x] 04-01-PLAN.md — Next-match sensor per calendar: next start, match attributes, live updates, calendars added later (AUT-03) (wave 1)
 - [x] 04-02-PLAN.md — Blueprint "notify before a matching programme starts" (mode queued, negative lead time) with end-to-end tests (AUT-05) (wave 1)
-- [ ] 04-03-PLAN.md — Tag-triggered release workflow (tag == manifest version, reusable CI/Validate, gh release) with executable tag-check tests (DST-03) (wave 1)
+- [x] 04-03-PLAN.md — Tag-triggered release workflow (tag == manifest version, reusable CI/Validate, gh release) with executable tag-check tests (DST-03) (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 04-04-PLAN.md — New-match event xmltv_calendar_new_match with a persisted per-source match store, silent baselines, burst cap (EVT-08) (wave 2)
@@ -194,4 +194,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
-| 4. Automation Extras & Release | 2/8 | In Progress | - |
+| 4. Automation Extras & Release | 3/8 | In Progress | - |

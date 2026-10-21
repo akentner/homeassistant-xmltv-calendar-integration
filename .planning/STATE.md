@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-10-21T09:18:02.459Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-10-21T09:23:07.403Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: 55a835225531e205f9376ddfcbaa6c55f62130dd
+state_head: a3948aff0984faef8fe861929d7c7f7763f059b0
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-21 — Phase 04 execution started
 
@@ -91,6 +91,7 @@ Progress: [████████░░] 75%
 | Phase 03 P10 | 3 min | 2 tasks | 3 files |
 | Phase 04 P01 | 8 min | 3 tasks | 10 files |
 | Phase 04 P02 | 41 min | 2 tasks | 5 files |
+| Phase 04 P03 | 2 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,7 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-01: calendar sends signal_matches(subentry_id) after every refilter and template-only write; sensor re-arms async_track_point_in_utc_time at the next start
 - [Phase 04]: Blueprint notify_entity is optional; default action is if-guarded on notify_entity | count > 0 so users replacing the actions need no notify entity
 - [Phase 04]: Blueprint description variable uses | default('') because CalendarEvent.as_dict() omits a missing description
+- [Phase 04]: 04-03: release.yml is a verbatim copy of the sibling workflow with only the manifest path changed (D-29); tests execute its check-version and release scripts (bash, jq, stub gh) and shellcheck every workflow run step
 
 ### Pending Todos
 
@@ -233,6 +235,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T09:18:02.218Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-10-21T09:23:07.160Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
