@@ -45,6 +45,7 @@ FULL_DEFAULTS: dict[str, Any] = {
     KEY_MAX_DURATION: None,
     KEY_TITLE_TEMPLATE: DEFAULT_TITLE_TEMPLATE,
     KEY_DESCRIPTION_TEMPLATE: "",
+    "retention_days": 1,
 }
 PHASE1_DATA: dict[str, Any] = {
     KEY_CHANNELS: ["daserste.de"],
@@ -71,6 +72,7 @@ def test_key_names_are_the_flat_contract() -> None:
         "max_duration",
         "title_template",
         "description_template",
+        "retention_days",
     ]
     assert (FIELD_TITLE, FIELD_SUBTITLE, FIELD_DESCRIPTION, FIELD_CATEGORY) == (
         "title",

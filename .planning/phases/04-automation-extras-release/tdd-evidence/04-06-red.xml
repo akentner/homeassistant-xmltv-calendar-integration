@@ -1,0 +1,2139 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="43" skipped="0" tests="70" time="1.043" timestamp="2026-10-21T11:57:40.867869+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_retention" name="test_dropped_match_stays_for_retention_days" time="0.215"><failure message="AssertionError: assert 'Das Erste: Formel 1: Großer Preis von Mexiko' in ['Das Erste: Tagesschau']">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f6907dcda90&gt;
+berlin_tz = None
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f6907dcdbe0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f6904aac7d0&gt;
+
+    async def test_dropped_match_stays_for_retention_days(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(BASIC_FEED, calendars=F1)
+        assert RACE_SUMMARY in await _summaries(hass)
+    
+        # The race ended at 11:30Z; the next feed no longer lists it
+        freezer.move_to("2026-10-13T12:00:00+00:00")
+        await _refresh(hass, aioclient_mock, entry, _variant(1, BASIC_FEED, RACE_MARKER))
+&gt;       assert RACE_SUMMARY in await _summaries(hass)
+E       AssertionError: assert 'Das Erste: Formel 1: Großer Preis von Mexiko' in ['Das Erste: Tagesschau']
+
+tests/test_retention.py:96: AssertionError</failure></testcase><testcase classname="tests.test_retention" name="test_future_match_removed_from_feed_disappears" time="0.061" /><testcase classname="tests.xmltv.test_settings" name="test_key_names_are_the_flat_contract" time="0.009" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_of_empty_mapping" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">def test_with_defaults_of_empty_mapping() -&gt; None:
+&gt;       assert with_defaults({}) == FULL_DEFAULTS
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:86: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_keeps_given_values" time="0.008"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">def test_with_defaults_keeps_given_values() -&gt; None:
+&gt;       assert with_defaults({KEY_INCLUDE: "x"}) == {**FULL_DEFAULTS, KEY_INCLUDE: "x"}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:90: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_keeps_phase1_data" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">def test_with_defaults_keeps_phase1_data() -&gt; None:
+&gt;       assert with_defaults(PHASE1_DATA) == {**FULL_DEFAULTS, **PHASE1_DATA}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:94: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_advanced_defaults_are_the_phase2_defaults" time="0.006"><failure message="AssertionError: assert {'case_sensit...btitle'], ...} == {'case_sensit...btitle'], ...}&#10;  &#10;  Omitting 10 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">def test_advanced_defaults_are_the_phase2_defaults() -&gt; None:
+&gt;       assert dict(ADVANCED_DEFAULTS) == {key: FULL_DEFAULTS[key] for key in list(FULL_DEFAULTS)[4:]}
+E       AssertionError: assert {'case_sensit...btitle'], ...} == {'case_sensit...btitle'], ...}
+E         
+E         Omitting 10 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:98: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-string]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'include_fields', stored = 'title', expected = ['title', 'subtitle']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-unknown-dup]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'include_fields', stored = ['title', 'bogus', 'title']
+expected = ['title']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-empty]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'include_fields', stored = [], expected = ['title', 'subtitle']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-none]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'include_fields', stored = None, expected = ['title', 'subtitle']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-only-unknown]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'include_fields', stored = ['bogus'], expected = ['title', 'subtitle']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-ordered]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'exclude_fields', stored = ['category', 'description', 'title']
+expected = ['title', 'description', 'category']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-wrong-items]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'exclude_fields', stored = ['category', 5, {}], expected = ['category']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[case-string]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'case_sensitive', stored = 'yes', expected = False
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[case-int]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'case_sensitive', stored = 1, expected = False
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[case-true]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'case_sensitive', stored = True, expected = True
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-with-seconds]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'time_from', stored = '22:00:00', expected = '22:00'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-hh-mm]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'time_from', stored = '22:00', expected = '22:00'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-out-of-range]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'time_to', stored = '25:00', expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-int]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'time_to', stored = 2200, expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-hours-only]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'time_to', stored = '22', expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-with-offset]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'time_to', stored = '22:00+01:00', expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[weekdays-ordered]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'weekdays', stored = ['fri', 'xyz', 'fri', 'mon']
+expected = ['mon', 'fri']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[weekdays-string]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'weekdays', stored = 'fri', expected = []
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-float]" time="0.007"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'min_duration', stored = 90.0, expected = 90
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-zero]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'min_duration', stored = 0, expected = 0
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-negative]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'min_duration', stored = -5, expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-bool]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'min_duration', stored = True, expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-string]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'max_duration', stored = '90', expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-nan]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'max_duration', stored = nan, expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-inf]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'max_duration', stored = inf, expected = None
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-empty]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'title_template', stored = '', expected = '{channel}: {title}'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-blank]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'title_template', stored = '   ', expected = '{channel}: {title}'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-int]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'title_template', stored = 5, expected = '{channel}: {title}'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-kept]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'title_template', stored = '{title}', expected = '{title}'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[description-template-none]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'description_template', stored = None, expected = ''
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[description-template-kept]" time="0.006"><failure message="AssertionError: assert {'case_sensit...iption}', ...} == {'case_sensit...iption}', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'description_template', stored = '{description}'
+expected = '{description}'
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...iption}', ...} == {'case_sensit...iption}', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[channels-string]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'channels', stored = 'zdf.de', expected = ['zdf.de']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[channels-dedup]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'channels', stored = ['zdf.de', '', 'zdf.de', 'sky.de']
+expected = ['zdf.de', 'sky.de']
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[channels-int]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'channels', stored = 5, expected = []
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[include-none]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'include', stored = None, expected = ''
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[exclude-list]" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">key = 'exclude', stored = ['x'], expected = ''
+
+    @pytest.mark.parametrize(
+        ("key", "stored", "expected"),
+        [
+            pytest.param(KEY_INCLUDE_FIELDS, "title", [FIELD_TITLE, FIELD_SUBTITLE], id="fields-string"),
+            pytest.param(KEY_INCLUDE_FIELDS, [FIELD_TITLE, "bogus", FIELD_TITLE], [FIELD_TITLE], id="fields-unknown-dup"),
+            pytest.param(KEY_INCLUDE_FIELDS, [], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-empty"),
+            pytest.param(KEY_INCLUDE_FIELDS, None, [FIELD_TITLE, FIELD_SUBTITLE], id="fields-none"),
+            pytest.param(KEY_INCLUDE_FIELDS, ["bogus"], [FIELD_TITLE, FIELD_SUBTITLE], id="fields-only-unknown"),
+            pytest.param(
+                KEY_EXCLUDE_FIELDS,
+                [FIELD_CATEGORY, FIELD_DESCRIPTION, FIELD_TITLE],
+                [FIELD_TITLE, FIELD_DESCRIPTION, FIELD_CATEGORY],
+                id="fields-ordered",
+            ),
+            pytest.param(KEY_EXCLUDE_FIELDS, [FIELD_CATEGORY, 5, {}], [FIELD_CATEGORY], id="fields-wrong-items"),
+            pytest.param(KEY_CASE_SENSITIVE, "yes", False, id="case-string"),
+            pytest.param(KEY_CASE_SENSITIVE, 1, False, id="case-int"),
+            pytest.param(KEY_CASE_SENSITIVE, True, True, id="case-true"),
+            pytest.param(KEY_TIME_FROM, "22:00:00", "22:00", id="time-with-seconds"),
+            pytest.param(KEY_TIME_FROM, "22:00", "22:00", id="time-hh-mm"),
+            pytest.param(KEY_TIME_TO, "25:00", None, id="time-out-of-range"),
+            pytest.param(KEY_TIME_TO, 2200, None, id="time-int"),
+            pytest.param(KEY_TIME_TO, "22", None, id="time-hours-only"),
+            pytest.param(KEY_TIME_TO, "22:00+01:00", None, id="time-with-offset"),
+            pytest.param(KEY_WEEKDAYS, ["fri", "xyz", "fri", "mon"], ["mon", "fri"], id="weekdays-ordered"),
+            pytest.param(KEY_WEEKDAYS, "fri", [], id="weekdays-string"),
+            pytest.param(KEY_MIN_DURATION, 90.0, 90, id="duration-float"),
+            pytest.param(KEY_MIN_DURATION, 0, 0, id="duration-zero"),
+            pytest.param(KEY_MIN_DURATION, -5, None, id="duration-negative"),
+            pytest.param(KEY_MIN_DURATION, True, None, id="duration-bool"),
+            pytest.param(KEY_MAX_DURATION, "90", None, id="duration-string"),
+            pytest.param(KEY_MAX_DURATION, float("nan"), None, id="duration-nan"),
+            pytest.param(KEY_MAX_DURATION, float("inf"), None, id="duration-inf"),
+            pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
+            pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
+            pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
+            pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
+            pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+            pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
+            pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
+            pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
+            pytest.param(KEY_INCLUDE, None, "", id="include-none"),
+            pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        ],
+    )
+    def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -&gt; None:
+&gt;       assert with_defaults({key: stored}) == {**FULL_DEFAULTS, key: expected}
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:148: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_never_raises_and_drops_unknown_keys" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">def test_with_defaults_never_raises_and_drops_unknown_keys() -&gt; None:
+&gt;       assert with_defaults(GARBAGE) == FULL_DEFAULTS
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:171: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data0]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data1]" time="0.005" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data2]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data3]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data4]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_returns_fresh_lists" time="0.006"><failure message="AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}&#10;  &#10;  Omitting 14 identical items, use -vv to show&#10;  Right contains 1 more item:&#10;  {'retention_days': 1}&#10;  Use -v to get more diff">def test_with_defaults_returns_fresh_lists() -&gt; None:
+        first = with_defaults({})
+        first[KEY_INCLUDE_FIELDS].append(FIELD_CATEGORY)
+        first[KEY_WEEKDAYS].append("mon")
+    
+&gt;       assert with_defaults({}) == FULL_DEFAULTS
+E       AssertionError: assert {'case_sensit...ate': '', ...} == {'case_sensit...ate': '', ...}
+E         
+E         Omitting 14 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'retention_days': 1}
+E         Use -v to get more diff
+
+tests/xmltv/test_settings.py:194: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[empty]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[phase1]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[explicit-defaults]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[default-fields-reordered]" time="0.005" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[invalid-values-are-defaults]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[weekdays]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[title-template]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[case-sensitive]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[exclude-fields]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[zero-duration]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[00:00-00:00]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[23:59:59-23:59]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[07:05-07:05]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[7:05-None]" time="0.008" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[24:00-None]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[12:60-None]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[-None]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[None-None]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[1200-None]" time="0.006" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[ab:cd-None]" time="0.009" /></testsuite></testsuites>
