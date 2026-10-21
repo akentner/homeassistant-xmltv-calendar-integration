@@ -309,7 +309,36 @@
   "entity": {
     "sensor": {
       "next_match": {
-        "name": "Next programme"
+        "name": "Next programme",
+        "state_attributes": {
+          "title": {
+            "name": "Title"
+          },
+          "summary": {
+            "name": "Event title"
+          },
+          "channel": {
+            "name": "Channel"
+          },
+          "channel_id": {
+            "name": "Channel ID"
+          },
+          "start": {
+            "name": "Start"
+          },
+          "end": {
+            "name": "End"
+          },
+          "subtitle": {
+            "name": "Sub-title"
+          },
+          "episode": {
+            "name": "Episode"
+          },
+          "description": {
+            "name": "Description"
+          }
+        }
       }
     }
   }

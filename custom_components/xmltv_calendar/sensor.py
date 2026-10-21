@@ -24,6 +24,9 @@ _LOGGER = logging.getLogger(__name__)
 # The coordinator and the calendar's signal drive all updates
 PARALLEL_UPDATES = 0
 
+# The match attributes of the next-match sensor (D-03); the calendar's describe_match also returns the uid
+MATCH_ATTRIBUTES = ("title", "summary", "channel", "channel_id", "start", "end", "subtitle", "episode", "description")
+
 
 async def async_setup_entry(
     hass: HomeAssistant,  # noqa: ARG001
@@ -44,6 +47,8 @@ class NextMatchSensor(CoordinatorEntity[XmltvCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "next_match"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    # Long feed texts that change with every match and add nothing to history (D-04, T-04-01)
+    _unrecorded_attributes = frozenset({"description", "subtitle", "episode"})
 
     def __init__(self, coordinator: XmltvCoordinator, entry: XmltvConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize on the calendar subentry's device (D-05)."""
@@ -76,7 +81,18 @@ class NextMatchSensor(CoordinatorEntity[XmltvCoordinator], SensorEntity):
 
     @callback
     def _recompute(self) -> None:
-        """Look up the next match; a calendar not created yet (concurrent platform setup) has none (Pitfall 1)."""
+        """
+        Set value and attributes from one next-match lookup, so they always describe the same match.
+
+        A calendar not created yet (concurrent platform setup, Pitfall 1) has no next match: state unknown and no
+        match attributes (D-02).
+        """
         calendar = self._entry.runtime_data.calendars.get(self._subentry_id)
         programme = calendar.next_match(dt_util.utcnow()) if calendar is not None else None
-        self._attr_native_value = programme.start if programme is not None else None
+        if calendar is None or programme is None:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = None
+            return
+        described = calendar.describe_match(programme)
+        self._attr_native_value = programme.start
+        self._attr_extra_state_attributes = {key: described[key] for key in MATCH_ATTRIBUTES}
