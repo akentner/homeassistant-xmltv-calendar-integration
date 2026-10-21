@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-10-21T08:20:13.188Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-10-21T08:34:20.099Z"
 last_activity: 2026-10-21
-last_activity_desc: Phase 03 complete, transitioned to Phase 4
-state_head: 9db3e7a6219516bc83fedb6a7fd0aae27d015e81
+last_activity_desc: Phase 04 execution started
+state_head: f527fa9e17e54c5f6b7dc64890efe29bf10b3b2a
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-21)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 4 — Automation Extras & Release
+**Current focus:** Phase 04 — Automation Extras & Release
 
 ## Current Position
 
-Phase: 04 (Automation Extras & Release) — READY TO EXECUTE
-Plan: Not started
+Phase: 04 (Automation Extras & Release) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-10-21 — Phase 03 complete, transitioned to Phase 4
+Last activity: 2026-10-21 — Phase 04 execution started
 
 Progress: [████████░░] 75%
 
@@ -89,6 +89,7 @@ Progress: [████████░░] 75%
 | Phase 03 P08 | 7 min | 2 tasks | 8 files |
 | Phase 03 P09 | 7 min | 3 tasks | 5 files |
 | Phase 03 P10 | 3 min | 2 tasks | 3 files |
+| Phase 04 P01 | 8 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -192,6 +193,9 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-10: the setup flow seeds SourceHealth(last_success=fetched_at) with the cache metadata's fetched_at, only when FeedCache.async_write returned True; a failed write seeds nothing (WR-02)
 - [Phase 03]: 03-10: tests/test_identity.py runs frozen at 2026-10-13T06:00:00+00:00 and asserts flow-created entries LOADED, so expired fixtures fail loudly (WR-03)
 - [Phase 03]: UAT 2026-10-21: overrides accepted for 03-03 T1/T7, 03-04 T5, 03-09 T8/T9 (superseded by the WR-01/04/05 fixes in 19e262d); WR-06 and IN-09 deferred with reason in 03-REVIEW-DISPOSITION.md
+- [Phase 04]: 04-01: next-match sensor value and attributes come from one MatchIndex.next_after lookup; no match or no calendar yet = unknown without attributes, unavailable only without source data
+- [Phase 04]: 04-01: XmltvRuntimeData.add_entities is dict[Platform, callback] plus runtime.sensors; the update listener adds each platform's entities for new subentries (sensor.async_add_subentry_sensors)
+- [Phase 04]: 04-01: calendar sends signal_matches(subentry_id) after every refilter and template-only write; sensor re-arms async_track_point_in_utc_time at the next start
 
 ### Pending Todos
 
@@ -226,6 +230,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T06:47:37.865Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-automation-extras-release/04-CONTEXT.md
+Last session: 2026-10-21T08:34:19.859Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
