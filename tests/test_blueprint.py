@@ -48,6 +48,8 @@ async def _run_until(
         async_fire_time_changed(hass)
         await hass.async_block_till_done()
         fired.extend((now, dict(call.data)) for call in calls[len(fired) :])
+    # Stop the automations so the calendar trigger's refresh timer does not linger past the test
+    await hass.services.async_call("automation", "turn_off", {"entity_id": "all"}, blocking=True)
     return fired
 
 

@@ -1,0 +1,84 @@
+blueprint:
+  name: "XMLTV Calendar: notify before a matching programme starts"
+  description: >-
+    Runs the actions once per matching programme of an XMLTV calendar, a set time before
+    the programme starts. Programmes that start at the same time or overlap each run the
+    actions once (mode queued). Enter the lead time as a negative duration, for example
+    minus 10 minutes. By default a notification is sent to the chosen notify entities;
+    replace the actions to do anything else. Custom actions can use the variables
+    title, channel, start, end, start_time and description.
+  domain: automation
+  source_url: https://github.com/akentner/homeassistant-xmltv-calendar-integration/blob/main/blueprints/automation/xmltv_calendar/notify_before_programme.yaml
+  homeassistant:
+    min_version: 2026.3.0
+  input:
+    calendar_entity:
+      name: Calendar
+      description: The XMLTV calendar whose programmes trigger the actions.
+      selector:
+        entity:
+          filter:
+            - integration: xmltv_calendar
+              domain: calendar
+    lead_time:
+      name: Lead time
+      description: >-
+        When to run the actions relative to the programme start. A negative value runs
+        them before the start, for example minus 10 minutes.
+      default:
+        hours: 0
+        minutes: -10
+        seconds: 0
+      selector:
+        duration:
+          allow_negative: true
+    notify_entity:
+      name: Notify entities
+      description: >-
+        Notify entities the default action sends to. Optional: without one the default
+        action does nothing, so leave it empty when you replace the actions.
+      default: []
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: notify
+    actions:
+      name: Actions
+      description: >-
+        Runs once per programme. Variables: title, channel, start, end, start_time,
+        description.
+      default:
+        - if:
+            - condition: template
+              value_template: "{{ notify_entity | count > 0 }}"
+          then:
+            - action: notify.send_message
+              target:
+                entity_id: "{{ notify_entity }}"
+              data:
+                title: "{{ title }}"
+                message: "Starts at {{ start_time }} on {{ channel }}"
+      selector:
+        action: {}
+
+mode: queued
+max: 20
+max_exceeded: warning
+
+triggers:
+  - trigger: calendar
+    event: start
+    entity_id: !input calendar_entity
+    offset: !input lead_time
+
+variables:
+  notify_entity: !input notify_entity
+  title: "{{ trigger.calendar_event.summary }}"
+  channel: "{{ trigger.calendar_event.location }}"
+  start: "{{ trigger.calendar_event.start }}"
+  end: "{{ trigger.calendar_event.end }}"
+  description: "{{ trigger.calendar_event.description | default('') }}"
+  start_time: "{{ as_timestamp(trigger.calendar_event.start) | timestamp_custom('%H:%M') }}"
+
+actions: !input actions
