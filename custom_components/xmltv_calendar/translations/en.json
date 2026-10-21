@@ -137,7 +137,8 @@
             "min_duration": "Minimum duration",
             "max_duration": "Maximum duration",
             "title_template": "Title template",
-            "description_template": "Description template"
+            "description_template": "Description template",
+            "retention_days": "Keep past matches (days)"
           },
           "data_description": {
             "include_fields": "Fields the include patterns are matched against. Each sub-title and each category is tested on its own. Searching descriptions is slower on big feeds.",
@@ -149,7 +150,8 @@
             "min_duration": "In minutes, inclusive. Leave empty for no lower limit.",
             "max_duration": "In minutes, inclusive. Leave empty for no upper limit.",
             "title_template": "Placeholders: {title_fields}. Default: {default_title}",
-            "description_template": "Placeholders: {description_fields}. Leave empty for the default description (sub-title, episode, categories, description)."
+            "description_template": "Placeholders: {description_fields}. Leave empty for the default description (sub-title, episode, categories, description).",
+            "retention_days": "Ended matches stay in this calendar for this many days after the feed no longer lists them, also across restarts. 0 to 7, default 1."
           }
         },
         "preview": {

@@ -51,6 +51,7 @@ from .const import (
     CONF_REFRESH_HOURS,
     CONF_REFRESH_MODE,
     CONF_REFRESH_TIME,
+    CONF_RETENTION_DAYS,
     CONF_SOURCE_TYPE,
     CONF_TIME_FROM,
     CONF_TIME_TO,
@@ -90,8 +91,10 @@ from .xmltv.render import DESCRIPTION_FIELDS, TITLE_FIELDS, TemplateError, compi
 from .xmltv.schedule import NAIVE_TIMEZONES, REFRESH_MODES, SourceOptions
 from .xmltv.settings import (
     ADVANCED_DEFAULTS,
+    DEFAULT_RETENTION_DAYS,
     DEFAULT_TITLE_TEMPLATE,
     MATCH_FIELDS,
+    MAX_RETENTION_DAYS,
     WEEKDAYS,
     has_advanced,
     normalize_time,
@@ -453,6 +456,11 @@ def _duration_selector() -> NumberSelector:
     )
 
 
+def _retention_selector() -> NumberSelector:
+    """Return the days selector of the past-match retention (0 to 7); the unit lives in the translated label."""
+    return NumberSelector(NumberSelectorConfig(min=0, max=MAX_RETENTION_DAYS, step=1, mode=NumberSelectorMode.BOX))
+
+
 def _list_selector(options: tuple[str, ...], *, translation_key: str) -> SelectSelector:
     """Return a multi-select over a fixed vocabulary with translated option labels."""
     return SelectSelector(
@@ -476,6 +484,7 @@ def _advanced_schema() -> vol.Schema:
             vol.Optional(CONF_MAX_DURATION): _duration_selector(),
             vol.Optional(CONF_TITLE_TEMPLATE): TextSelector(),
             vol.Optional(CONF_DESCRIPTION_TEMPLATE): TextSelector(TextSelectorConfig(multiline=True)),
+            vol.Optional(CONF_RETENTION_DAYS): _retention_selector(),
         }
     )
 
@@ -489,6 +498,7 @@ def _advanced_values(user_input: dict[str, Any]) -> dict[str, Any]:
     minimum = user_input.get(CONF_MIN_DURATION)
     maximum = user_input.get(CONF_MAX_DURATION)
     title_template = str(user_input.get(CONF_TITLE_TEMPLATE, "")).strip()
+    retention = user_input.get(CONF_RETENTION_DAYS)
     return {
         CONF_INCLUDE_FIELDS: list(user_input.get(CONF_INCLUDE_FIELDS, [])),
         CONF_EXCLUDE_FIELDS: list(user_input.get(CONF_EXCLUDE_FIELDS, [])),
@@ -502,6 +512,8 @@ def _advanced_values(user_input: dict[str, Any]) -> dict[str, Any]:
         CONF_MAX_DURATION: int(maximum) if maximum is not None else None,
         CONF_TITLE_TEMPLATE: title_template or DEFAULT_TITLE_TEMPLATE,
         CONF_DESCRIPTION_TEMPLATE: str(user_input.get(CONF_DESCRIPTION_TEMPLATE, "")),
+        # Whole days; a cleared field means the default, not "keep nothing" (D-15)
+        CONF_RETENTION_DAYS: int(retention) if retention is not None else DEFAULT_RETENTION_DAYS,
     }
 
 

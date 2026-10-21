@@ -137,7 +137,8 @@
             "min_duration": "Mindestdauer",
             "max_duration": "Höchstdauer",
             "title_template": "Titelvorlage",
-            "description_template": "Beschreibungsvorlage"
+            "description_template": "Beschreibungsvorlage",
+            "retention_days": "Vergangene Treffer behalten (Tage)"
           },
           "data_description": {
             "include_fields": "Felder, gegen die die Einschließen-Muster geprüft werden. Jeder Untertitel und jede Kategorie wird einzeln geprüft. Das Durchsuchen von Beschreibungen ist bei großen Feeds langsamer.",
@@ -149,7 +150,8 @@
             "min_duration": "In Minuten, einschließlich. Leer lassen für keine Untergrenze.",
             "max_duration": "In Minuten, einschließlich. Leer lassen für keine Obergrenze.",
             "title_template": "Platzhalter: {title_fields}. Standard: {default_title}",
-            "description_template": "Platzhalter: {description_fields}. Leer lassen für die Standardbeschreibung (Untertitel, Folge, Kategorien, Beschreibung)."
+            "description_template": "Platzhalter: {description_fields}. Leer lassen für die Standardbeschreibung (Untertitel, Folge, Kategorien, Beschreibung).",
+            "retention_days": "Beendete Treffer bleiben so viele Tage in diesem Kalender, nachdem der Feed sie nicht mehr enthält, auch über Neustarts hinweg. 0 bis 7, Standard 1."
           }
         },
         "preview": {
