@@ -339,6 +339,80 @@
             "name": "Description"
           }
         }
+      },
+      "last_fetch": {
+        "name": "Last fetch",
+        "state_attributes": {
+          "trigger": {
+            "name": "Trigger",
+            "state": {
+              "startup": "Startup",
+              "scheduled": "Scheduled",
+              "retry": "Retry after failure",
+              "revalidate": "Revalidate stale cache",
+              "manual": "Manual"
+            }
+          },
+          "outcome": {
+            "name": "Outcome",
+            "state": {
+              "downloaded": "Downloaded",
+              "not_modified": "Not modified (304)",
+              "unchanged": "Unchanged",
+              "read": "File read",
+              "cache_start": "Started from cache",
+              "failed": "Failed"
+            }
+          },
+          "http_status": {
+            "name": "HTTP status"
+          },
+          "failure_reason": {
+            "name": "Failure reason"
+          },
+          "cache": {
+            "name": "Cache",
+            "state": {
+              "fresh_hit": "Fresh cache used",
+              "stale_hit": "Stale cache used",
+              "written": "Written",
+              "touched": "Confirmed",
+              "write_failed": "Write failed",
+              "dropped": "Dropped",
+              "none": "Not used"
+            }
+          },
+          "sent_etag": {
+            "name": "ETag sent"
+          },
+          "sent_last_modified": {
+            "name": "If-Modified-Since sent"
+          },
+          "bytes": {
+            "name": "Bytes"
+          },
+          "programmes": {
+            "name": "Programmes"
+          },
+          "channels": {
+            "name": "Channels"
+          },
+          "parse_duration": {
+            "name": "Parse duration (s)"
+          },
+          "last_success": {
+            "name": "Last success"
+          },
+          "next_refresh": {
+            "name": "Next refresh"
+          },
+          "consecutive_failures": {
+            "name": "Consecutive failures"
+          },
+          "matches": {
+            "name": "Matches"
+          }
+        }
       }
     }
   }

@@ -1,6 +1,5 @@
 """Last-fetch diagnostic sensor: the source's last refresh run on every calendar device (AUT-06, D-20..D-24)."""
 
-import importlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -23,10 +22,9 @@ pytestmark = pytest.mark.freeze_time(NOW)
 @pytest.fixture
 def last_fetch_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Enable the disabled-by-default sensor; phcc has no entity_registry_enabled_by_default fixture (Pitfall 7)."""
-    sensor = importlib.import_module("custom_components.xmltv_calendar.sensor")
-    last_fetch = getattr(sensor, "LastFetchSensor", None)
-    if last_fetch is not None:
-        monkeypatch.setattr(last_fetch, "_attr_entity_registry_enabled_default", True)
+    from custom_components.xmltv_calendar.sensor import LastFetchSensor
+
+    monkeypatch.setattr(LastFetchSensor, "_attr_entity_registry_enabled_default", True)
 
 
 @pytest.mark.usefixtures("last_fetch_enabled")

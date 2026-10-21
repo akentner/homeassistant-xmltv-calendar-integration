@@ -1,10 +1,10 @@
-"""Sensor platform: a next-match timestamp sensor on every calendar's device (AUT-03)."""
+"""Sensor platform: next-match and last-fetch timestamp sensors on every calendar's device (AUT-03, AUT-06)."""
 
 import logging
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.const import Platform
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_point_in_utc_time
@@ -13,7 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .calendar import device_info, signal_matches
 from .const import SUBENTRY_TYPE_CALENDAR
-from .coordinator import XmltvCoordinator
+from .coordinator import XmltvCoordinator, signal_attempt
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -50,7 +50,11 @@ def async_add_subentry_sensors(runtime: XmltvRuntimeData, entry: XmltvConfigEntr
     """Create the sensors of one calendar subentry on its device; the sensor platform must be set up."""
     runtime.sensors.add(subentry.subentry_id)
     runtime.add_entities[Platform.SENSOR](
-        [NextMatchSensor(runtime.coordinator, entry, subentry)], config_subentry_id=subentry.subentry_id
+        [
+            NextMatchSensor(runtime.coordinator, entry, subentry),
+            LastFetchSensor(runtime.coordinator, entry, subentry),
+        ],
+        config_subentry_id=subentry.subentry_id,
     )
 
 
@@ -128,3 +132,86 @@ class NextMatchSensor(CoordinatorEntity[XmltvCoordinator], SensorEntity):
         self._attr_native_value = programme.start
         self._attr_extra_state_attributes = {key: described[key] for key in MATCH_ATTRIBUTES}
         self._unsub_start = async_track_point_in_utc_time(self.hass, self._handle_start, programme.start)
+
+
+class LastFetchSensor(CoordinatorEntity[XmltvCoordinator], SensorEntity):
+    """
+    When the source last ran a refresh, what started it and how it ended (AUT-06, D-20..D-24).
+
+    Every calendar of a source shows the same run; only `matches` is the calendar's own. The run record holds
+    vocabulary strings, flags and counts only, never the URL, host or path (D-24).
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "last_fetch"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    # Counters, sizes, durations and schedule values change on every run; trigger, outcome, status and reason stay in
+    # history (T-04-14)
+    _unrecorded_attributes = frozenset(
+        {
+            "bytes",
+            "programmes",
+            "channels",
+            "parse_duration",
+            "matches",
+            "next_refresh",
+            "last_success",
+            "consecutive_failures",
+            "cache",
+            "sent_etag",
+            "sent_last_modified",
+        }
+    )
+
+    def __init__(self, coordinator: XmltvCoordinator, entry: XmltvConfigEntry, subentry: ConfigSubentry) -> None:
+        """Initialize on the calendar subentry's device (D-20)."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._subentry_id = subentry.subentry_id
+        self._attr_unique_id = f"{subentry.subentry_id}_last_fetch"
+        self._attr_device_info = device_info(subentry.subentry_id, subentry.title)
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Follow every recorded run (also unchanged data, which calls no listeners) and the calendar's matches."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, signal_attempt(self._entry.entry_id), self.async_write_ha_state)
+        )
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, signal_matches(self._subentry_id), self.async_write_ha_state)
+        )
+
+    @property
+    @override
+    def available(self) -> bool:
+        """Always available: a failing source is exactly what this sensor has to show."""
+        return True
+
+    @property
+    @override
+    def native_value(self) -> datetime | None:
+        """The time the last run started; unknown before the first one."""
+        attempt = self.coordinator.last_attempt
+        return attempt.time if attempt is not None else None
+
+    @property
+    @override
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """The run's fields in the diagnostics order, then the live schedule values and this calendar's matches."""
+        attempt = self.coordinator.last_attempt
+        if attempt is None:
+            return None
+        attributes = attempt.as_dict()
+        del attributes["time"]
+        health = self.coordinator.health
+        calendar = self._entry.runtime_data.calendars.get(self._subentry_id)
+        attributes["last_success"] = (
+            dt_util.as_local(health.last_success).isoformat() if health.last_success is not None else None
+        )
+        attributes["next_refresh"] = dt_util.as_local(self.coordinator.next_refresh_at).isoformat()
+        attributes["consecutive_failures"] = health.consecutive_failures
+        attributes["matches"] = calendar.match_count if calendar is not None else None
+        return attributes

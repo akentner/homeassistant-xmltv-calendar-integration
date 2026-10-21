@@ -339,6 +339,80 @@
             "name": "Beschreibung"
           }
         }
+      },
+      "last_fetch": {
+        "name": "Letzter Abruf",
+        "state_attributes": {
+          "trigger": {
+            "name": "Auslöser",
+            "state": {
+              "startup": "Start",
+              "scheduled": "Geplant",
+              "retry": "Wiederholung nach Fehler",
+              "revalidate": "Veralteten Cache prüfen",
+              "manual": "Manuell"
+            }
+          },
+          "outcome": {
+            "name": "Ergebnis",
+            "state": {
+              "downloaded": "Heruntergeladen",
+              "not_modified": "Unverändert (304)",
+              "unchanged": "Unverändert",
+              "read": "Datei gelesen",
+              "cache_start": "Aus dem Cache gestartet",
+              "failed": "Fehlgeschlagen"
+            }
+          },
+          "http_status": {
+            "name": "HTTP-Status"
+          },
+          "failure_reason": {
+            "name": "Fehlergrund"
+          },
+          "cache": {
+            "name": "Cache",
+            "state": {
+              "fresh_hit": "Frischer Cache genutzt",
+              "stale_hit": "Veralteter Cache genutzt",
+              "written": "Geschrieben",
+              "touched": "Bestätigt",
+              "write_failed": "Schreiben fehlgeschlagen",
+              "dropped": "Verworfen",
+              "none": "Nicht genutzt"
+            }
+          },
+          "sent_etag": {
+            "name": "ETag gesendet"
+          },
+          "sent_last_modified": {
+            "name": "If-Modified-Since gesendet"
+          },
+          "bytes": {
+            "name": "Bytes"
+          },
+          "programmes": {
+            "name": "Sendungen"
+          },
+          "channels": {
+            "name": "Sender"
+          },
+          "parse_duration": {
+            "name": "Parse-Dauer (s)"
+          },
+          "last_success": {
+            "name": "Letzter Erfolg"
+          },
+          "next_refresh": {
+            "name": "Nächste Aktualisierung"
+          },
+          "consecutive_failures": {
+            "name": "Fehler in Folge"
+          },
+          "matches": {
+            "name": "Treffer"
+          }
+        }
       }
     }
   }

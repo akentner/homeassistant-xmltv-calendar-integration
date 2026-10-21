@@ -9,7 +9,8 @@ The payload is replaced atomically before the metadata is saved (RESEARCH Pitfal
 the stored size is never trusted, so a crash between the two writes cannot leave a cache that is used.
 
 The same Store also holds the source's refresh health (`SourceHealth`, SRC-11, D-17), for file sources too, so a
-failure streak survives restarts and setup retries.
+failure streak survives restarts and setup retries, and the source's last refresh run (`RefreshAttempt`, AUT-06, D-23),
+so the last-fetch sensor and diagnostics show it after a restart. The stored shape is `{meta, health, attempt}`.
 """
 
 import hashlib
@@ -165,8 +166,85 @@ class SourceHealth:
         )
 
 
+# Value vocabularies of a refresh run (AUT-06, D-21, D-22): what started it, how it ended, what happened to the cache
+ATTEMPT_TRIGGERS = ("startup", "scheduled", "retry", "revalidate", "manual")
+ATTEMPT_OUTCOMES = ("downloaded", "not_modified", "unchanged", "read", "cache_start", "failed")
+ATTEMPT_CACHE = ("fresh_hit", "stale_hit", "written", "touched", "write_failed", "dropped", "none")
+
+
+def _optional_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+@dataclass(frozen=True, slots=True)
+class RefreshAttempt:
+    """
+    One refresh run of a source (AUT-06): when it started, what started it, how it ended and what came out.
+
+    Holds vocabulary strings, flags, counts and a time only; never a URL, host, path or exception text (D-24).
+    """
+
+    time: datetime
+    trigger: str
+    outcome: str
+    http_status: int | None = None
+    failure_reason: str | None = None
+    cache: str = "none"
+    sent_etag: bool = False
+    sent_last_modified: bool = False
+    payload_bytes: int | None = None
+    programmes: int | None = None
+    channels: int | None = None
+    parse_duration: float | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the stored and shown shape, keys in a fixed order (sensor attributes and diagnostics share it)."""
+        return {
+            "time": self.time.isoformat(),
+            "trigger": self.trigger,
+            "outcome": self.outcome,
+            "http_status": self.http_status,
+            "failure_reason": self.failure_reason,
+            "cache": self.cache,
+            "sent_etag": self.sent_etag,
+            "sent_last_modified": self.sent_last_modified,
+            "bytes": self.payload_bytes,
+            "programmes": self.programmes,
+            "channels": self.channels,
+            "parse_duration": self.parse_duration,
+        }
+
+    @classmethod
+    def from_dict(cls, value: object) -> Self | None:
+        """Tolerant reader: anything malformed gives None (no run recorded)."""
+        if not isinstance(value, dict):
+            return None
+        time = _aware_datetime(value.get("time"))
+        trigger = value.get("trigger")
+        outcome = value.get("outcome")
+        cache = value.get("cache")
+        if time is None or not isinstance(trigger, str) or not isinstance(outcome, str) or not isinstance(cache, str):
+            return None
+        reason = value.get("failure_reason")
+        duration = value.get("parse_duration")
+        return cls(
+            time=time,
+            trigger=trigger,
+            outcome=outcome,
+            http_status=_optional_int(value.get("http_status")),
+            failure_reason=reason if isinstance(reason, str) else None,
+            cache=cache,
+            sent_etag=value.get("sent_etag") is True,
+            sent_last_modified=value.get("sent_last_modified") is True,
+            payload_bytes=_optional_int(value.get("bytes")),
+            programmes=_optional_int(value.get("programmes")),
+            channels=_optional_int(value.get("channels")),
+            parse_duration=float(duration) if isinstance(duration, int | float) else None,
+        )
+
+
 class FeedCache:
-    """The cached payload of one source entry plus its metadata and the source's refresh health."""
+    """The cached payload of one source entry plus its metadata, the source's refresh health and its last run."""
 
     def __init__(self, hass: HomeAssistant, key: str) -> None:
         """Bind to the payload file and Store of `key` (see `cache_key`)."""
@@ -176,6 +254,7 @@ class FeedCache:
         self._path = Path(hass.config.cache_path(DOMAIN, f"{key}.feed"))
         self._meta: CacheMeta | None = None
         self._health = SourceHealth()
+        self._attempt: RefreshAttempt | None = None
 
     @property
     def meta(self) -> CacheMeta | None:
@@ -187,19 +266,42 @@ class FeedCache:
         """The source's refresh health as last loaded or saved."""
         return self._health
 
-    def _stored(self, meta: CacheMeta | None) -> dict[str, Any]:
-        return {"meta": meta.as_dict() if meta is not None else None, "health": self._health.as_dict()}
+    @property
+    def attempt(self) -> RefreshAttempt | None:
+        """The source's last recorded refresh run, None before the first one (AUT-06, D-23)."""
+        return self._attempt
 
-    async def async_save_health(self, health: SourceHealth) -> None:
-        """Replace the health and save it next to the metadata; a failed save is logged at DEBUG only."""
+    def _stored(self, meta: CacheMeta | None) -> dict[str, Any]:
+        return {
+            "meta": meta.as_dict() if meta is not None else None,
+            "health": self._health.as_dict(),
+            "attempt": self._attempt.as_dict() if self._attempt is not None else None,
+        }
+
+    async def async_save_health(self, health: SourceHealth, attempt: RefreshAttempt | None = None) -> None:
+        """
+        Replace the health (and the last run, when given) and save both next to the metadata in one Store save.
+
+        A failed save is logged at DEBUG only.
+        """
         self._health = health
+        if attempt is not None:
+            self._attempt = attempt
+        await self._async_save_stored("health")
+
+    async def async_save_attempt(self, attempt: RefreshAttempt) -> None:
+        """Replace the last run and save it, for runs that record no health (a start from the cache)."""
+        self._attempt = attempt
+        await self._async_save_stored("attempt")
+
+    async def _async_save_stored(self, what: str) -> None:
         try:
             await self._store.async_save(self._stored(self._meta))
         except (OSError, HomeAssistantError) as err:
-            _LOGGER.debug("Cache %s health not saved: %s", self._key, type(err).__name__)
+            _LOGGER.debug("Cache %s %s not saved: %s", self._key, what, type(err).__name__)
 
     async def async_load(self) -> None:
-        """Load the metadata and health; stored data that is unreadable or malformed counts as none."""
+        """Load the metadata, health and last run; stored data that is unreadable or malformed counts as none."""
         try:
             data = await self._store.async_load()
         except HomeAssistantError as err:
@@ -207,6 +309,7 @@ class FeedCache:
             data = None
         self._meta = CacheMeta.from_dict(data.get("meta")) if isinstance(data, dict) else None
         self._health = SourceHealth.from_dict(data.get("health")) if isinstance(data, dict) else SourceHealth()
+        self._attempt = RefreshAttempt.from_dict(data.get("attempt")) if isinstance(data, dict) else None
 
     def valid_meta(self, source_id: str) -> CacheMeta | None:
         """Return the metadata only when it belongs to `source_id` (RESEARCH Pitfall 4)."""
@@ -294,6 +397,7 @@ class FeedCache:
         """Delete the payload file and the Store, when the entry is removed (D-08)."""
         self._meta = None
         self._health = SourceHealth()
+        self._attempt = None
         await self._hass.async_add_executor_job(self._unlink)
         await self._store.async_remove()
 

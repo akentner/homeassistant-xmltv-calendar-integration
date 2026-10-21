@@ -47,6 +47,8 @@ class Fetched:
     payload: bytes
     etag: str | None = None
     last_modified: str | None = None
+    # The HTTP status of the answer (a 2xx/3xx below 400; 304 gives NotModified instead)
+    status: int = HTTPStatus.OK.value
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +78,12 @@ def clean_validator(value: str | None) -> str | None:
 
 
 class SourceError(Exception):
-    """The source could not be read."""
+    """The source could not be read; `status` is the HTTP status of an error answer, None for anything else."""
+
+    def __init__(self, *args: object, status: int | None = None) -> None:
+        """Keep the message arguments; record the HTTP status when the server answered with an error."""
+        super().__init__(*args)
+        self.status = status
 
 
 class SourceUnavailableError(SourceError):
@@ -228,7 +235,8 @@ async def async_fetch_url(
             if response.status >= _HTTP_ERROR_MIN:
                 _LOGGER.debug("Source host %s answered HTTP %s", host, response.status)
                 msg = f"HTTP {response.status} from {host}"
-                raise SourceUnavailableError(msg)
+                raise SourceUnavailableError(msg, status=response.status)
+            status = response.status
             stream = response.content  # bind once: some readers build a new stream per attribute access
             async for chunk in stream.iter_chunked(_CHUNK_SIZE):
                 received += len(chunk)
@@ -243,4 +251,4 @@ async def async_fetch_url(
         msg = f"cannot fetch from {host}: {type(err).__name__}"
         raise SourceUnavailableError(msg) from None
     _LOGGER.debug("Downloaded %s bytes from source host %s", received, host)
-    return Fetched(b"".join(chunks), new_etag, new_last_modified)
+    return Fetched(b"".join(chunks), new_etag, new_last_modified, status)

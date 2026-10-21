@@ -175,8 +175,10 @@ async def test_preexisting_subentries_get_one_entity_each(
     sensors = [entity for entity in entities if entity.domain == "sensor"]
     assert len(calendars) == len(entry.subentries) == 3
     assert sorted(entity.unique_id for entity in calendars) == sorted(entry.subentries)
-    # One next-match sensor per calendar (AUT-03)
-    assert sorted(entity.unique_id for entity in sensors) == sorted(f"{s}_next_match" for s in entry.subentries)
+    # One next-match (AUT-03) and one last-fetch (AUT-06) sensor per calendar
+    assert sorted(entity.unique_id for entity in sensors) == sorted(
+        f"{s}_{kind}" for s in entry.subentries for kind in ("next_match", "last_fetch")
+    )
     assert len(entry.runtime_data.calendars) == 3
 
     device_registry = dr.async_get(hass)
@@ -187,7 +189,7 @@ async def test_preexisting_subentries_get_one_entity_each(
     for entity in calendars:
         assert entity.config_subentry_id == entity.unique_id
     for entity in sensors:
-        assert entity.config_subentry_id == entity.unique_id.removesuffix("_next_match")
+        assert entity.config_subentry_id == entity.unique_id.removesuffix("_next_match").removesuffix("_last_fetch")
 
 
 async def test_identical_filters_make_two_entities(

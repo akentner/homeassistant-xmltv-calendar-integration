@@ -2,17 +2,20 @@
 
 import io
 import logging
+import time
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, timedelta
 from functools import partial
 from typing import TYPE_CHECKING, override
 
 from homeassistant.core import callback
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .cache import CacheMeta, FeedCache, SourceHealth, cache_key, payload_sha256
+from .cache import CacheMeta, FeedCache, RefreshAttempt, SourceHealth, cache_key, payload_sha256
 from .const import (
     CONF_PATH,
     CONF_SOURCE_TYPE,
@@ -73,6 +76,44 @@ def issue_id(entry_id: str) -> str:
     return f"source_failing_{entry_id}"
 
 
+def signal_attempt(entry_id: str) -> str:
+    """Return the dispatcher signal sent after every recorded refresh run of the source (AUT-06)."""
+    return f"{DOMAIN}_attempt_{entry_id}"
+
+
+@dataclass(slots=True)
+class _Run:
+    """What one refresh run has done so far; filled in by the read paths, turned into a `RefreshAttempt` at its end."""
+
+    time: datetime
+    trigger: str
+    outcome: str = "failed"
+    http_status: int | None = None
+    failure_reason: str | None = None
+    cache: str = "none"
+    sent_etag: bool = False
+    sent_last_modified: bool = False
+    payload_bytes: int | None = None
+    parse_duration: float | None = None
+
+    def finish(self, data: EpgData | None) -> RefreshAttempt:
+        """Return the run's record; programme and channel counts describe `data`, the data in effect after it."""
+        return RefreshAttempt(
+            time=self.time,
+            trigger=self.trigger,
+            outcome=self.outcome,
+            http_status=self.http_status,
+            failure_reason=self.failure_reason,
+            cache=self.cache,
+            sent_etag=self.sent_etag,
+            sent_last_modified=self.sent_last_modified,
+            payload_bytes=self.payload_bytes,
+            programmes=data.stats.programmes if data is not None else None,
+            channels=data.stats.channels if data is not None else None,
+            parse_duration=self.parse_duration,
+        )
+
+
 class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
     """Fetch the source on its schedule (every N hours or daily at a fixed time) and parse it in the executor."""
 
@@ -89,6 +130,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             self._source_id = source_unique_id(SOURCE_TYPE_URL, entry.data[CONF_URL])
         # (st_mtime_ns, st_size) of the local file behind the data in memory; file sources only (D-11, Pitfall 10)
         self._file_signature: tuple[int, int] | None = None
+        # The refresh run in progress, None between runs (AUT-06)
+        self._run: _Run | None = None
         now = dt_util.utcnow()
         # Wall-clock target of the next refresh (aware UTC); turned into update_interval when HA arms its timer
         self._next_refresh_at: datetime = next_regular(now, self._schedule())
@@ -122,6 +165,11 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
     def health(self) -> SourceHealth:
         """Refresh outcomes of the source: last success, failure streak and last failure (read-only snapshot)."""
         return self._cache.health
+
+    @property
+    def last_attempt(self) -> RefreshAttempt | None:
+        """The source's last recorded refresh run (persisted), None before the first one (AUT-06)."""
+        return self._cache.attempt
 
     def _schedule(self) -> Schedule:
         """Return the refresh schedule in the current HA time zone (read on every call, D-02)."""
@@ -161,6 +209,15 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         `UpdateFailed` (CR-02). Cancellation passes through unrecorded, with a safe provisional retry target.
         """
         served = self._next_refresh_at
+        self._run = _Run(time=dt_util.utcnow(), trigger="startup" if self.data is None else "manual")
+        try:
+            return await self._async_run(served)
+        finally:
+            # A cancelled run records nothing
+            self._run = None
+
+    async def _async_run(self, served: datetime) -> EpgData:
+        """Run one refresh for `served`, the target being served; see `_async_update_data`."""
         # A cancellation swallowed by HA must not re-arm an already served target every second.
         # Success, failure and cache startup replace this fallback with their own target.
         self._next_refresh_at = max(served, dt_util.utcnow() + BACKOFF_STEPS[0])
@@ -186,8 +243,17 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             self._sync_issue(dt_util.utcnow())
             return epg
         self._set_regular_target(served)
-        await self._async_record_success(dt_util.utcnow())
+        await self._async_record_success(dt_util.utcnow(), self._finish_run(epg))
+        self._send_attempt()
         return epg
+
+    def _finish_run(self, data: EpgData | None) -> RefreshAttempt | None:
+        return self._run.finish(data) if self._run is not None else None
+
+    @callback
+    def _send_attempt(self) -> None:
+        """Tell the last-fetch sensors a run was recorded; unchanged data calls no coordinator listeners."""
+        async_dispatcher_send(self.hass, signal_attempt(self.config_entry.entry_id))
 
     async def _async_read_source(self, *, is_file: bool) -> tuple[EpgData, bool]:
         """
@@ -211,7 +277,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         base = refresh_base(now, served)
         self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
 
-    async def _async_record_success(self, now: datetime) -> None:
+    async def _async_record_success(self, now: datetime, attempt: RefreshAttempt | None) -> None:
         """End the failure streak, clear the Repairs issue (D-17); keep the last failure for diagnostics."""
         health = self._cache.health
         await self._cache.async_save_health(
@@ -219,7 +285,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
                 last_success=now,
                 last_failure_at=health.last_failure_at,
                 last_failure_reason=health.last_failure_reason,
-            )
+            ),
+            attempt,
         )
         ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.config_entry.entry_id))
 
@@ -306,9 +373,14 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         )
 
     async def _async_parse_payload(self, payload: bytes) -> EpgData:
-        """Parse a feed body in one executor job; parser errors become `UpdateFailed`."""
-        with _feed_errors(self.config_entry.title):
-            return await self.hass.async_add_executor_job(self._parser(), io.BytesIO(payload))
+        """Parse a feed body in one executor job, timed for the run record; parser errors become `UpdateFailed`."""
+        started = time.monotonic()
+        try:
+            with _feed_errors(self.config_entry.title):
+                return await self.hass.async_add_executor_job(self._parser(), io.BytesIO(payload))
+        finally:
+            if self._run is not None:
+                self._run.parse_duration = round(time.monotonic() - started, 3)
 
     async def _async_parse_cached(self) -> EpgData | None:
         """
@@ -336,12 +408,15 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
 
     async def _async_fetch(self, meta: CacheMeta | None) -> Fetched | NotModified:
         """Download the feed, conditional on the validators of `meta`; source errors become `UpdateFailed`."""
+        etag = meta.etag if meta is not None else None
+        last_modified = meta.last_modified if meta is not None else None
+        run = self._run
+        if run is not None:
+            run.sent_etag = bool(etag)
+            run.sent_last_modified = bool(last_modified)
         try:
-            return await async_fetch_url(
-                self.hass,
-                self.config_entry.data[CONF_URL],
-                etag=meta.etag if meta is not None else None,
-                last_modified=meta.last_modified if meta is not None else None,
+            fetched = await async_fetch_url(
+                self.hass, self.config_entry.data[CONF_URL], etag=etag, last_modified=last_modified
             )
         except SourceTooLargeError as err:
             _LOGGER.debug("Source %s is too large: %s", self.config_entry.title, err)
@@ -349,6 +424,9 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         except SourceError as err:
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
+        if run is not None and not isinstance(fetched, NotModified):
+            run.http_status = fetched.status
+        return fetched
 
     async def _async_update_url(self) -> EpgData:
         """
@@ -388,14 +466,20 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             _require_programmes(self.data, self.config_entry.title)
             await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
             return self.data
+        run = self._run
+        if run is not None:
+            run.payload_bytes = len(fetched.payload)
         epg = _require_programmes(await self._async_parse_payload(fetched.payload), self.config_entry.title)
-        await self._cache.async_write(
+        written = await self._cache.async_write(
             fetched.payload,
             source_id=self._source_id,
             fetched_at=now,
             etag=fetched.etag,
             last_modified=fetched.last_modified,
         )
+        if run is not None:
+            run.outcome = "downloaded"
+            run.cache = "written" if written else "write_failed"
         return epg
 
     async def _async_update_file(self) -> EpgData:
