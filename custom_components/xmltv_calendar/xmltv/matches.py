@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from .model import Channel
 
 
-# Bound of one calendar's retained matches (T-04-17); RED stub, applied by prune_retained in GREEN
+# Bound of one calendar's retained matches, the latest-starting ones are kept (T-04-17)
 MAX_RETAINED = 5000
 
 
@@ -112,9 +112,18 @@ def capture_ended(
     return (*retained, *added)
 
 
+def _retained_start(item: RetainedMatch) -> datetime:
+    return item.programme.start
+
+
 def prune_retained(retained: Sequence[RetainedMatch], cutoff: datetime) -> tuple[RetainedMatch, ...]:
-    """Return the retained matches whose programme stopped at or after `cutoff`."""
-    return tuple(item for item in retained if item.programme.stop >= cutoff)
+    """
+    Return the retained matches whose programme stopped at or after `cutoff`, sorted by start.
+
+    At most MAX_RETAINED are kept, the latest-starting ones, so a broad calendar cannot grow the store without bound.
+    """
+    kept = sorted((item for item in retained if item.programme.stop >= cutoff), key=_retained_start)
+    return tuple(kept[-MAX_RETAINED:])
 
 
 def merge_matches(feed: Sequence[Programme], retained: Sequence[RetainedMatch]) -> list[Programme]:
@@ -165,32 +174,69 @@ def _seen_from(value: object) -> dict[str, int]:
     }
 
 
-def _retained_item(value: dict[str, Any]) -> RetainedMatch:
-    return RetainedMatch(
-        programme=Programme(
-            channel_id=value["channel_id"],
-            start=datetime.fromisoformat(value["start"]),
-            stop=datetime.fromisoformat(value["stop"]),
-            titles=tuple(value["titles"]),
-            sub_titles=tuple(value["sub_titles"]),
-            description=value["description"],
-            categories=tuple(value["categories"]),
-            episode=value["episode"],
-        ),
-        channel_name=value["channel_name"],
+def _aware_time(value: object) -> datetime | None:
+    """Return an ISO 8601 time with an offset; naive, unparsable and non-string values are None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        moment = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return moment if moment.utcoffset() is not None else None
+
+
+def _strings(value: object) -> tuple[str, ...] | None:
+    """Return a list of strings as a tuple; anything else (also a bare string) is None."""
+    if not isinstance(value, (list, tuple)) or not all(isinstance(item, str) for item in value):
+        return None
+    return tuple(value)
+
+
+def _retained_item(value: object) -> RetainedMatch | None:
+    """Read one stored retained match strictly; None when any field is missing, of the wrong type or inconsistent."""
+    if not isinstance(value, dict):
+        return None
+    channel_id = value.get("channel_id")
+    channel_name = value.get("channel_name")
+    start = _aware_time(value.get("start"))
+    stop = _aware_time(value.get("stop"))
+    titles = _strings(value.get("titles"))
+    sub_titles = _strings(value.get("sub_titles"))
+    categories = _strings(value.get("categories"))
+    description = value.get("description")
+    episode = value.get("episode")
+    if (
+        not isinstance(channel_id, str)
+        or not channel_id
+        or not isinstance(channel_name, str)
+        or start is None
+        or stop is None
+        or stop < start
+        or not titles
+        or sub_titles is None
+        or categories is None
+        or not isinstance(description, (str, type(None)))
+        or not isinstance(episode, (str, type(None)))
+    ):
+        return None
+    programme = Programme(
+        channel_id=channel_id,
+        start=start,
+        stop=stop,
+        titles=titles,
+        sub_titles=sub_titles,
+        description=description,
+        categories=categories,
+        episode=episode,
     )
+    return RetainedMatch(programme=programme, channel_name=channel_name)
 
 
 def _retained_from(value: object) -> tuple[RetainedMatch, ...]:
+    """Read the stored retained list; malformed items are dropped (T-04-18)."""
     if not isinstance(value, list):
         return ()
-    items: list[RetainedMatch] = []
-    for item in value:
-        try:
-            items.append(_retained_item(item))
-        except KeyError, TypeError, ValueError:
-            continue
-    return tuple(items)
+    return tuple(item for item in map(_retained_item, value) if item is not None)
 
 
 def records_from_dict(value: object) -> dict[str, CalendarMatches]:
