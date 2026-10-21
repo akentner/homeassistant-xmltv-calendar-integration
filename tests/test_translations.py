@@ -1,5 +1,6 @@
 """German translation (de.json) is served by Home Assistant and mirrors en.json (CFG-04, UAT 02 test 1)."""
 
+import ast
 import json
 import logging
 import re
@@ -10,7 +11,9 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.helpers.translation import async_get_translations
 
 import custom_components.xmltv_calendar as integration
+from custom_components.xmltv_calendar import cache, const, coordinator
 from custom_components.xmltv_calendar.const import DOMAIN
+from custom_components.xmltv_calendar.xmltv import render, schedule, settings
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -144,3 +147,241 @@ def test_de_keeps_literals() -> None:
         if german.count("\n") != text.count("\n"):
             problems.setdefault(key, []).append("newline count")
     assert problems == {}
+
+
+# --- Code-derived completeness (CFG-04, RESEARCH Pitfall 10): the required keys come from the code, not a list ---
+
+PACKAGE = Path(integration.__file__).parent
+
+# Flow class -> translation section of its steps, errors, aborts, menus and progress texts
+FLOW_SECTIONS = {
+    "XmltvConfigFlow": "config",
+    "XmltvOptionsFlow": "options",
+    "CalendarSubentryFlow": "config_subentries.calendar",
+}
+
+# Aborts Home Assistant raises on the flow's behalf, keyed by the flow method that triggers them
+HA_ABORTS = {
+    "_abort_if_unique_id_configured": "already_configured",
+    "async_update_and_abort": "reconfigure_successful",
+}
+
+# A subentry flow's entry points; each needs its "Add" / "Edit" button text
+SUBENTRY_ENTRY_POINTS = ("user", "reconfigure")
+
+# Steps the flows have today; the collector must find at least these, so an AST change cannot make it vacuous
+KNOWN_STEP_IDS = {
+    "user",
+    "url",
+    "download",
+    "schedule",
+    "file",
+    "name",
+    "init",
+    "basic",
+    "advanced",
+    "preview",
+    "preview_empty",
+}
+
+# Selector translation_key -> the vocabulary of its option values
+SELECTOR_VOCABULARIES = {
+    "match_field": settings.MATCH_FIELDS,
+    "weekday": settings.WEEKDAYS,
+    "refresh_mode": schedule.REFRESH_MODES,
+    "naive_timezone": schedule.NAIVE_TIMEZONES,
+}
+
+# Required texts that read the same in German as in English
+SAME_IN_GERMAN = {"UTC"}
+
+# Last fetch sensor attribute -> the vocabulary of its translated states
+ATTEMPT_VOCABULARIES = {
+    "trigger": cache.ATTEMPT_TRIGGERS,
+    "outcome": cache.ATTEMPT_OUTCOMES,
+    "cache": cache.ATTEMPT_CACHE,
+}
+
+
+def _parse(name: str) -> ast.Module:
+    return ast.parse((PACKAGE / name).read_text(encoding="utf-8"))
+
+
+def _strings(node: ast.expr | None) -> list[str]:
+    """Return the string values `node` can take: a literal, both branches of a conditional, or a const name."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, ast.IfExp):
+        return _strings(node.body) + _strings(node.orelse)
+    if isinstance(node, ast.Name) and isinstance(getattr(const, node.id, None), str):
+        return [getattr(const, node.id)]
+    return []
+
+
+def _called_names(node: ast.AST) -> set[str]:
+    return {call.func.id for call in ast.walk(node) if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)}
+
+
+def _flow_scopes(module: ast.Module) -> dict[str, list[ast.AST]]:
+    """Return per flow class its own body plus every module-level function it calls, transitively."""
+    functions = {node.name: node for node in module.body if isinstance(node, ast.FunctionDef)}
+    scopes: dict[str, list[ast.AST]] = {}
+    for node in module.body:
+        if not isinstance(node, ast.ClassDef) or node.name not in FLOW_SECTIONS:
+            continue
+        seen: set[str] = set()
+        pending = _called_names(node) & functions.keys()
+        while pending:
+            name = pending.pop()
+            seen.add(name)
+            pending |= (_called_names(functions[name]) & functions.keys()) - seen
+        scopes[node.name] = [node, *(functions[name] for name in sorted(seen))]
+    return scopes
+
+
+def _error_literals(scope: ast.AST) -> set[str]:
+    """Return the error keys written into an errors dict: `errors[x] = "key"` and `{"base": "key"}`."""
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Subscript) for target in node.targets):
+            if any(
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id.endswith("errors")
+                for target in node.targets
+            ):
+                found.update(_strings(node.value))
+        elif isinstance(node, ast.Dict):
+            for key, value in zip(node.keys, node.values, strict=True):
+                if isinstance(key, ast.Constant) and key.value == "base":
+                    found.update(_strings(value))
+    return found
+
+
+def _flow_requirements() -> tuple[set[str], set[str]]:
+    """Return (required translation leaf keys, step IDs found) for the three flows in config_flow.py."""
+    required: set[str] = set()
+    step_ids: set[str] = set()
+    for class_name, scope_nodes in _flow_scopes(_parse("config_flow.py")).items():
+        section = FLOW_SECTIONS[class_name]
+        for scope in scope_nodes:
+            for node in ast.walk(scope):
+                if isinstance(node, ast.Call):
+                    keywords = {keyword.arg: keyword.value for keyword in node.keywords}
+                    steps = _strings(keywords.get("step_id"))
+                    step_ids.update(steps)
+                    required.update(f"{section}.step.{step}.title" for step in steps)
+                    if isinstance(node.func, ast.Attribute):
+                        if node.func.attr == "async_abort":
+                            required.update(f"{section}.abort.{reason}" for reason in _strings(keywords.get("reason")))
+                        if node.func.attr in HA_ABORTS:
+                            required.add(f"{section}.abort.{HA_ABORTS[node.func.attr]}")
+                    required.update(
+                        f"{section}.progress.{action}" for action in _strings(keywords.get("progress_action"))
+                    )
+                    menu = keywords.get("menu_options")
+                    if isinstance(menu, ast.List):
+                        options = [option for element in menu.elts for option in _strings(element)]
+                        assert len(options) == len(menu.elts), ast.unparse(menu)
+                        required.update(
+                            f"{section}.step.{step}.menu_options.{option}" for step in steps for option in options
+                        )
+                if isinstance(node, ast.Assign) and section.startswith("config_subentries."):
+                    for target in node.targets:
+                        if (
+                            isinstance(target, ast.Name)
+                            and target.id.removeprefix("async_step_") in SUBENTRY_ENTRY_POINTS
+                        ):
+                            required.add(f"{section}.initiate_flow.{target.id.removeprefix('async_step_')}")
+            required.update(f"{section}.error.{error}" for error in _error_literals(scope))
+        if section.startswith("config_subentries."):
+            required.add(f"{section}.entry_type")
+    # Template errors are raised by render.compile_template and passed through as err.reason
+    subentry = FLOW_SECTIONS["CalendarSubentryFlow"]
+    required.update(
+        f"{subentry}.error.{error}" for error in (render.INVALID_TEMPLATE, render.UNKNOWN_PLACEHOLDER, "invalid_regex")
+    )
+    return required, step_ids
+
+
+def _selector_keys() -> set[str]:
+    """Return every selector translation_key literal used in config_flow.py."""
+    return {
+        value
+        for node in ast.walk(_parse("config_flow.py"))
+        if isinstance(node, ast.Call)
+        for keyword in node.keywords
+        if keyword.arg == "translation_key"
+        for value in _strings(keyword.value)
+    }
+
+
+def _update_failed_keys() -> set[str]:
+    """Return every literal translation_key of an UpdateFailed raised in coordinator.py."""
+    return {
+        value
+        for node in ast.walk(_parse("coordinator.py"))
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "UpdateFailed"
+        for keyword in node.keywords
+        if keyword.arg == "translation_key"
+        for value in _strings(keyword.value)
+    }
+
+
+def _sensor_keys() -> set[str]:
+    """Return every `_attr_translation_key = "..."` in sensor.py."""
+    return {
+        value
+        for node in ast.walk(_parse("sensor.py"))
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "_attr_translation_key" for target in node.targets)
+        for value in _strings(node.value)
+    }
+
+
+def _vocabulary_requirements() -> set[str]:
+    """Return the required leaf keys of selectors, coordinator failures and sensors."""
+    required: set[str] = set()
+    assert _selector_keys() == set(SELECTOR_VOCABULARIES)
+    for key, vocabulary in SELECTOR_VOCABULARIES.items():
+        required.update(f"selector.{key}.options.{value}" for value in vocabulary)
+    assert _update_failed_keys() <= coordinator.FAILURE_REASONS
+    for reason in coordinator.FAILURE_REASONS:
+        required.add(f"exceptions.{reason}.message")
+        required.update(f"issues.source_failing_{reason}.{part}" for part in ("title", "description"))
+    sensors = _sensor_keys()
+    assert sensors == {"next_match", "last_fetch"}
+    required.update(f"entity.sensor.{key}.name" for key in sensors)
+    for attribute, vocabulary in ATTEMPT_VOCABULARIES.items():
+        required.update(f"entity.sensor.last_fetch.state_attributes.{attribute}.state.{value}" for value in vocabulary)
+    return required
+
+
+def _missing(required: set[str], translations: dict[str, Any]) -> list[str]:
+    return sorted(key for key in required if not (isinstance(translations.get(key), str) and translations[key].strip()))
+
+
+def test_every_flow_key_is_translated() -> None:
+    required, step_ids = _flow_requirements()
+    assert step_ids >= KNOWN_STEP_IDS
+    assert {"config.abort.already_configured", "config_subentries.calendar.abort.reconfigure_successful"} <= required
+    assert {"config.progress.download", "config.step.user.menu_options.url"} <= required
+    assert _missing(required, _flatten(_load(EN_JSON))) == []
+
+
+def test_every_vocabulary_and_entity_key_is_translated() -> None:
+    assert _missing(_vocabulary_requirements(), _flatten(_load(EN_JSON))) == []
+
+
+async def test_german_ui_is_served_for_every_required_key(hass: HomeAssistant) -> None:
+    required = _flow_requirements()[0] | _vocabulary_requirements()
+    served: dict[str, Any] = {}
+    for category in ("config", "options", "config_subentries", "selector", "exceptions", "issues", "entity"):
+        translations = await async_get_translations(hass, "de", category, [DOMAIN])
+        prefix = f"component.{DOMAIN}."
+        served.update({key.removeprefix(prefix): value for key, value in translations.items()})
+    english = _flatten(_load(EN_JSON))
+    assert _missing(required, served) == []
+    # Served in German: every required text differs from English unless it is a literal (UTC, a placeholder)
+    untranslated = sorted(key for key in required if served[key] == english.get(key) and not _literals(served[key]))
+    assert [key for key in untranslated if served[key] not in SAME_IN_GERMAN] == []

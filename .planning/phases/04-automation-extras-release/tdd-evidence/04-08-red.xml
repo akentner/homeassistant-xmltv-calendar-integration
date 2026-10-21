@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="0.383" timestamp="2026-10-21T12:21:42.478642+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_translations" name="test_home_assistant_serves_german_strings" time="0.125" /><testcase classname="tests.test_translations" name="test_de_values_follow_hassfest_rules" time="0.015" /><testcase classname="tests.test_translations" name="test_de_has_same_keys_as_en" time="0.014" /><testcase classname="tests.test_translations" name="test_de_keeps_placeholders" time="0.014" /><testcase classname="tests.test_translations" name="test_de_keeps_literals" time="0.015" /><testcase classname="tests.test_translations" name="test_every_flow_key_is_translated" time="0.029"><failure message="AssertionError: assert ['config.step.download.title'] == []&#10;  &#10;  Left contains one more item: 'config.step.download.title'&#10;  Use -v to get more diff">def test_every_flow_key_is_translated() -&gt; None:
+        required, step_ids = _flow_requirements()
+        assert step_ids &gt;= KNOWN_STEP_IDS
+        assert {"config.abort.already_configured", "config_subentries.calendar.abort.reconfigure_successful"} &lt;= required
+        assert {"config.progress.download", "config.step.user.menu_options.url"} &lt;= required
+&gt;       assert _missing(required, _flatten(_load(EN_JSON))) == []
+E       AssertionError: assert ['config.step.download.title'] == []
+E         
+E         Left contains one more item: 'config.step.download.title'
+E         Use -v to get more diff
+
+tests/test_translations.py:369: AssertionError</failure></testcase><testcase classname="tests.test_translations" name="test_every_vocabulary_and_entity_key_is_translated" time="0.028" /><testcase classname="tests.test_translations" name="test_german_ui_is_served_for_every_required_key" time="0.047"><failure message="AssertionError: assert ['config.step.download.title'] == []&#10;  &#10;  Left contains one more item: 'config.step.download.title'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+
+    async def test_german_ui_is_served_for_every_required_key(hass: HomeAssistant) -&gt; None:
+        required = _flow_requirements()[0] | _vocabulary_requirements()
+        served: dict[str, Any] = {}
+        for category in ("config", "options", "config_subentries", "selector", "exceptions", "issues", "entity"):
+            translations = await async_get_translations(hass, "de", category, [DOMAIN])
+            prefix = f"component.{DOMAIN}."
+            served.update({key.removeprefix(prefix): value for key, value in translations.items()})
+        english = _flatten(_load(EN_JSON))
+&gt;       assert _missing(required, served) == []
+E       AssertionError: assert ['config.step.download.title'] == []
+E         
+E         Left contains one more item: 'config.step.download.title'
+E         Use -v to get more diff
+
+tests/test_translations.py:384: AssertionError</failure></testcase></testsuite></testsuites>
