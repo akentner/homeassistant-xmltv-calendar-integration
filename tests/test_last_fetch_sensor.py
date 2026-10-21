@@ -1,5 +1,6 @@
 """Last-fetch diagnostic sensor: the source's last refresh run on every calendar device (AUT-06, D-20..D-24)."""
 
+import json
 from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -7,10 +8,14 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntryState, ConfigSubentryData
-from homeassistant.const import STATE_UNAVAILABLE, EntityCategory
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
+
+from custom_components.xmltv_calendar.coordinator import XmltvCoordinator, signal_attempt
+from custom_components.xmltv_calendar.diagnostics import async_get_config_entry_diagnostics
 
 from .conftest import DOMAIN, FEED_URL
 
@@ -343,3 +348,76 @@ async def test_same_instant_runs_keep_the_latest(
     assert _pick(stored, "time", "outcome") == {"time": NOW, "outcome": "unchanged"}
     assert hass.states.get(SENSOR).state == NOW
     assert _attributes(hass)["outcome"] == "unchanged"
+
+
+@pytest.mark.usefixtures("last_fetch_enabled")
+async def test_record_survives_restart(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: Any,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED)
+    _serve(aioclient_mock, status=500)
+    freezer.move_to(LATER)
+    await entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # While the entry is not loaded, diagnostics read the last run from the Store
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert diagnostics["loaded"] is False
+    assert _pick(diagnostics["last_attempt"], "time", "outcome", "http_status", "failure_reason") == {
+        "time": LATER,
+        "outcome": "failed",
+        "http_status": 500,
+        "failure_reason": "unable_to_fetch",
+    }
+
+    # The cache (fetched at NOW, refresh every 24 h) is still fresh: the start from it is the new run
+    freezer.move_to("2026-10-13T08:00:00+00:00")
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(SENSOR).state == "2026-10-13T08:00:00+00:00"
+    attributes = _attributes(hass)
+    assert _pick(attributes, "trigger", "outcome", "cache", "consecutive_failures") == {
+        "trigger": "startup",
+        "outcome": "cache_start",
+        "cache": "fresh_hit",
+        "consecutive_failures": 1,
+    }
+    # The last success survives the restart through the persisted health
+    assert attributes["last_success"] is not None
+
+
+@pytest.mark.usefixtures("last_fetch_enabled")
+async def test_no_run_yet_is_unknown(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED)
+    monkeypatch.setattr(XmltvCoordinator, "last_attempt", property(lambda _self: None))
+
+    async_dispatcher_send(hass, signal_attempt(entry.entry_id))
+    await hass.async_block_till_done()
+
+    state = hass.states.get(SENSOR)
+    assert state.state == STATE_UNKNOWN
+    assert not {"trigger", "outcome", "http_status", "matches", "next_refresh"} & set(state.attributes)
+
+
+@pytest.mark.usefixtures("last_fetch_enabled")
+async def test_no_secrets_in_last_fetch(
+    hass: HomeAssistant, setup_xmltv: Callable[..., Awaitable[MockConfigEntry]]
+) -> None:
+    secret_url = "https://user:hunter2@epg.example.com/guide.xml?token=s3cret"  # noqa: S105 - fake credentials
+
+    await setup_xmltv(FEED, url=secret_url, headers={"ETag": '"v1-secret-etag"'})
+
+    state = hass.states.get(SENSOR)
+    assert state is not None
+    dumped = json.dumps({"state": state.state, "attributes": dict(state.attributes)})
+    for secret in ("s3cret", "hunter2", "guide.xml", "epg.example.com", "v1-secret-etag"):
+        assert secret not in dumped

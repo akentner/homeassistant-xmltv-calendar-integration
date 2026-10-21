@@ -14,7 +14,7 @@ from homeassistant.const import STATE_UNAVAILABLE
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.xmltv_calendar import cache as cache_module
-from custom_components.xmltv_calendar.cache import cache_key
+from custom_components.xmltv_calendar.cache import FeedCache, cache_key
 from custom_components.xmltv_calendar.const import CONF_REFRESH_MODE, CONF_REFRESH_TIME, REFRESH_MODE_DAILY
 
 from .conftest import FEED_URL
@@ -408,3 +408,104 @@ async def test_stale_cache_offline_start_still_loads(
     assert coordinator.last_update_success is False
     assert hass.states.get("calendar.test").state != STATE_UNAVAILABLE
     assert await _summaries(hass) == cached
+
+
+STORE_KEY = "tolerance"
+VALID_META = {"source_id": "abc", "size": 1, "sha256": "00", "fetched_at": NOW, "etag": None, "last_modified": None}
+VALID_HEALTH = {
+    "last_success": NOW,
+    "failing_since": None,
+    "last_failure_at": None,
+    "last_failure_reason": None,
+    "consecutive_failures": 0,
+}
+VALID_ATTEMPT = {
+    "time": NOW,
+    "trigger": "scheduled",
+    "outcome": "downloaded",
+    "http_status": 200,
+    "failure_reason": None,
+    "cache": "written",
+    "sent_etag": True,
+    "sent_last_modified": False,
+    "bytes": 846,
+    "programmes": 4,
+    "channels": 2,
+    "parse_duration": 0.012,
+}
+
+
+async def _load_store(hass: HomeAssistant, hass_storage: dict[str, Any], data: dict[str, Any]) -> FeedCache:
+    hass_storage[f"{DOMAIN}.{STORE_KEY}"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": f"{DOMAIN}.{STORE_KEY}",
+        "data": data,
+    }
+    cache = FeedCache(hass, STORE_KEY)
+    await cache.async_load()
+    return cache
+
+
+async def test_attempt_is_stored_with_health(
+    hass_storage: dict[str, Any],
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await setup_xmltv(FEED)
+
+    stored = hass_storage[f"{DOMAIN}.{entry.entry_id}"]["data"]
+
+    assert set(stored) == {"meta", "health", "attempt"}
+    assert stored["attempt"]["outcome"] == "downloaded"
+
+
+async def test_phase3_store_without_attempt_loads(hass: HomeAssistant, hass_storage: dict[str, Any]) -> None:
+    cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH})
+
+    assert cache.meta is not None
+    assert cache.health.last_success == datetime.fromisoformat(NOW)
+    assert cache.attempt is None
+
+
+async def test_valid_attempt_round_trips(hass: HomeAssistant, hass_storage: dict[str, Any]) -> None:
+    cache = await _load_store(
+        hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": VALID_ATTEMPT}
+    )
+
+    assert cache.attempt is not None
+    assert cache.attempt.as_dict() == VALID_ATTEMPT
+
+
+@pytest.mark.parametrize(
+    "attempt",
+    [
+        None,
+        5,
+        {"time": "x"},
+        {**VALID_ATTEMPT, "trigger": "cron"},
+        {**VALID_ATTEMPT, "outcome": "exploded"},
+        {**VALID_ATTEMPT, "http_status": True},
+        {**VALID_ATTEMPT, "http_status": 99},
+        {**VALID_ATTEMPT, "bytes": -1},
+        {**VALID_ATTEMPT, "failure_reason": "Feed <b>broke</b>"},
+    ],
+    ids=[
+        "none",
+        "int",
+        "bad_time",
+        "unknown_trigger",
+        "unknown_outcome",
+        "bool_status",
+        "status_99",
+        "negative_bytes",
+        "bad_reason",
+    ],
+)
+async def test_malformed_attempt_reads_as_none(
+    hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+) -> None:
+    cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+
+    assert cache.attempt is None
+    # The rest of the Store still loads
+    assert cache.meta is not None

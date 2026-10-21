@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="64" time="3.629" timestamp="2026-10-21T11:48:51.308858+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_cache" name="test_restart_uses_fresh_cache" time="0.224" /><testcase classname="tests.test_cache" name="test_reload_uses_fresh_cache" time="0.066" /><testcase classname="tests.test_cache" name="test_size_mismatch_redownloads" time="0.066" /><testcase classname="tests.test_cache" name="test_missing_payload_redownloads" time="0.065" /><testcase classname="tests.test_cache" name="test_corrupt_cached_payload_is_dropped" time="0.070" /><testcase classname="tests.test_cache" name="test_changed_source_ignores_cache" time="0.064" /><testcase classname="tests.test_cache" name="test_empty_parse_is_not_cached" time="0.033" /><testcase classname="tests.test_cache" name="test_cache_write_failure_is_tolerated" time="0.056" /><testcase classname="tests.test_cache" name="test_payload_is_private" time="0.053" /><testcase classname="tests.test_cache" name="test_store_holds_no_url" time="0.053" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[quoted-ETag-etag]" time="0.060" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[quoted-Last-Modified-last_modified]" time="0.054" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[weak-ETag-etag]" time="0.054" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[weak-Last-Modified-last_modified]" time="0.053" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[http-date-ETag-etag]" time="0.053" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[http-date-Last-Modified-last_modified]" time="0.055" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1024-chars-ETag-etag]" time="0.059" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1024-chars-Last-Modified-last_modified]" time="0.052" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[crlf-ETag-etag]" time="0.052" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[crlf-Last-Modified-last_modified]" time="0.052" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1025-chars-ETag-etag]" time="0.054" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[1025-chars-Last-Modified-last_modified]" time="0.056" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[non-ascii-ETag-etag]" time="0.058" /><testcase classname="tests.test_cache" name="test_validators_are_cleaned[non-ascii-Last-Modified-last_modified]" time="0.052" /><testcase classname="tests.test_cache" name="test_cache_key_is_filesystem_safe[hex-unique-id]" time="0.022" /><testcase classname="tests.test_cache" name="test_cache_key_is_filesystem_safe[entry-id]" time="0.024" /><testcase classname="tests.test_cache" name="test_cache_key_is_filesystem_safe[path-traversal]" time="0.024" /><testcase classname="tests.test_cache" name="test_remove_entry_deletes_cache" time="0.053" /><testcase classname="tests.test_cache" name="test_stale_cache_shown_then_refreshed" time="0.068" /><testcase classname="tests.test_cache" name="test_missed_daily_slot_refreshes_at_start" time="0.067" /><testcase classname="tests.test_cache" name="test_fresh_daily_cache_does_not_refresh" time="0.069" /><testcase classname="tests.test_cache" name="test_stale_cache_offline_start_still_loads" time="0.066" /><testcase classname="tests.test_cache" name="test_attempt_is_stored_with_health" time="0.052" /><testcase classname="tests.test_cache" name="test_phase3_store_without_attempt_loads" time="0.026" /><testcase classname="tests.test_cache" name="test_valid_attempt_round_trips" time="0.023" /><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[none]" time="0.023" /><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[int]" time="0.024" /><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[bad_time]" time="0.024" /><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[unknown_trigger]" time="0.024"><failure message="AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='cron', outcome='downloa...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None&#10; +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='cron', outcome='downloa...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0b56050&gt;.attempt">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'xmltv_calendar.tolerance': {'data': {'attempt': {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': ...0', 'last_modified': None, 'sha256': '00', ...}}, 'key': 'xmltv_calendar.tolerance', 'minor_version': 1, 'version': 1}}
+attempt = {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': None, ...}
+
+    @pytest.mark.parametrize(
+        "attempt",
+        [
+            None,
+            5,
+            {"time": "x"},
+            {**VALID_ATTEMPT, "trigger": "cron"},
+            {**VALID_ATTEMPT, "outcome": "exploded"},
+            {**VALID_ATTEMPT, "http_status": True},
+            {**VALID_ATTEMPT, "http_status": 99},
+            {**VALID_ATTEMPT, "bytes": -1},
+            {**VALID_ATTEMPT, "failure_reason": "Feed &lt;b&gt;broke&lt;/b&gt;"},
+        ],
+        ids=[
+            "none",
+            "int",
+            "bad_time",
+            "unknown_trigger",
+            "unknown_outcome",
+            "bool_status",
+            "status_99",
+            "negative_bytes",
+            "bad_reason",
+        ],
+    )
+    async def test_malformed_attempt_reads_as_none(
+        hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+    ) -&gt; None:
+        cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+    
+&gt;       assert cache.attempt is None
+E       AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='cron', outcome='downloa...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None
+E        +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='cron', outcome='downloa...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0b56050&gt;.attempt
+
+tests/test_cache.py:509: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[unknown_outcome]" time="0.024"><failure message="AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='ex...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None&#10; +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='ex...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b94323d0&gt;.attempt">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'xmltv_calendar.tolerance': {'data': {'attempt': {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': ...0', 'last_modified': None, 'sha256': '00', ...}}, 'key': 'xmltv_calendar.tolerance', 'minor_version': 1, 'version': 1}}
+attempt = {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': None, ...}
+
+    @pytest.mark.parametrize(
+        "attempt",
+        [
+            None,
+            5,
+            {"time": "x"},
+            {**VALID_ATTEMPT, "trigger": "cron"},
+            {**VALID_ATTEMPT, "outcome": "exploded"},
+            {**VALID_ATTEMPT, "http_status": True},
+            {**VALID_ATTEMPT, "http_status": 99},
+            {**VALID_ATTEMPT, "bytes": -1},
+            {**VALID_ATTEMPT, "failure_reason": "Feed &lt;b&gt;broke&lt;/b&gt;"},
+        ],
+        ids=[
+            "none",
+            "int",
+            "bad_time",
+            "unknown_trigger",
+            "unknown_outcome",
+            "bool_status",
+            "status_99",
+            "negative_bytes",
+            "bad_reason",
+        ],
+    )
+    async def test_malformed_attempt_reads_as_none(
+        hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+    ) -&gt; None:
+        cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+    
+&gt;       assert cache.attempt is None
+E       AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='ex...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None
+E        +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='ex...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b94323d0&gt;.attempt
+
+tests/test_cache.py:509: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[bool_status]" time="0.023"><failure message="AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None&#10; +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0c15750&gt;.attempt">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'xmltv_calendar.tolerance': {'data': {'attempt': {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': ...0', 'last_modified': None, 'sha256': '00', ...}}, 'key': 'xmltv_calendar.tolerance', 'minor_version': 1, 'version': 1}}
+attempt = {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': None, ...}
+
+    @pytest.mark.parametrize(
+        "attempt",
+        [
+            None,
+            5,
+            {"time": "x"},
+            {**VALID_ATTEMPT, "trigger": "cron"},
+            {**VALID_ATTEMPT, "outcome": "exploded"},
+            {**VALID_ATTEMPT, "http_status": True},
+            {**VALID_ATTEMPT, "http_status": 99},
+            {**VALID_ATTEMPT, "bytes": -1},
+            {**VALID_ATTEMPT, "failure_reason": "Feed &lt;b&gt;broke&lt;/b&gt;"},
+        ],
+        ids=[
+            "none",
+            "int",
+            "bad_time",
+            "unknown_trigger",
+            "unknown_outcome",
+            "bool_status",
+            "status_99",
+            "negative_bytes",
+            "bad_reason",
+        ],
+    )
+    async def test_malformed_attempt_reads_as_none(
+        hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+    ) -&gt; None:
+        cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+    
+&gt;       assert cache.attempt is None
+E       AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None
+E        +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0c15750&gt;.attempt
+
+tests/test_cache.py:509: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[status_99]" time="0.024"><failure message="AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None&#10; +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0c14fd0&gt;.attempt">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'xmltv_calendar.tolerance': {'data': {'attempt': {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': ...0', 'last_modified': None, 'sha256': '00', ...}}, 'key': 'xmltv_calendar.tolerance', 'minor_version': 1, 'version': 1}}
+attempt = {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': None, ...}
+
+    @pytest.mark.parametrize(
+        "attempt",
+        [
+            None,
+            5,
+            {"time": "x"},
+            {**VALID_ATTEMPT, "trigger": "cron"},
+            {**VALID_ATTEMPT, "outcome": "exploded"},
+            {**VALID_ATTEMPT, "http_status": True},
+            {**VALID_ATTEMPT, "http_status": 99},
+            {**VALID_ATTEMPT, "bytes": -1},
+            {**VALID_ATTEMPT, "failure_reason": "Feed &lt;b&gt;broke&lt;/b&gt;"},
+        ],
+        ids=[
+            "none",
+            "int",
+            "bad_time",
+            "unknown_trigger",
+            "unknown_outcome",
+            "bool_status",
+            "status_99",
+            "negative_bytes",
+            "bad_reason",
+        ],
+    )
+    async def test_malformed_attempt_reads_as_none(
+        hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+    ) -&gt; None:
+        cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+    
+&gt;       assert cache.attempt is None
+E       AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None
+E        +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0c14fd0&gt;.attempt
+
+tests/test_cache.py:509: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[negative_bytes]" time="0.024"><failure message="AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...='written', sent_etag=True, sent_last_modified=False, payload_bytes=-1, programmes=4, channels=2, parse_duration=0.012) is None&#10; +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...='written', sent_etag=True, sent_last_modified=False, payload_bytes=-1, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0c152d0&gt;.attempt">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'xmltv_calendar.tolerance': {'data': {'attempt': {'bytes': -1, 'cache': 'written', 'channels': 2, 'failure_reason': N...0', 'last_modified': None, 'sha256': '00', ...}}, 'key': 'xmltv_calendar.tolerance', 'minor_version': 1, 'version': 1}}
+attempt = {'bytes': -1, 'cache': 'written', 'channels': 2, 'failure_reason': None, ...}
+
+    @pytest.mark.parametrize(
+        "attempt",
+        [
+            None,
+            5,
+            {"time": "x"},
+            {**VALID_ATTEMPT, "trigger": "cron"},
+            {**VALID_ATTEMPT, "outcome": "exploded"},
+            {**VALID_ATTEMPT, "http_status": True},
+            {**VALID_ATTEMPT, "http_status": 99},
+            {**VALID_ATTEMPT, "bytes": -1},
+            {**VALID_ATTEMPT, "failure_reason": "Feed &lt;b&gt;broke&lt;/b&gt;"},
+        ],
+        ids=[
+            "none",
+            "int",
+            "bad_time",
+            "unknown_trigger",
+            "unknown_outcome",
+            "bool_status",
+            "status_99",
+            "negative_bytes",
+            "bad_reason",
+        ],
+    )
+    async def test_malformed_attempt_reads_as_none(
+        hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+    ) -&gt; None:
+        cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+    
+&gt;       assert cache.attempt is None
+E       AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...='written', sent_etag=True, sent_last_modified=False, payload_bytes=-1, programmes=4, channels=2, parse_duration=0.012) is None
+E        +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...='written', sent_etag=True, sent_last_modified=False, payload_bytes=-1, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0c152d0&gt;.attempt
+
+tests/test_cache.py:509: AssertionError</failure></testcase><testcase classname="tests.test_cache" name="test_malformed_attempt_reads_as_none[bad_reason]" time="0.025"><failure message="AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None&#10; +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0bc3850&gt;.attempt">hass = &lt;HomeAssistant RUNNING&gt;
+hass_storage = {'xmltv_calendar.tolerance': {'data': {'attempt': {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': ...0', 'last_modified': None, 'sha256': '00', ...}}, 'key': 'xmltv_calendar.tolerance', 'minor_version': 1, 'version': 1}}
+attempt = {'bytes': 846, 'cache': 'written', 'channels': 2, 'failure_reason': 'Feed &lt;b&gt;broke&lt;/b&gt;', ...}
+
+    @pytest.mark.parametrize(
+        "attempt",
+        [
+            None,
+            5,
+            {"time": "x"},
+            {**VALID_ATTEMPT, "trigger": "cron"},
+            {**VALID_ATTEMPT, "outcome": "exploded"},
+            {**VALID_ATTEMPT, "http_status": True},
+            {**VALID_ATTEMPT, "http_status": 99},
+            {**VALID_ATTEMPT, "bytes": -1},
+            {**VALID_ATTEMPT, "failure_reason": "Feed &lt;b&gt;broke&lt;/b&gt;"},
+        ],
+        ids=[
+            "none",
+            "int",
+            "bad_time",
+            "unknown_trigger",
+            "unknown_outcome",
+            "bool_status",
+            "status_99",
+            "negative_bytes",
+            "bad_reason",
+        ],
+    )
+    async def test_malformed_attempt_reads_as_none(
+        hass: HomeAssistant, hass_storage: dict[str, Any], attempt: object
+    ) -&gt; None:
+        cache = await _load_store(hass, hass_storage, {"meta": VALID_META, "health": VALID_HEALTH, "attempt": attempt})
+    
+&gt;       assert cache.attempt is None
+E       AssertionError: assert RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) is None
+E        +  where RefreshAttempt(time=HAFakeDatetime(2026, 10, 13, 6, 0, tzinfo=datetime.timezone.utc), trigger='scheduled', outcome='do...'written', sent_etag=True, sent_last_modified=False, payload_bytes=846, programmes=4, channels=2, parse_duration=0.012) = &lt;custom_components.xmltv_calendar.cache.FeedCache object at 0x7f91b0bc3850&gt;.attempt
+
+tests/test_cache.py:509: AssertionError</failure></testcase><testcase classname="tests.test_diagnostics" name="test_diagnostics_end_to_end" time="0.090"><failure message="KeyError: 'last_attempt'">hass = &lt;HomeAssistant RUNNING&gt;
+hass_client = &lt;function hass_client.&lt;locals&gt;.auth_client at 0x7f91b1f859b0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f91b0b309e0&gt;
+
+    async def test_diagnostics_end_to_end(
+        hass: HomeAssistant,
+        hass_client: ClientSessionGenerator,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(
+            FEED,
+            calendars=(("B", {"channels": ["zdf.de"]}), ("A", {})),
+            url=SECRET_URL,
+            headers={"ETag": FEED_ETAG},
+        )
+    
+        result = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+    
+        assert result["source"] == {"source_type": "url", "url": "https://epg.example.com/**REDACTED**"}
+        assert result["options"] == {
+            "refresh_mode": "interval",
+            "refresh_hours": 24,
+            "naive_timezone": "utc",
+            "offset_minutes": 0,
+        }
+        assert result["health"] == {
+            "last_success": NOW,
+            "failing_since": None,
+            "last_failure": None,
+            "consecutive_failures": 0,
+        }
+        assert result["cache"] == {"fetched_at": NOW, "size": len(FEED), "has_etag": True, "has_last_modified": False}
+        assert result["stats"] == {
+            "programmes": 4,
+            "channels": 2,
+            "skipped_malformed": 0,
+            "duplicates": 0,
+            "inferred_stops": 0,
+            "dropped_past": 0,
+        }
+        assert result["calendars"] == [{"title": "A", "matches": 4}, {"title": "B", "matches": 2}]
+        assert result["next_refresh"] == "2026-10-14T06:00:00+00:00"
+&gt;       last_attempt = result["last_attempt"]
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'last_attempt'
+
+tests/test_diagnostics.py:91: KeyError</failure></testcase><testcase classname="tests.test_diagnostics" name="test_file_source_diagnostics" time="0.050" /><testcase classname="tests.test_diagnostics" name="test_failing_source_diagnostics" time="0.054" /><testcase classname="tests.test_diagnostics" name="test_diagnostics_for_not_loaded_entry" time="0.032"><failure message="KeyError: 'last_attempt'">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f91b0dd5cd0&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f91b0cac250&gt;
+
+    async def test_diagnostics_for_not_loaded_entry(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        # Registered before setup_xmltv's own mock, so the host is down from the start and no cache exists
+        aioclient_mock.get(FEED_URL, exc=aiohttp.ClientError())
+        entry = await setup_xmltv(FEED, url=FEED_URL)
+        assert entry.state is ConfigEntryState.SETUP_RETRY
+    
+        result = await async_get_config_entry_diagnostics(hass, entry)
+    
+        assert result["loaded"] is False
+        assert result["source"] == {"source_type": "url", "url": "https://epg.example.com/**REDACTED**"}
+        assert result["options"] == {
+            "refresh_mode": "interval",
+            "refresh_hours": 24,
+            "naive_timezone": "utc",
+            "offset_minutes": 0,
+        }
+        assert result["health"] == {
+            "last_success": None,
+            "failing_since": NOW,
+            "last_failure": {"time": NOW, "reason": "unable_to_fetch"},
+            "consecutive_failures": 1,
+        }
+        assert result["cache"] is None
+        # The failed first run, read from the Store
+&gt;       assert result["last_attempt"] == {
+               ^^^^^^^^^^^^^^^^^^^^^^
+            "time": NOW,
+            "trigger": "startup",
+            "outcome": "failed",
+            "http_status": None,
+            "failure_reason": "unable_to_fetch",
+            "cache": "none",
+            "sent_etag": False,
+            "sent_last_modified": False,
+            "bytes": None,
+            "programmes": None,
+            "channels": None,
+            "parse_duration": None,
+        }
+E       KeyError: 'last_attempt'
+
+tests/test_diagnostics.py:200: KeyError</failure></testcase><testcase classname="tests.test_diagnostics" name="test_diagnostics_never_refresh" time="0.053" /><testcase classname="tests.test_diagnostics" name="test_skipped_malformed_is_reported" time="0.052" /><testcase classname="tests.test_diagnostics" name="test_daily_and_timezone_options_are_shown[daily_local_offset]" time="0.053" /><testcase classname="tests.test_diagnostics" name="test_daily_and_timezone_options_are_shown[defaults_filled_in]" time="0.054" /><testcase classname="tests.test_last_fetch_sensor" name="test_download_shows_last_fetch" time="0.060" /><testcase classname="tests.test_last_fetch_sensor" name="test_last_fetch_is_diagnostic_and_disabled_by_default" time="0.053" /><testcase classname="tests.test_last_fetch_sensor" name="test_not_modified_run" time="0.060" /><testcase classname="tests.test_last_fetch_sensor" name="test_identical_body_run" time="0.055" /><testcase classname="tests.test_last_fetch_sensor" name="test_scheduled_run" time="0.058" /><testcase classname="tests.test_last_fetch_sensor" name="test_failed_run_and_retry" time="0.062" /><testcase classname="tests.test_last_fetch_sensor" name="test_cache_start_and_revalidate" time="0.078" /><testcase classname="tests.test_last_fetch_sensor" name="test_file_source_runs" time="0.052" /><testcase classname="tests.test_last_fetch_sensor" name="test_same_instant_runs_keep_the_latest" time="0.060" /><testcase classname="tests.test_last_fetch_sensor" name="test_record_survives_restart" time="0.058"><failure message="KeyError: 'last_attempt'">hass = &lt;HomeAssistant RUNNING&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f91b0cbffb0&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f91b1ea0410&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f91b0b256f0&gt;
+
+    @pytest.mark.usefixtures("last_fetch_enabled")
+    async def test_record_survives_restart(
+        hass: HomeAssistant,
+        aioclient_mock: AiohttpClientMocker,
+        freezer: Any,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await setup_xmltv(FEED)
+        _serve(aioclient_mock, status=500)
+        freezer.move_to(LATER)
+        await entry.runtime_data.coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+    
+        # While the entry is not loaded, diagnostics read the last run from the Store
+        diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+        assert diagnostics["loaded"] is False
+&gt;       assert _pick(diagnostics["last_attempt"], "time", "outcome", "http_status", "failure_reason") == {
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "time": LATER,
+            "outcome": "failed",
+            "http_status": 500,
+            "failure_reason": "unable_to_fetch",
+        }
+E       KeyError: 'last_attempt'
+
+tests/test_last_fetch_sensor.py:371: KeyError</failure></testcase><testcase classname="tests.test_last_fetch_sensor" name="test_no_run_yet_is_unknown" time="0.058" /><testcase classname="tests.test_last_fetch_sensor" name="test_no_secrets_in_last_fetch" time="0.054" /></testsuite></testsuites>

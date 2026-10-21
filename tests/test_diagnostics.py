@@ -32,6 +32,21 @@ MALFORMED_FEED = FEED.replace(
     b"</tv>",
     b'<programme channel="zdf.de" stop="20261013210000 +0200"><title>No start</title></programme>\n</tv>',
 )
+# The run fields in the order the last-fetch sensor shows them (D-22)
+ATTEMPT_KEYS = (
+    "time",
+    "trigger",
+    "outcome",
+    "http_status",
+    "failure_reason",
+    "cache",
+    "sent_etag",
+    "sent_last_modified",
+    "bytes",
+    "programmes",
+    "channels",
+    "parse_duration",
+)
 pytestmark = pytest.mark.freeze_time(NOW)
 
 
@@ -73,6 +88,23 @@ async def test_diagnostics_end_to_end(
     }
     assert result["calendars"] == [{"title": "A", "matches": 4}, {"title": "B", "matches": 2}]
     assert result["next_refresh"] == "2026-10-14T06:00:00+00:00"
+    last_attempt = result["last_attempt"]
+    assert isinstance(last_attempt["parse_duration"], float)
+    assert list(last_attempt) == [*ATTEMPT_KEYS]
+    assert last_attempt == {
+        "time": NOW,
+        "trigger": "startup",
+        "outcome": "downloaded",
+        "http_status": 200,
+        "failure_reason": None,
+        "cache": "written",
+        "sent_etag": False,
+        "sent_last_modified": False,
+        "bytes": len(FEED),
+        "programmes": 4,
+        "channels": 2,
+        "parse_duration": last_attempt["parse_duration"],
+    }
     dumped = json.dumps(result)
     for secret in ("hunter2", "user:", "s3cret", "guide.xml", "v1-secret-etag", "Tagesschau"):
         assert secret not in dumped
@@ -164,6 +196,21 @@ async def test_diagnostics_for_not_loaded_entry(
         "consecutive_failures": 1,
     }
     assert result["cache"] is None
+    # The failed first run, read from the Store
+    assert result["last_attempt"] == {
+        "time": NOW,
+        "trigger": "startup",
+        "outcome": "failed",
+        "http_status": None,
+        "failure_reason": "unable_to_fetch",
+        "cache": "none",
+        "sent_etag": False,
+        "sent_last_modified": False,
+        "bytes": None,
+        "programmes": None,
+        "channels": None,
+        "parse_duration": None,
+    }
     assert result["stats"] is None
     assert result["calendars"] == []
     assert result["next_refresh"] is None
