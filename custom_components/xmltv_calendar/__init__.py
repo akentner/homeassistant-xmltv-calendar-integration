@@ -25,7 +25,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> boo
     await coordinator.async_config_entry_first_refresh()
     # Loaded before the platforms: entities read their seen-sets in their first refilter (no I/O in constructors)
     match_store = MatchStore(hass, cache_key(entry))
-    await match_store.async_load()
+    # Retained programmes are only valid under the timezone options they were parsed with
+    options = coordinator.source_options
+    await match_store.async_load(
+        fingerprint={"naive_timezone": options.naive_timezone, "offset_minutes": options.offset_minutes}
+    )
     match_store.retain_only(
         subentry_id
         for subentry_id, subentry in entry.subentries.items()

@@ -8,6 +8,7 @@ Store object that would not see the old object's pending data (RESEARCH Pitfall 
 """
 
 import logging
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
@@ -37,15 +38,27 @@ class MatchStore:
             hass, MATCH_STORE_VERSION, f"{DOMAIN}.matches.{key}", private=True, serialize_in_event_loop=False
         )
         self._records: Mapping[str, CalendarMatches] = {}
+        self._fingerprint: Mapping[str, object] = {}
 
-    async def async_load(self) -> None:
-        """Load the records; stored data that is unreadable or malformed counts as none."""
+    async def async_load(self, fingerprint: Mapping[str, object]) -> None:
+        """
+        Load the records; stored data that is unreadable or malformed counts as none.
+
+        `fingerprint` holds the source's timezone options. Retained programmes carry times corrected with the options
+        they were parsed under, so when the stored fingerprint differs they are all dropped; the seen-sets are kept
+        (RESEARCH Open Question 2).
+        """
         try:
             data = await self._store.async_load()
         except HomeAssistantError as err:
             _LOGGER.debug("Match store %s unreadable: %s", self._key, type(err).__name__)
             data = None
-        self._records = records_from_dict(data)
+        self._fingerprint = dict(fingerprint)
+        records = records_from_dict(data)
+        stored = data.get("source") if isinstance(data, dict) else None
+        if stored is not None and stored != self._fingerprint:
+            records = {sid: replace(record, retained=()) for sid, record in records.items()}
+        self._records = records
 
     def get(self, subentry_id: str) -> CalendarMatches:
         """Return the calendar's record, an empty one when there is none."""
@@ -71,7 +84,7 @@ class MatchStore:
 
     def _data_to_save(self) -> dict[str, Any]:
         # Runs in a worker thread: read the mapping once, it is never mutated after being replaced
-        return records_to_dict(self._records)
+        return {**records_to_dict(self._records), "source": dict(self._fingerprint)}
 
     async def async_flush(self) -> None:
         """Write the records now, cancelling a pending delayed save; a failed save is logged at DEBUG only."""

@@ -90,11 +90,21 @@ def _attempt(attempt: RefreshAttempt | None) -> dict[str, Any] | None:
 
 
 def _calendars(entry: XmltvConfigEntry, runtime: XmltvRuntimeData) -> list[dict[str, Any]]:
-    """Return title and match count of every calendar of the source, sorted by title; no filter settings."""
+    """
+    Return title and counts of every calendar of the source, sorted by title; no filter settings.
+
+    `matches` counts the feed's matches, `retained` the past matches shown from the store in addition (D-19).
+    """
     rows = []
     for subentry_id, entity in runtime.calendars.items():
         subentry = entry.subentries.get(subentry_id)
-        rows.append({"title": subentry.title if subentry is not None else subentry_id, "matches": entity.match_count})
+        rows.append(
+            {
+                "title": subentry.title if subentry is not None else subentry_id,
+                "matches": entity.match_count,
+                "retained": entity.retained_count,
+            }
+        )
     return sorted(rows, key=lambda row: row["title"])
 
 

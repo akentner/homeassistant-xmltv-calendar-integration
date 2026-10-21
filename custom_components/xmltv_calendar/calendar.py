@@ -1,13 +1,13 @@
 """Calendar platform: one entity (and one device) per calendar subentry."""
 
 import logging
+from dataclasses import replace
 from datetime import timedelta
-from functools import partial
 from typing import TYPE_CHECKING, override
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -28,20 +28,21 @@ from .xmltv.matches import (
     prune_seen,
     split_announcements,
 )
-from .xmltv.model import Channel
+from .xmltv.model import Channel, EpgData, ParseStats
 from .xmltv.settings import KEY_RETENTION_DAYS, with_defaults
 from .xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-    from datetime import datetime
+    from datetime import datetime, tzinfo
 
     from homeassistant.config_entries import ConfigSubentry
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from .data import XmltvConfigEntry
+    from .xmltv.filter import FilterResult
     from .xmltv.matches import RetainedMatch
-    from .xmltv.model import EpgData, Programme
+    from .xmltv.model import Programme
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,6 +88,22 @@ def _channel_map(feed: Mapping[str, Channel], retained: Sequence[RetainedMatch])
         if item.programme.channel_id not in feed
     }
     return {**feed, **missing} if missing else feed
+
+
+def _apply_filter(
+    spec: FilterSpec, epg: EpgData, recheck: tuple[Programme, ...] | None, tz: tzinfo
+) -> tuple[FilterResult, frozenset[Programme] | None]:
+    """
+    Filter the feed, and the retained candidates of a filter edit, in one executor job.
+
+    `recheck` holds the retained programmes and the previous run's matches; the ones the edited filter still matches
+    are returned, the others are dropped from retention (D-17). None skips the re-check.
+    """
+    result = spec.apply(epg, tz=tz)
+    if recheck is None:
+        return result, None
+    kept = spec.apply(EpgData(channels=epg.channels, programmes=recheck, stats=ParseStats()), tz=tz).matches
+    return result, frozenset(kept)
 
 
 def _build_spec(data: Mapping[str, object], name: str) -> FilterSpec | None:
@@ -169,20 +186,44 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
 
     @override
     async def async_added_to_hass(self) -> None:
-        """Filter the current data once the entity exists."""
+        """Filter the current data once the entity exists; capture ended matches when Home Assistant stops."""
         await super().async_added_to_hass()
+        # Entities are not removed at shutdown: the stop event is the last capture point before the final write.
+        # async_listen, not async_listen_once, so the unsubscribe at removal is always valid
+        self.async_on_remove(self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, self._handle_stop))
         await self._async_refilter(REFILTER_INITIAL)
 
     @override
     async def async_will_remove_from_hass(self) -> None:
         """
-        Discard refilters still in flight.
+        Capture ended matches, then discard refilters still in flight.
 
-        Unload flushes the match store after the entities are gone, and HA waits for entry tasks only afterwards: a late
-        run must not write to the old store (RESEARCH Pitfall 3) or bring back the record of a removed calendar.
+        The capture keeps matches that ended since the last refilter, which the next parse may drop (RESEARCH Pitfall
+        4). Unload flushes the match store after the entities are gone, and HA waits for entry tasks only afterwards:
+        a late run must not write to the old store (RESEARCH Pitfall 3) or bring back the record of a removed calendar.
         """
+        self._capture_now()
         self._generation += 1
         await super().async_will_remove_from_hass()
+
+    @callback
+    def _handle_stop(self, _event: Event) -> None:
+        self._capture_now()
+
+    @callback
+    def _capture_now(self) -> None:
+        """Add the current feed matches that have ended to the stored retained list; no refilter, no state write."""
+        if self._retention_days <= 0 or not self._feed_matches or self._subentry_id not in self._entry.subentries:
+            return
+        store = self._entry.runtime_data.match_store
+        record = store.get(self._subentry_id)
+        now = dt_util.utcnow()
+        retained = prune_retained(
+            capture_ended(record.retained, self._feed_matches, self._channels, now),
+            now - timedelta(days=self._retention_days),
+        )
+        if retained != record.retained:
+            store.put(self._subentry_id, replace(record, retained=retained))
 
     @property
     @override
@@ -226,22 +267,31 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             self.async_write_ha_state()
             async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
             return
-        # Window and weekdays use Home Assistant's configured time zone (D-10); the executor helper takes no kwargs
-        result = await self.hass.async_add_executor_job(
-            partial(self._spec.apply, epg, tz=dt_util.get_default_time_zone())
+        store = self._entry.runtime_data.match_store
+        # A filter edit re-checks the retained programmes and the previous run's matches against the new filter (D-17)
+        recheck = (
+            (*(item.programme for item in store.get(self._subentry_id).retained), *self._feed_matches)
+            if reason == REFILTER_CONFIG
+            else None
+        )
+        # Window and weekdays use Home Assistant's configured time zone (D-10)
+        result, allowed = await self.hass.async_add_executor_job(
+            _apply_filter, self._spec, epg, recheck, dt_util.get_default_time_zone()
         )
         if generation != self._generation:
             return
-        store = self._entry.runtime_data.match_store
         record = store.get(self._subentry_id)
+        previous = self._feed_matches
+        kept = record.retained
+        if allowed is not None:
+            kept = tuple(item for item in kept if item.programme in allowed)
+            previous = tuple(programme for programme in previous if programme in allowed)
         now = dt_util.utcnow()
         cutoff = now - timedelta(days=self._retention_days)
         # Ended matches of the previous and the new run are retained: the parser drops programmes that ended more than
         # a day ago, so the previous run may hold the only copy (D-16, RESEARCH Pitfall 4)
         retained = (
-            capture_ended(
-                record.retained, (*self._feed_matches, *result.matches), {**self._channels, **epg.channels}, now
-            )
+            capture_ended(kept, (*previous, *result.matches), {**self._channels, **epg.channels}, now)
             if self._retention_days > 0
             else ()
         )
@@ -326,7 +376,8 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
     @property
     def retained_count(self) -> int:
         """Number of retained past matches shown in addition to the feed's matches (diagnostics, D-19)."""
-        return len(self._retained_shown)
+        cutoff = dt_util.utcnow() - timedelta(days=self._retention_days)
+        return sum(1 for programme in self._retained_shown if programme.stop >= cutoff)
 
     def differs_from(self, subentry: ConfigSubentry) -> bool:
         """Return whether `subentry` has another title or data than the entity was last built from."""
@@ -337,6 +388,10 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         refilter = False
         write_state = False
         if subentry.data != self._subentry_data:
+            # A retention edit applies in place; the refilter re-applies the window (D-14)
+            retention_days = with_defaults(subentry.data)[KEY_RETENTION_DAYS]
+            refilter = retention_days != self._retention_days
+            self._retention_days = retention_days
             # Templates only change the event text: rebuilt without a refilter (EVT-03, EVT-04)
             templates = render.EventTemplates.from_mapping(subentry.data)
             write_state = templates != self._templates
@@ -387,6 +442,10 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             return []
         channels = self._channels
         programmes = self._index.overlapping(start_date, end_date)
+        if self._retained_shown:
+            # A retained programme leaves exactly when its window ends, also while unchanged feeds skip the refilter
+            cutoff = dt_util.utcnow() - timedelta(days=self._retention_days)
+            programmes = [p for p in programmes if p.stop >= cutoff or p not in self._retained_shown]
         if len(programmes) > MAX_EVENTS_PER_QUERY:
             _LOGGER.debug(
                 "Calendar %s: %d matches between %s and %s, returning the first %d",
