@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-10-21T09:23:07.403Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-10-21T09:35:54.317Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: a3948aff0984faef8fe861929d7c7f7763f059b0
+state_head: 6d43f8c40ad6da6b4bf316da5b3f8beab77c1c63
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 34
+  completed_plans: 35
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-10-21 — Phase 04 execution started
 
@@ -92,6 +92,7 @@ Progress: [████████░░] 75%
 | Phase 04 P01 | 8 min | 3 tasks | 10 files |
 | Phase 04 P02 | 41 min | 2 tasks | 5 files |
 | Phase 04 P03 | 2 min | 2 tasks | 4 files |
+| Phase 04 P04 | 10min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -201,6 +202,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Blueprint notify_entity is optional; default action is if-guarded on notify_entity | count > 0 so users replacing the actions need no notify entity
 - [Phase 04]: Blueprint description variable uses | default('') because CalendarEvent.as_dict() omits a missing description
 - [Phase 04]: 04-03: release.yml is a verbatim copy of the sibling workflow with only the manifest path changed (D-29); tests execute its check-version and release scripts (bash, jq, stub gh) and shellcheck every workflow run step
+- [Phase 04]: 04-04: New-match events fire only for refilter reason data after the entity's first completed refilter; initial (add, restart, reload, source option change) and config (filter/template edit) refilters update the persisted seen-set silently (D-10, D-11), no fingerprint
+- [Phase 04]: 04-04: Burst cap 50 events per calendar and refresh (earliest first, one WARNING); seen entries pruned at stop < now - KEEP_PAST until 04-06 introduces per-calendar retention
+- [Phase 04]: 04-04: Match store xmltv_calendar.matches.<cache key> is flushed on unload and calendars discard in-flight refilters on removal, so a late run never re-arms the old Store's delayed save (Pitfall 3)
 
 ### Pending Todos
 
@@ -235,6 +239,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T09:23:07.160Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-10-21T09:35:54.044Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
