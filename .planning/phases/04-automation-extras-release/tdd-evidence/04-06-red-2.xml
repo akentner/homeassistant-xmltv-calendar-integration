@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="119" time="2.615" timestamp="2026-10-21T12:02:58.255741+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.xmltv.test_matches" name="test_new_matches_only_future_unseen" time="0.192" /><testcase classname="tests.xmltv.test_matches" name="test_new_matches_keeps_unrelated_seen_entries" time="0.022" /><testcase classname="tests.xmltv.test_matches" name="test_split_announcements" time="0.030" /><testcase classname="tests.xmltv.test_matches" name="test_prune_seen" time="0.024" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[None-None]" time="0.026" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored1-None]" time="0.012" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored2-None]" time="0.013" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored3-None]" time="0.011" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored4-expected_seen4]" time="0.011" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored5-expected_seen5]" time="0.013" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored6-expected_seen6]" time="0.021" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored7-expected_seen7]" time="0.020" /><testcase classname="tests.xmltv.test_matches" name="test_records_from_dict_is_tolerant[stored8-expected_seen8]" time="0.013" /><testcase classname="tests.xmltv.test_matches" name="test_records_round_trip" time="0.012" /><testcase classname="tests.xmltv.test_matches" name="test_capture_ended" time="0.012" /><testcase classname="tests.xmltv.test_matches" name="test_capture_ended_channel_name_fallbacks" time="0.013" /><testcase classname="tests.xmltv.test_matches" name="test_prune_retained_boundary" time="0.020" /><testcase classname="tests.xmltv.test_matches" name="test_merge_matches_prefers_feed" time="0.010" /><testcase classname="tests.xmltv.test_matches" name="test_retained_cap" time="0.072"><failure message="AssertionError: assert (RetainedMatc...ame='X'), ...) == (RetainedMatc...ame='X'), ...)&#10;  &#10;  At index 0 diff: RetainedMatch(programme=Programme(channel_id='ch.example', start=datetime.datetime(2026, 10, 13, 11, 29, tzinfo=datetime.timezone.utc), stop=datetime.datetime(2026, 10, 13, 11, 59, tzinfo=datetime.timezone.utc), titles=('P1',), sub_titles=(), description=None, categories=(), episode=None), channel_name='X') != RetainedMatch(programme=Programme(channel_id='ch.example', start=datetime.datetime(2026, 10, 10, 0, 11, tzinfo=datetime.timezone.utc), stop=datetime.datetime(2026, 10, 10, 0, 41, tzinfo=datetime.timezone.utc), titles=('P4999',), sub_titles=(), des...&#10;  &#10;  ...Full output truncated (3 lines hidden), use '-vv' to show">def test_retained_cap() -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import MAX_RETAINED, RetainedMatch, prune_retained
+    
+        items = [RetainedMatch(_ended(f"P{i}", NOW - timedelta(minutes=i)), "X") for i in range(MAX_RETAINED + 3)]
+        shuffled = items[1::2] + items[::2]  # not in start order
+    
+        result = prune_retained(shuffled, NOW - timedelta(days=7))
+    
+        # The latest-starting ones are kept, in start order (T-04-17)
+        assert MAX_RETAINED == 5000
+&gt;       assert result == tuple(sorted(items[:MAX_RETAINED], key=lambda item: item.programme.start))
+E       AssertionError: assert (RetainedMatc...ame='X'), ...) == (RetainedMatc...ame='X'), ...)
+E         
+E         At index 0 diff: RetainedMatch(programme=Programme(channel_id='ch.example', start=datetime.datetime(2026, 10, 13, 11, 29, tzinfo=datetime.timezone.utc), stop=datetime.datetime(2026, 10, 13, 11, 59, tzinfo=datetime.timezone.utc), titles=('P1',), sub_titles=(), description=None, categories=(), episode=None), channel_name='X') != RetainedMatch(programme=Programme(channel_id='ch.example', start=datetime.datetime(2026, 10, 10, 0, 11, tzinfo=datetime.timezone.utc), stop=datetime.datetime(2026, 10, 10, 0, 41, tzinfo=datetime.timezone.utc), titles=('P4999',), sub_titles=(), des...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests/xmltv/test_matches.py:182: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip" time="0.012" /><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[naive_start]" time="0.013"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'start': '2026-10-13T10:00:00'}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[naive_stop]" time="0.017"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'stop': '2026-10-13T11:30:00'}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[unparsable_start]" time="0.014" /><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[int_start]" time="0.017" /><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[stop_before_start]" time="0.011"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'stop': '2026-10-13T09:00:00+00:00'}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[empty_titles]" time="0.014"><failure message="IndexError: tuple index out of range">change = {'titles': []}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+                ^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_matches.py:258: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Programme(channel_id='daserste.de', start=datetime.datetime(2026, 10, 13, 10, 0, tzinfo=datetime.timezone.utc), stop=d...tetime.timezone.utc), titles=(), sub_titles=('Qualifying',), description='Live', categories=('Sport',), episode='1.2.')
+
+    @property
+    def title(self) -&gt; str:
+        """Return the display title (the first title element)."""
+&gt;       return self.titles[0]
+               ^^^^^^^^^^^^^^
+E       IndexError: tuple index out of range
+
+custom_components/xmltv_calendar/xmltv/model.py:35: IndexError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[none_titles]" time="0.014" /><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[non_string_title]" time="0.013"><failure message="AssertionError: assert ['Formel 1', 'ok'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'ok'&#10;  Use -v to get more diff">change = {'titles': ['ok', 5]}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'ok'] == ['Formel 1']
+E         
+E         Left contains one more item: 'ok'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[string_titles]" time="0.017"><failure message="AssertionError: assert ['Formel 1', 'F'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'F'&#10;  Use -v to get more diff">change = {'titles': 'Formel 1'}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'F'] == ['Formel 1']
+E         
+E         Left contains one more item: 'F'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[int_channel_id]" time="0.014"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'channel_id': 5}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[empty_channel_id]" time="0.015"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'channel_id': ''}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[none_channel_name]" time="0.018"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'channel_name': None}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[none_sub_titles]" time="0.023" /><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[string_categories]" time="0.020"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'categories': 'Sport'}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[int_description]" time="0.012"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'description': 5}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[list_episode]" time="0.014"><failure message="AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']&#10;  &#10;  Left contains one more item: 'Formel 1'&#10;  Use -v to get more diff">change = {'episode': ['1']}
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+            pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+            pytest.param({"start": "yesterday"}, id="unparsable_start"),
+            pytest.param({"start": 1793000000}, id="int_start"),
+            pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+            pytest.param({"titles": []}, id="empty_titles"),
+            pytest.param({"titles": None}, id="none_titles"),
+            pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+            pytest.param({"titles": "Formel 1"}, id="string_titles"),
+            pytest.param({"channel_id": 5}, id="int_channel_id"),
+            pytest.param({"channel_id": ""}, id="empty_channel_id"),
+            pytest.param({"channel_name": None}, id="none_channel_name"),
+            pytest.param({"sub_titles": None}, id="none_sub_titles"),
+            pytest.param({"categories": "Sport"}, id="string_categories"),
+            pytest.param({"description": 5}, id="int_description"),
+            pytest.param({"episode": ["1"]}, id="list_episode"),
+            pytest.param({"stop": None}, id="none_stop"),
+        ],
+    )
+    def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -&gt; None:
+        from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+    
+        good = _stored_retained()
+        bad = {**good, **change}
+        records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+    
+        # Only the valid item survives; nothing raises (T-04-18)
+&gt;       assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+E       AssertionError: assert ['Formel 1', 'Formel 1'] == ['Formel 1']
+E         
+E         Left contains one more item: 'Formel 1'
+E         Use -v to get more diff
+
+tests/xmltv/test_matches.py:258: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_matches" name="test_retained_roundtrip_and_tolerance[none_stop]" time="0.014" /><testcase classname="tests.xmltv.test_matches" name="test_retained_missing_or_malformed_list" time="0.023" /><testcase classname="tests.xmltv.test_settings" name="test_key_names_are_the_flat_contract" time="0.027" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_of_empty_mapping" time="0.022" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_keeps_given_values" time="0.021" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_keeps_phase1_data" time="0.019" /><testcase classname="tests.xmltv.test_settings" name="test_advanced_defaults_are_the_phase2_defaults" time="0.016" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-string]" time="0.021" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-unknown-dup]" time="0.022" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-empty]" time="0.013" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-none]" time="0.026" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-only-unknown]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-ordered]" time="0.016" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[fields-wrong-items]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[case-string]" time="0.012" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[case-int]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[case-true]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-with-seconds]" time="0.012" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-hh-mm]" time="0.016" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-out-of-range]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-int]" time="0.012" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-hours-only]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[time-with-offset]" time="0.013" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[weekdays-ordered]" time="0.017" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[weekdays-string]" time="0.016" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-float]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-zero]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-negative]" time="0.015" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-bool]" time="0.013" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-string]" time="0.016" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-nan]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[duration-inf]" time="0.012" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-empty]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-blank]" time="0.020" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-int]" time="0.017" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[title-template-kept]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[description-template-none]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[description-template-kept]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[channels-string]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[channels-dedup]" time="0.015" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[channels-int]" time="0.018" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[include-none]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[exclude-list]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-3]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-0]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-7]" time="0.019" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-above-max]" time="0.023" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-negative]" time="0.012" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-fraction]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-bool]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-string]" time="0.013" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-none]" time="0.016" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-nan]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_tolerant_read[retention-inf]" time="0.017" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_never_raises_and_drops_unknown_keys" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data0]" time="0.012" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data1]" time="0.021" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data2]" time="0.022" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data3]" time="0.021" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_is_idempotent[data4]" time="0.011" /><testcase classname="tests.xmltv.test_settings" name="test_with_defaults_returns_fresh_lists" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[empty]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[phase1]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[explicit-defaults]" time="0.025" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[default-fields-reordered]" time="0.020" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[invalid-values-are-defaults]" time="0.017" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[weekdays]" time="0.017" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[title-template]" time="0.022" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[case-sensitive]" time="0.019" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[exclude-fields]" time="0.023" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[zero-duration]" time="0.023" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[retention-days]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_has_advanced[retention-default]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[00:00-00:00]" time="0.022" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[23:59:59-23:59]" time="0.018" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[07:05-07:05]" time="0.013" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[7:05-None]" time="0.024" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[24:00-None]" time="0.022" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[12:60-None]" time="0.017" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[-None]" time="0.014" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[None-None]" time="0.010" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[1200-None]" time="0.009" /><testcase classname="tests.xmltv.test_settings" name="test_normalize_time[ab:cd-None]" time="0.014" /></testsuite></testsuites>

@@ -143,6 +143,17 @@ def test_advanced_defaults_are_the_phase2_defaults() -> None:
         pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
         pytest.param(KEY_INCLUDE, None, "", id="include-none"),
         pytest.param(KEY_EXCLUDE, ["x"], "", id="exclude-list"),
+        pytest.param(KEY_RETENTION_DAYS, 3, 3, id="retention-3"),
+        pytest.param(KEY_RETENTION_DAYS, 0, 0, id="retention-0"),
+        pytest.param(KEY_RETENTION_DAYS, 7, 7, id="retention-7"),
+        pytest.param(KEY_RETENTION_DAYS, 8, 7, id="retention-above-max"),
+        pytest.param(KEY_RETENTION_DAYS, -1, 0, id="retention-negative"),
+        pytest.param(KEY_RETENTION_DAYS, 2.9, 2, id="retention-fraction"),
+        pytest.param(KEY_RETENTION_DAYS, True, 1, id="retention-bool"),
+        pytest.param(KEY_RETENTION_DAYS, "3", 1, id="retention-string"),
+        pytest.param(KEY_RETENTION_DAYS, None, 1, id="retention-none"),
+        pytest.param(KEY_RETENTION_DAYS, float("nan"), 1, id="retention-nan"),
+        pytest.param(KEY_RETENTION_DAYS, float("inf"), 1, id="retention-inf"),
     ],
 )
 def test_with_defaults_tolerant_read(key: str, stored: object, expected: object) -> None:
@@ -209,6 +220,8 @@ def test_with_defaults_returns_fresh_lists() -> None:
         pytest.param({KEY_CASE_SENSITIVE: True}, True, id="case-sensitive"),
         pytest.param({KEY_EXCLUDE_FIELDS: [FIELD_DESCRIPTION]}, True, id="exclude-fields"),
         pytest.param({KEY_MAX_DURATION: 0}, True, id="zero-duration"),
+        pytest.param({KEY_RETENTION_DAYS: 3}, True, id="retention-days"),
+        pytest.param({KEY_RETENTION_DAYS: 1}, False, id="retention-default"),
     ],
 )
 def test_has_advanced(data: dict[str, Any], *, expected: bool) -> None:

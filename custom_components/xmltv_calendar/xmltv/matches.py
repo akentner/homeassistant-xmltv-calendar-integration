@@ -25,6 +25,10 @@ if TYPE_CHECKING:
     from .model import Channel
 
 
+# Bound of one calendar's retained matches (T-04-17); RED stub, applied by prune_retained in GREEN
+MAX_RETAINED = 5000
+
+
 @dataclass(slots=True, frozen=True)
 class RetainedMatch:
     """An ended match kept after the feed may have dropped it: raw programme data plus the channel's name (D-17)."""

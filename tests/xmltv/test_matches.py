@@ -103,3 +103,163 @@ def test_records_round_trip() -> None:
 
     records = {"s1": CalendarMatches(seen={"u1": 1, "u2": 2}), "s2": CalendarMatches()}
     assert records_from_dict(records_to_dict(records)) == records
+
+
+# Retained past matches (EVT-07, D-15..D-18)
+
+CUTOFF = NOW - timedelta(days=1)
+
+
+def _ended(title: str, stop: datetime, channel_id: str = "ch.example") -> Programme:
+    """Return a 30-minute programme that stops at `stop`."""
+    return _programme(title, stop - timedelta(minutes=30), channel_id)
+
+
+def test_capture_ended() -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import RetainedMatch, capture_ended
+    from custom_components.xmltv_calendar.xmltv.model import Channel
+
+    channels = {"ch.example": Channel("ch.example", "Example TV")}
+    old = RetainedMatch(_ended("Old", NOW - timedelta(hours=5)), "Example TV")
+    ended = _ended("Ended", NOW - timedelta(hours=1))
+    edge = _ended("Edge", NOW)  # stop == now counts as ended (D-16)
+    airing = _ended("Airing", NOW + timedelta(minutes=10))
+    future = _programme("Future", NOW + timedelta(hours=1))
+
+    result = capture_ended((old,), [ended, edge, airing, future, old.programme, ended], channels, NOW)
+
+    assert result == (old, RetainedMatch(ended, "Example TV"), RetainedMatch(edge, "Example TV"))
+
+
+def test_capture_ended_channel_name_fallbacks() -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import RetainedMatch, capture_ended
+
+    previous = RetainedMatch(_ended("Previous", NOW - timedelta(hours=6), "gone.de"), "Gone TV")
+    gone = _ended("Gone", NOW - timedelta(hours=1), "gone.de")
+    unknown = _ended("Unknown", NOW - timedelta(hours=1), "unknown.de")
+
+    result = capture_ended((previous,), [gone, unknown], {}, NOW)
+
+    # No channel map entry: the name a retained match on the channel has, else the channel ID (Pitfall 11)
+    assert [item.channel_name for item in result] == ["Gone TV", "Gone TV", "unknown.de"]
+
+
+def test_prune_retained_boundary() -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import RetainedMatch, prune_retained
+
+    edge = RetainedMatch(_ended("Edge", CUTOFF), "X")
+    early = RetainedMatch(_ended("Early", CUTOFF - timedelta(seconds=1)), "X")
+
+    assert prune_retained((early, edge), CUTOFF) == (edge,)
+
+
+def test_merge_matches_prefers_feed() -> None:
+    from dataclasses import replace
+
+    from custom_components.xmltv_calendar.xmltv.matches import RetainedMatch, merge_matches
+
+    a = _ended("A", NOW - timedelta(hours=2))
+    b = _programme("B", NOW + timedelta(hours=1))
+    c = _ended("C", NOW - timedelta(hours=3))
+    # Same UID as the feed's A, older text: the feed wins (D-18)
+    stale_a = replace(a, description="old text")
+    retained = (RetainedMatch(stale_a, "X"), RetainedMatch(c, "X"))
+
+    assert merge_matches([a, b], retained) == [a, b, c]
+    assert merge_matches([], retained) == [stale_a, c]
+
+
+def test_retained_cap() -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import MAX_RETAINED, RetainedMatch, prune_retained
+
+    items = [RetainedMatch(_ended(f"P{i}", NOW - timedelta(minutes=i)), "X") for i in range(MAX_RETAINED + 3)]
+    shuffled = items[1::2] + items[::2]  # not in start order
+
+    result = prune_retained(shuffled, NOW - timedelta(days=7))
+
+    # The latest-starting ones are kept, in start order (T-04-17)
+    assert MAX_RETAINED == 5000
+    assert result == tuple(sorted(items[:MAX_RETAINED], key=lambda item: item.programme.start))
+
+
+def _stored_retained() -> dict[str, object]:
+    return {
+        "channel_id": "daserste.de",
+        "channel_name": "Das Erste",
+        "start": "2026-10-13T10:00:00+00:00",
+        "stop": "2026-10-13T11:30:00+00:00",
+        "titles": ["Formel 1", "Formula 1"],
+        "sub_titles": ["Qualifying"],
+        "description": "Live",
+        "categories": ["Sport"],
+        "episode": "1.2.",
+    }
+
+
+def test_retained_roundtrip() -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import (
+        CalendarMatches,
+        RetainedMatch,
+        records_from_dict,
+        records_to_dict,
+    )
+
+    full = Programme(
+        channel_id="daserste.de",
+        start=datetime.fromisoformat("2026-10-13T12:00:00+02:00"),
+        stop=datetime.fromisoformat("2026-10-13T13:30:00+02:00"),
+        titles=("Formel 1", "Formula 1"),
+        sub_titles=("Qualifying",),
+        description="Live",
+        categories=("Sport", "Motorsport"),
+        episode="1.2.",
+    )
+    bare = _ended("Bare", NOW - timedelta(hours=1))
+    records = {
+        "s1": CalendarMatches(
+            seen={"u": 1}, retained=(RetainedMatch(full, "Das Erste"), RetainedMatch(bare, "ch.example"))
+        ),
+        "s2": CalendarMatches(),
+    }
+
+    assert records_from_dict(records_to_dict(records)) == records
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param({"start": "2026-10-13T10:00:00"}, id="naive_start"),
+        pytest.param({"stop": "2026-10-13T11:30:00"}, id="naive_stop"),
+        pytest.param({"start": "yesterday"}, id="unparsable_start"),
+        pytest.param({"start": 1793000000}, id="int_start"),
+        pytest.param({"stop": "2026-10-13T09:00:00+00:00"}, id="stop_before_start"),
+        pytest.param({"titles": []}, id="empty_titles"),
+        pytest.param({"titles": None}, id="none_titles"),
+        pytest.param({"titles": ["ok", 5]}, id="non_string_title"),
+        pytest.param({"titles": "Formel 1"}, id="string_titles"),
+        pytest.param({"channel_id": 5}, id="int_channel_id"),
+        pytest.param({"channel_id": ""}, id="empty_channel_id"),
+        pytest.param({"channel_name": None}, id="none_channel_name"),
+        pytest.param({"sub_titles": None}, id="none_sub_titles"),
+        pytest.param({"categories": "Sport"}, id="string_categories"),
+        pytest.param({"description": 5}, id="int_description"),
+        pytest.param({"episode": ["1"]}, id="list_episode"),
+        pytest.param({"stop": None}, id="none_stop"),
+    ],
+)
+def test_retained_roundtrip_and_tolerance(change: dict[str, object]) -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import records_from_dict
+
+    good = _stored_retained()
+    bad = {**good, **change}
+    records = records_from_dict({"calendars": {"s": {"seen": {}, "retained": [good, bad, "junk", 5]}}})
+
+    # Only the valid item survives; nothing raises (T-04-18)
+    assert [item.programme.title for item in records["s"].retained] == ["Formel 1"]
+
+
+def test_retained_missing_or_malformed_list() -> None:
+    from custom_components.xmltv_calendar.xmltv.matches import CalendarMatches, records_from_dict
+
+    assert records_from_dict({"calendars": {"s": {"seen": {}}}}) == {"s": CalendarMatches()}
+    assert records_from_dict({"calendars": {"s": {"seen": {}, "retained": {"a": 1}}}}) == {"s": CalendarMatches()}
