@@ -10,6 +10,7 @@ from .calendar import XmltvCalendarEntity
 from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator, issue_id
 from .data import XmltvConfigEntry, XmltvRuntimeData
+from .sensor import async_add_subentry_sensors
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -38,19 +39,26 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
         hass.config_entries.async_schedule_reload(entry.entry_id)
         return
     for subentry_id in set(runtime.calendars) - set(entry.subentries):
-        runtime.calendars.pop(subentry_id)  # HA already removed the entity and its device
+        runtime.calendars.pop(subentry_id)  # HA already removed the entities and their device
+    for subentry_id in runtime.sensors - set(entry.subentries):
+        runtime.sensors.discard(subentry_id)
     # Edited calendars are applied in place (D-04); listener calls run as concurrent tasks, so iterate over a copy
     for subentry_id, entity in list(runtime.calendars.items()):
         subentry = entry.subentries.get(subentry_id)
         if subentry is not None and entity.differs_from(subentry):
             await entity.async_apply_subentry(subentry)
-    if runtime.add_entities is None:  # platform not set up yet: its setup loop picks the subentries up
-        return
+    # A platform not set up yet has no callback: its own setup loop picks the subentries up (RESEARCH Pitfall 2)
+    add_calendar = runtime.add_entities.get(Platform.CALENDAR)
+    sensors_ready = Platform.SENSOR in runtime.add_entities
     for subentry_id, subentry in entry.subentries.items():
-        if subentry.subentry_type == SUBENTRY_TYPE_CALENDAR and subentry_id not in runtime.calendars:
+        if subentry.subentry_type != SUBENTRY_TYPE_CALENDAR:
+            continue
+        if add_calendar is not None and subentry_id not in runtime.calendars:
             entity = XmltvCalendarEntity(runtime.coordinator, entry, subentry)
             runtime.calendars[subentry_id] = entity
-            runtime.add_entities([entity], config_subentry_id=subentry_id)
+            add_calendar([entity], config_subentry_id=subentry_id)
+        if sensors_ready and subentry_id not in runtime.sensors:
+            async_add_subentry_sensors(runtime, entry, subentry)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bool:

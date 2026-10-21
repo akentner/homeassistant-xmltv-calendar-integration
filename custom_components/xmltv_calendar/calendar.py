@@ -5,6 +5,7 @@ from functools import partial
 from typing import TYPE_CHECKING, override
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
@@ -96,7 +97,7 @@ async def async_setup_entry(
 ) -> None:
     """Add one calendar per subentry and keep the callback for subentries added later."""
     runtime = entry.runtime_data
-    runtime.add_entities = async_add_entities
+    runtime.add_entities[Platform.CALENDAR] = async_add_entities
     for subentry_id, subentry in entry.subentries.items():
         if subentry.subentry_type != SUBENTRY_TYPE_CALENDAR or subentry_id in runtime.calendars:
             continue
@@ -243,8 +244,9 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             return
         if refilter:
             await self._async_refilter()
-        elif write_state:
+        elif write_state:  # a refilter sends the signal itself
             self.async_write_ha_state()
+            async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
 
     @property
     @override
