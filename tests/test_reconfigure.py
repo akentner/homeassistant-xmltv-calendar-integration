@@ -376,7 +376,7 @@ async def test_phase1_calendar_edit_keeps_events(
 
     stored = dict(entry.subentries[a_id].data)
     assert stored == with_defaults(PHASE1_DATA)
-    assert len(stored) == 14
+    assert len(stored) == 15  # the 14 Phase 2 keys plus retention_days (04-06)
     assert await _summaries(hass, "calendar.a") == before
 
 

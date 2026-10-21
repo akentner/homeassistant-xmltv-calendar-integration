@@ -21,6 +21,7 @@ from custom_components.xmltv_calendar.xmltv.settings import (
     KEY_INCLUDE_FIELDS,
     KEY_MAX_DURATION,
     KEY_MIN_DURATION,
+    KEY_RETENTION_DAYS,
     KEY_TIME_FROM,
     KEY_TIME_TO,
     KEY_TITLE_TEMPLATE,
@@ -45,7 +46,7 @@ FULL_DEFAULTS: dict[str, Any] = {
     KEY_MAX_DURATION: None,
     KEY_TITLE_TEMPLATE: DEFAULT_TITLE_TEMPLATE,
     KEY_DESCRIPTION_TEMPLATE: "",
-    "retention_days": 1,
+    KEY_RETENTION_DAYS: 1,
 }
 PHASE1_DATA: dict[str, Any] = {
     KEY_CHANNELS: ["daserste.de"],

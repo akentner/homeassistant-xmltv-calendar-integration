@@ -1,7 +1,7 @@
 """Calendar platform: one entity (and one device) per calendar subentry."""
 
 import logging
-from dataclasses import replace
+from datetime import timedelta
 from functools import partial
 from typing import TYPE_CHECKING, override
 
@@ -15,11 +15,21 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, EVENT_NEW_MATCH, KEEP_PAST, MAX_NEW_MATCH_EVENTS, SUBENTRY_TYPE_CALENDAR
+from .const import DOMAIN, EVENT_NEW_MATCH, MAX_NEW_MATCH_EVENTS, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator
 from .xmltv import render
 from .xmltv.filter import PATTERN_ERRORS, FilterSpec
-from .xmltv.matches import new_matches, prune_seen, split_announcements
+from .xmltv.matches import (
+    CalendarMatches,
+    capture_ended,
+    merge_matches,
+    new_matches,
+    prune_retained,
+    prune_seen,
+    split_announcements,
+)
+from .xmltv.model import Channel
+from .xmltv.settings import KEY_RETENTION_DAYS, with_defaults
 from .xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
@@ -30,7 +40,8 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from .data import XmltvConfigEntry
-    from .xmltv.model import Channel, EpgData, Programme
+    from .xmltv.matches import RetainedMatch
+    from .xmltv.model import EpgData, Programme
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +77,16 @@ def _to_event(programme: Programme, channels: Mapping[str, Channel], templates: 
         end=dt_util.as_local(programme.stop),
         **render.to_event_fields(programme, channels.get(programme.channel_id), templates),
     )
+
+
+def _channel_map(feed: Mapping[str, Channel], retained: Sequence[RetainedMatch]) -> Mapping[str, Channel]:
+    """Return the feed's channels plus the stored names of retained matches' channels the feed lacks (Pitfall 11)."""
+    missing = {
+        item.programme.channel_id: Channel(item.programme.channel_id, item.channel_name)
+        for item in retained
+        if item.programme.channel_id not in feed
+    }
+    return {**feed, **missing} if missing else feed
 
 
 def _build_spec(data: Mapping[str, object], name: str) -> FilterSpec | None:
@@ -131,9 +152,16 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         self._subentry_data = subentry.data
         self._spec = _build_spec(subentry.data, subentry.title)
         self._templates = render.EventTemplates.from_mapping(subentry.data)
+        self._retention_days: int = with_defaults(subentry.data)[KEY_RETENTION_DAYS]
         self._attr_unique_id = subentry.subentry_id
         self._attr_device_info = device_info(subentry.subentry_id, subentry.title)
         self._epg: EpgData | None = None
+        # Feed channels plus the names of retained matches' channels: used for every rendering (Pitfall 11)
+        self._channels: Mapping[str, Channel] = {}
+        # The current feed's matches; the previous run's are capture candidates, the parser drops them later (Pitfall 4)
+        self._feed_matches: tuple[Programme, ...] = ()
+        # Retained programmes merged into the index in addition to the feed's matches (D-18)
+        self._retained_shown: frozenset[Programme] = frozenset()
         self._index = MatchIndex(())
         self._generation = 0
         # True once a refilter completed: the matches it saw are the silent baseline (D-10)
@@ -190,6 +218,9 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             return
         if self._spec is None:  # stored pattern does not compile: no matches, other calendars unaffected
             self._epg = epg
+            self._channels = epg.channels
+            self._feed_matches = ()
+            self._retained_shown = frozenset()
             self._index = MatchIndex(())
             self._baseline_ready = True
             self.async_write_ha_state()
@@ -204,12 +235,27 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         store = self._entry.runtime_data.match_store
         record = store.get(self._subentry_id)
         now = dt_util.utcnow()
+        cutoff = now - timedelta(days=self._retention_days)
+        # Ended matches of the previous and the new run are retained: the parser drops programmes that ended more than
+        # a day ago, so the previous run may hold the only copy (D-16, RESEARCH Pitfall 4)
+        retained = (
+            capture_ended(
+                record.retained, (*self._feed_matches, *result.matches), {**self._channels, **epg.channels}, now
+            )
+            if self._retention_days > 0
+            else ()
+        )
+        retained = prune_retained(retained, cutoff)
         new, seen = new_matches(result.matches, record.seen, now)
-        # Entries ended before the retention window can never fire again (D-13); 04-06 makes the window per calendar
-        store.put(self._subentry_id, replace(record, seen=prune_seen(seen, now - KEEP_PAST)))
+        # Entries ended before the retention window can never fire again (D-13)
+        store.put(self._subentry_id, CalendarMatches(seen=prune_seen(seen, cutoff), retained=retained))
         fire = reason == REFILTER_DATA and self._baseline_ready
+        merged = merge_matches(result.matches, retained)
         self._epg = epg
-        self._index = MatchIndex(result.matches)
+        self._channels = _channel_map(epg.channels, retained)
+        self._feed_matches = result.matches
+        self._retained_shown = frozenset(merged[len(result.matches) :])
+        self._index = MatchIndex(merged)
         self._baseline_ready = True
         if result.missing_channels:
             _LOGGER.warning(
@@ -258,8 +304,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         title is the raw feed title, summary the title rendered with the calendar's template, start and end are
         ISO 8601 in Home Assistant's local time; values the feed lacks are None.
         """
-        channels = self._epg.channels if self._epg is not None else {}
-        values = render.template_values(programme, channels.get(programme.channel_id))
+        values = render.template_values(programme, self._channels.get(programme.channel_id))
         return {
             "title": programme.title,
             "summary": self._templates.render_title(programme, values),
@@ -275,8 +320,13 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
 
     @property
     def match_count(self) -> int:
-        """Number of programmes the calendar's filter currently matches (diagnostics, D-21)."""
-        return len(self._index)
+        """Number of feed programmes the calendar's filter currently matches (diagnostics, D-19, D-21)."""
+        return len(self._feed_matches)
+
+    @property
+    def retained_count(self) -> int:
+        """Number of retained past matches shown in addition to the feed's matches (diagnostics, D-19)."""
+        return len(self._retained_shown)
 
     def differs_from(self, subentry: ConfigSubentry) -> bool:
         """Return whether `subentry` has another title or data than the entity was last built from."""
@@ -323,7 +373,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if programme is None:
             return None
         try:
-            return _to_event(programme, self._epg.channels if self._epg is not None else {}, self._templates)
+            return _to_event(programme, self._channels, self._templates)
         except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s", programme.channel_id)
             return None
@@ -335,7 +385,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         """Return the matches overlapping the requested range, capped and built off the loop when large."""
         if self._epg is None:
             return []
-        channels = self._epg.channels
+        channels = self._channels
         programmes = self._index.overlapping(start_date, end_date)
         if len(programmes) > MAX_EVENTS_PER_QUERY:
             _LOGGER.debug(

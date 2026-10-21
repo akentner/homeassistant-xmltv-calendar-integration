@@ -31,6 +31,11 @@ KEY_MAX_DURATION = "max_duration"
 KEY_TITLE_TEMPLATE = "title_template"
 KEY_DESCRIPTION_TEMPLATE = "description_template"
 
+# Phase 4 key, flat beside the others (D-14): whole days an ended match stays in the calendar after the feed drops it
+KEY_RETENTION_DAYS = "retention_days"
+DEFAULT_RETENTION_DAYS = 1  # D-15: today's behaviour
+MAX_RETENTION_DAYS = 7
+
 FIELD_TITLE = "title"
 FIELD_SUBTITLE = "subtitle"
 FIELD_DESCRIPTION = "description"
@@ -43,7 +48,8 @@ WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 DEFAULT_TITLE_TEMPLATE = "{channel}: {title}"  # D-20
 
-# Defaults of the ten Phase 2 keys, in storage shape; also used for missing, None or invalid values
+# Defaults of the advanced keys (the ten Phase 2 keys, then retention_days), in storage shape; also used for missing,
+# None or invalid values. Key order matters: retention_days stays last
 ADVANCED_DEFAULTS: Mapping[str, Any] = MappingProxyType(
     {
         KEY_INCLUDE_FIELDS: list(DEFAULT_MATCH_FIELDS),
@@ -56,6 +62,7 @@ ADVANCED_DEFAULTS: Mapping[str, Any] = MappingProxyType(
         KEY_MAX_DURATION: None,
         KEY_TITLE_TEMPLATE: DEFAULT_TITLE_TEMPLATE,
         KEY_DESCRIPTION_TEMPLATE: "",
+        KEY_RETENTION_DAYS: DEFAULT_RETENTION_DAYS,
     }
 )
 
@@ -109,6 +116,15 @@ def _minutes(value: object) -> int | None:
     return int(value) if value >= 0 else None
 
 
+def _retention_days(value: object) -> int:
+    """Return whole retention days clamped to 0..7; bool, non-numeric and non-finite values read as the default."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return DEFAULT_RETENTION_DAYS
+    if isinstance(value, float) and not math.isfinite(value):
+        return DEFAULT_RETENTION_DAYS
+    return min(max(int(value), 0), MAX_RETENTION_DAYS)
+
+
 def with_defaults(data: Mapping[str, object]) -> dict[str, Any]:
     """
     Return all stored keys of a calendar subentry in storage shape, with defaults for missing or invalid values.
@@ -134,10 +150,11 @@ def with_defaults(data: Mapping[str, object]) -> dict[str, Any]:
         KEY_MAX_DURATION: _minutes(data.get(KEY_MAX_DURATION)),
         KEY_TITLE_TEMPLATE: title_template if title_template.strip() else DEFAULT_TITLE_TEMPLATE,
         KEY_DESCRIPTION_TEMPLATE: description_template if description_template.strip() else "",
+        KEY_RETENTION_DAYS: _retention_days(data.get(KEY_RETENTION_DAYS)),
     }
 
 
 def has_advanced(data: Mapping[str, object]) -> bool:
-    """Return True when any Phase 2 setting differs from its default; drives the unstored "Advanced" toggle (D-03)."""
+    """Return True when any advanced setting differs from its default; drives the unstored "Advanced" toggle (D-03)."""
     settings = with_defaults(data)
     return any(settings[key] != default for key, default in ADVANCED_DEFAULTS.items())

@@ -108,6 +108,7 @@ async def test_advanced_options_end_to_end(
         CONF_MAX_DURATION: 120,
         CONF_TITLE_TEMPLATE: "{title} ({channel})",
         CONF_DESCRIPTION_TEMPLATE: "",
+        "retention_days": 1,  # the default of the stored key (04-06); 04-07 adds the form field
     }
     assert type(result["data"][CONF_MIN_DURATION]) is int
     assert type(result["data"][CONF_MAX_DURATION]) is int
