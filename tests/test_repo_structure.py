@@ -1,8 +1,11 @@
 """Executable checks for HACS distribution (DST-01) and the CI supply chain (DST-02)."""
 
 import json
+import os
 import re
+import shutil
 import struct
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 COMPONENTS = ROOT / "custom_components"
 INTEGRATION = COMPONENTS / "xmltv_calendar"
 WORKFLOWS = ROOT / ".github" / "workflows"
-WORKFLOW_FILES = ("validate.yml", "ci.yml")
+WORKFLOW_FILES = ("validate.yml", "ci.yml", "release.yml")
+MANIFEST_VERSION = json.loads((INTEGRATION / "manifest.json").read_text(encoding="utf-8"))["version"]
 
 SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 SHA_PIN = re.compile(r"^[^@\s]+@[0-9a-f]{40}$")
@@ -64,6 +68,24 @@ def _uses_refs(document: dict[Any, Any]) -> list[str]:
     # Job-level reusable workflows also carry a `uses` key.
     refs += [job["uses"] for job in document["jobs"].values() if "uses" in job]
     return refs
+
+
+def _job_script(document: dict[Any, Any], job: str) -> str:
+    scripts = [step["run"] for step in document["jobs"][job].get("steps", []) if "run" in step]
+    assert len(scripts) == 1, f"{job} should have exactly one run step"
+    return scripts[0]
+
+
+def _run_bash(script: str, env: dict[str, str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    # Fixed argv from this test file, no shell=True; bash comes from PATH like on the runner
+    return subprocess.run(  # noqa: S603
+        ["bash", "-c", script],  # noqa: S607
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def _png_size(path: Path) -> tuple[int, int]:
@@ -265,3 +287,46 @@ def test_ci_has_benchmark_job() -> None:
         if any(step.get("run", "").strip() == "uv run pytest -q -m benchmark" for step in job.get("steps", []))
     ]
     assert runners == ["benchmark"], f"jobs running the benchmark: {runners}"
+
+
+needs_bash_and_jq = pytest.mark.skipif(
+    shutil.which("bash") is None or shutil.which("jq") is None,
+    reason="the release tag check needs bash and jq",
+)
+
+
+@needs_bash_and_jq
+@pytest.mark.parametrize(
+    ("tag", "accepted", "message"),
+    [
+        (f"v{MANIFEST_VERSION}", True, ""),
+        ("v9.9.9", False, "differs from manifest.json"),
+        (MANIFEST_VERSION, False, "not a semantic version"),
+        ("v1.2", False, "not a semantic version"),
+        (f"v{MANIFEST_VERSION};touch pwned", False, "not a semantic version"),
+    ],
+    ids=["manifest-version", "other-version", "missing-v", "two-parts", "shell-injection"],
+)
+def test_release_tag_check(tag: str, accepted: bool, message: str, tmp_path: Path) -> None:
+    # Loaded in the test body so a missing release.yml fails this test, not the collection
+    script = _job_script(_load_workflow("release.yml"), "check-version")
+    assert not (ROOT / "pwned").exists()
+    result = _run_bash(script, {"GITHUB_REF_NAME": tag, "PATH": os.environ["PATH"]}, ROOT)
+    output = result.stdout + result.stderr
+    assert (result.returncode == 0) is accepted, output
+    assert message in output
+    assert not (ROOT / "pwned").exists(), "the tag name was executed as shell code"
+    assert not (tmp_path / "pwned").exists(), "the tag name was executed as shell code"
+
+
+def test_release_workflow_shape() -> None:
+    document = _load_workflow("release.yml")
+    assert _triggers(document) == {"push": {"tags": ["v*.*.*"]}}
+    jobs = document["jobs"]
+    assert set(jobs) == {"check-version", "ci", "validate", "release"}
+    assert jobs["release"]["needs"] == ["check-version", "ci", "validate"]
+    assert jobs["release"]["permissions"] == {"contents": "write"}
+    for name in ("check-version", "ci", "validate"):
+        assert jobs[name]["permissions"] == {"contents": "read"}, name
+    assert jobs["ci"]["uses"] == "./.github/workflows/ci.yml"
+    assert jobs["validate"]["uses"] == "./.github/workflows/validate.yml"
