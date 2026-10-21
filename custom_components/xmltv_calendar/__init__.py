@@ -26,6 +26,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> boo
     # Loaded before the platforms: entities read their seen-sets in their first refilter (no I/O in constructors)
     match_store = MatchStore(hass, cache_key(entry))
     await match_store.async_load()
+    match_store.retain_only(
+        subentry_id
+        for subentry_id, subentry in entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_CALENDAR
+    )
     entry.runtime_data = XmltvRuntimeData(
         coordinator=coordinator,
         source_snapshot=(dict(entry.data), dict(entry.options)),
@@ -45,6 +50,7 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
         return
     for subentry_id in set(runtime.calendars) - set(entry.subentries):
         runtime.calendars.pop(subentry_id)  # HA already removed the entities and their device
+        runtime.match_store.forget(subentry_id)
     for subentry_id in runtime.sensors - set(entry.subentries):
         runtime.sensors.discard(subentry_id)
     # Edited calendars are applied in place (D-04); listener calls run as concurrent tasks, so iterate over a copy
@@ -74,6 +80,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bo
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> None:
-    """Delete the source's cached feed, its metadata and health, and its Repairs issue when the entry is removed."""
+    """Delete the source's cached feed, metadata and health, match store and Repairs issue when it is removed."""
     await FeedCache(hass, cache_key(entry)).async_remove()
+    await MatchStore(hass, cache_key(entry)).async_remove()
     ir.async_delete_issue(hass, DOMAIN, issue_id(entry.entry_id))

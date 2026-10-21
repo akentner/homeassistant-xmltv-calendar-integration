@@ -17,7 +17,7 @@ from .const import DOMAIN
 from .xmltv.matches import CalendarMatches, records_from_dict, records_to_dict
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterable, Mapping
 
     from homeassistant.core import HomeAssistant
 
@@ -56,6 +56,19 @@ class MatchStore:
         self._records = {**self._records, subentry_id: record}
         self._store.async_delay_save(self._data_to_save, MATCH_STORE_SAVE_DELAY)
 
+    def forget(self, subentry_id: str) -> None:
+        """Drop the record of a removed calendar and schedule a delayed save."""
+        if subentry_id in self._records:
+            self._records = {sid: record for sid, record in self._records.items() if sid != subentry_id}
+            self._store.async_delay_save(self._data_to_save, MATCH_STORE_SAVE_DELAY)
+
+    def retain_only(self, subentry_ids: Iterable[str]) -> None:
+        """Drop the records of calendars that no longer exist, e.g. removed while the entry was not loaded."""
+        keep = set(subentry_ids)
+        if not keep.issuperset(self._records):
+            self._records = {sid: record for sid, record in self._records.items() if sid in keep}
+            self._store.async_delay_save(self._data_to_save, MATCH_STORE_SAVE_DELAY)
+
     def _data_to_save(self) -> dict[str, Any]:
         # Runs in a worker thread: read the mapping once, it is never mutated after being replaced
         return records_to_dict(self._records)
@@ -66,3 +79,11 @@ class MatchStore:
             await self._store.async_save(self._data_to_save())
         except (OSError, HomeAssistantError) as err:
             _LOGGER.debug("Match store %s not saved: %s", self._key, type(err).__name__)
+
+    async def async_remove(self) -> None:
+        """Delete the stored records with the source; a failed removal is logged at DEBUG only."""
+        self._records = {}
+        try:
+            await self._store.async_remove()
+        except (OSError, HomeAssistantError) as err:
+            _LOGGER.debug("Match store %s not removed: %s", self._key, type(err).__name__)

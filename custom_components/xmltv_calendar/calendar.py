@@ -145,6 +145,17 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         await super().async_added_to_hass()
         await self._async_refilter(REFILTER_INITIAL)
 
+    @override
+    async def async_will_remove_from_hass(self) -> None:
+        """
+        Discard refilters still in flight.
+
+        Unload flushes the match store after the entities are gone, and HA waits for entry tasks only afterwards: a late
+        run must not write to the old store (RESEARCH Pitfall 3) or bring back the record of a removed calendar.
+        """
+        self._generation += 1
+        await super().async_will_remove_from_hass()
+
     @property
     @override
     def available(self) -> bool:
