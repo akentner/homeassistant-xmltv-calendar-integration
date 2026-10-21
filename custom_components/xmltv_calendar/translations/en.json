@@ -305,5 +305,12 @@
         "local": "Home Assistant time zone"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "next_match": {
+        "name": "Next programme"
+      }
+    }
   }
 }

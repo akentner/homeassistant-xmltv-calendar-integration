@@ -168,8 +168,12 @@ async def test_preexisting_subentries_get_one_entity_each(
     entry = await setup_xmltv(FEED, calendars=(("A", {}), ("B", {"channels": ["zdf.de"]}), ("C", {})))
 
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-    assert len(entities) == len(entry.subentries) == 3
-    assert sorted(entity.unique_id for entity in entities) == sorted(entry.subentries)
+    calendars = [entity for entity in entities if entity.domain == "calendar"]
+    sensors = [entity for entity in entities if entity.domain == "sensor"]
+    assert len(calendars) == len(entry.subentries) == 3
+    assert sorted(entity.unique_id for entity in calendars) == sorted(entry.subentries)
+    # One next-match sensor per calendar (AUT-03)
+    assert sorted(entity.unique_id for entity in sensors) == sorted(f"{s}_next_match" for s in entry.subentries)
     assert len(entry.runtime_data.calendars) == 3
 
     device_registry = dr.async_get(hass)
@@ -177,8 +181,10 @@ async def test_preexisting_subentries_get_one_entity_each(
         device = device_registry.async_get_device_by_identifier((DOMAIN, subentry_id), entry.entry_id)
         assert device is not None
         assert device.config_subentry_id == subentry_id
-    for entity in entities:
+    for entity in calendars:
         assert entity.config_subentry_id == entity.unique_id
+    for entity in sensors:
+        assert entity.config_subentry_id == entity.unique_id.removesuffix("_next_match")
 
 
 async def test_identical_filters_make_two_entities(

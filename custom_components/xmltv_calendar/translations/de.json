@@ -305,5 +305,12 @@
         "local": "Zeitzone von Home Assistant"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "next_match": {
+        "name": "Nächste Sendung"
+      }
+    }
   }
 }

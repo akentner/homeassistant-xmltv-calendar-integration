@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -37,6 +38,16 @@ PARALLEL_UPDATES = 0
 MAX_EVENTS_PER_QUERY = 5000
 # CalendarEvent construction costs about 34 µs each; larger slices are built in the executor (RESEARCH Pitfall 5)
 EXECUTOR_BUILD_THRESHOLD = 200
+
+
+def device_info(subentry_id: str, title: str) -> DeviceInfo:
+    """Return the device of a calendar subentry, shared by the calendar and its sensors."""
+    return DeviceInfo(identifiers={(DOMAIN, subentry_id)}, name=title, entry_type=DeviceEntryType.SERVICE)
+
+
+def signal_matches(subentry_id: str) -> str:
+    """Return the dispatcher signal sent whenever a calendar's matches or templates change."""
+    return f"{DOMAIN}_matches_{subentry_id}"
 
 
 def _to_event(programme: Programme, channels: Mapping[str, Channel], templates: render.EventTemplates) -> CalendarEvent:
@@ -111,11 +122,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         self._spec = _build_spec(subentry.data, subentry.title)
         self._templates = render.EventTemplates.from_mapping(subentry.data)
         self._attr_unique_id = subentry.subentry_id
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, subentry.subentry_id)},
-            name=subentry.title,
-            entry_type=DeviceEntryType.SERVICE,
-        )
+        self._attr_device_info = device_info(subentry.subentry_id, subentry.title)
         self._epg: EpgData | None = None
         self._index = MatchIndex(())
         self._generation = 0
@@ -153,6 +160,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             self._epg = epg
             self._index = MatchIndex(())
             self.async_write_ha_state()
+            async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
             return
         # Window and weekdays use Home Assistant's configured time zone (D-10); the executor helper takes no kwargs
         result = await self.hass.async_add_executor_job(
@@ -169,6 +177,33 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
                 ", ".join(sorted(result.missing_channels)),
             )
         self.async_write_ha_state()
+        async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
+
+    def next_match(self, now: datetime) -> Programme | None:
+        """Return the earliest match starting strictly after `now`; an airing match never counts (D-01)."""
+        return self._index.next_after(now)
+
+    def describe_match(self, programme: Programme) -> dict[str, str | None]:
+        """
+        Describe one match for the next-match sensor and the new-match event (D-03).
+
+        title is the raw feed title, summary the title rendered with the calendar's template, start and end are
+        ISO 8601 in Home Assistant's local time; values the feed lacks are None.
+        """
+        channels = self._epg.channels if self._epg is not None else {}
+        values = render.template_values(programme, channels.get(programme.channel_id))
+        return {
+            "title": programme.title,
+            "summary": self._templates.render_title(programme, values),
+            "channel": values["channel"],
+            "channel_id": programme.channel_id,
+            "start": dt_util.as_local(programme.start).isoformat(),
+            "end": dt_util.as_local(programme.stop).isoformat(),
+            "subtitle": programme.sub_titles[0] if programme.sub_titles else None,
+            "episode": programme.episode or None,
+            "description": programme.description or None,
+            "uid": render.event_uid(programme),
+        }
 
     @property
     def match_count(self) -> int:
@@ -197,11 +232,7 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         self._subentry_data = subentry.data
         if subentry.title != self._subentry_title:
             self._subentry_title = subentry.title
-            self._attr_device_info = DeviceInfo(
-                identifiers={(DOMAIN, self._subentry_id)},
-                name=subentry.title,
-                entry_type=DeviceEntryType.SERVICE,
-            )
+            self._attr_device_info = device_info(self._subentry_id, subentry.title)
             if self.hass is not None:
                 # The friendly name follows the device name by itself; the entity_id stays the same
                 registry = dr.async_get(self.hass)

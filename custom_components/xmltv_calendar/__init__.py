@@ -14,7 +14,7 @@ from .data import XmltvConfigEntry, XmltvRuntimeData
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-PLATFORMS: list[Platform] = [Platform.CALENDAR]
+PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bool:

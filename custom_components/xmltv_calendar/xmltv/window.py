@@ -1,6 +1,6 @@
 """Time-window reads over a calendar's matches through a bisect index."""
 
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from datetime import timedelta
 from operator import attrgetter
 from typing import TYPE_CHECKING
@@ -49,3 +49,8 @@ class MatchIndex:
             if (programme := self._programmes[i]).stop > now:
                 return programme
         return None
+
+    def next_after(self, now: datetime) -> Programme | None:
+        """Return the earliest match starting strictly after `now`; equal starts keep the input order (D-01)."""
+        i = bisect_right(self._starts, now)
+        return self._programmes[i] if i < len(self._programmes) else None
