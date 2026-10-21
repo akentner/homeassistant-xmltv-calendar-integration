@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from homeassistant.config_entries import SOURCE_USER
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
 
 import custom_components.xmltv_calendar as integration
 from custom_components.xmltv_calendar.const import (
@@ -464,3 +464,112 @@ async def test_retention_days_in_advanced_step(
     result = await _save_new(hass, result, _without(**{CONF_RETENTION_DAYS: 0.0}))
     assert result["data"][CONF_RETENTION_DAYS] == 0
     assert type(result["data"][CONF_RETENTION_DAYS]) is int
+
+
+@pytest.mark.parametrize("days", [0, 7])
+async def test_retention_boundaries_accepted(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    days: int,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await _save_new(hass, result, _without(**{CONF_RETENTION_DAYS: float(days)}))
+    assert result["data"][CONF_RETENTION_DAYS] == days
+
+
+@pytest.mark.parametrize("days", [-1, 8])
+async def test_retention_out_of_range_rejected(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    days: int,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    # The NumberSelector bounds reject the value before the step runs (T-04-20)
+    with pytest.raises(InvalidData) as err:
+        await hass.config_entries.subentries.async_configure(
+            result["flow_id"], _without(**{CONF_RETENTION_DAYS: float(days)})
+        )
+    assert CONF_RETENTION_DAYS in err.value.schema_errors
+    assert not entry.subentries
+
+
+async def test_cleared_retention_stores_default(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    # A cleared field is absent from the submit and means the default, not "keep nothing" (D-15)
+    result = await _save_new(hass, result, _without(CONF_RETENTION_DAYS))
+    assert result["data"][CONF_RETENTION_DAYS] == 1
+
+
+async def test_fraction_is_stored_as_int(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    # The NumberSelector sends float
+    result = await _save_new(hass, result, _without(**{CONF_RETENTION_DAYS: 2.0}))
+    assert result["data"][CONF_RETENTION_DAYS] == 2
+    assert type(result["data"][CONF_RETENTION_DAYS]) is int
+
+
+@pytest.mark.parametrize(
+    ("days", "checked"), [pytest.param(4, True, id="custom"), pytest.param(1, False, id="default")]
+)
+async def test_edit_prefills_retention_and_checks_advanced(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    days: int,
+    checked: bool,
+) -> None:
+    freezer.move_to(NOW)
+    stored = {CONF_CHANNELS: ["daserste.de"], CONF_RETENTION_DAYS: days}
+    entry = await setup_xmltv(FEED, calendars=(("Abend", stored),))
+    (subentry_id,) = entry.subentries
+
+    # D-03: only a non-default retention pre-checks the "Advanced options" box
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+    assert result["step_id"] == "basic"
+    assert _default(result, CONF_ADVANCED) is checked
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "Abend", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: True}
+    )
+    assert result["step_id"] == "advanced"
+    assert _suggested(result, CONF_RETENTION_DAYS) == days
+
+
+async def test_edit_suggests_retention_zero(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("Abend", {CONF_CHANNELS: ["daserste.de"], CONF_RETENTION_DAYS: 0}),))
+    (subentry_id,) = entry.subentries
+
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+    assert _default(result, CONF_ADVANCED) is True
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "Abend", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: True}
+    )
+    # 0 is falsy but a real value: suggested, not left empty (which would store the default 1)
+    assert _suggested(result, CONF_RETENTION_DAYS) == 0
