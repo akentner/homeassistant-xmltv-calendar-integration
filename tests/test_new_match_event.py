@@ -5,9 +5,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import async_capture_events
 
-from .conftest import FEED_URL
+from .conftest import FEED_URL, complete_calendar_flow
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -213,3 +215,170 @@ async def test_seen_is_pruned_after_the_window(
     seen = await _stored_seen(hass_storage, entry)
     assert first_day.isdisjoint(seen)
     assert len(seen) == 1
+
+
+SPRINT_XML = _programme_xml("daserste.de", "20261015160000 +0200", "20261015170000 +0200", "Formel 1: Sprint")
+F1_ONLY = (("F1", {"channels": ["daserste.de"]}),)
+
+
+async def _reload(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_restart_does_not_announce_again(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT)
+    entry = await setup_xmltv(BASIC_FEED, calendars=TEST_CALENDAR)
+    await _refresh(hass, aioclient_mock, entry, _with(RACE_XML))
+    assert [event.data["title"] for event in events] == ["Formel 1: Rennen"]
+
+    await _reload(hass, entry)
+    assert len(events) == 1
+
+    await _refresh(hass, aioclient_mock, entry, _with(RACE_XML, SPRINT_XML))
+    assert [event.data["title"] for event in events] == ["Formel 1: Rennen", "Formel 1: Sprint"]
+
+
+async def test_double_reload_keeps_seen_set(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    hass_storage: dict[str, Any],
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    from custom_components.xmltv_calendar.xmltv import render
+
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT)
+    entry = await setup_xmltv(BASIC_FEED, calendars=TEST_CALENDAR)
+    await _refresh(hass, aioclient_mock, entry, _with(RACE_XML))
+    assert len(events) == 1
+
+    await _reload(hass, entry)
+    await _reload(hass, entry)
+    await _refresh(hass, aioclient_mock, entry, _with(RACE_XML))
+
+    assert len(events) == 1
+    assert render.event_uid(_race()) in await _stored_seen(hass_storage, entry)
+
+
+async def test_new_calendar_is_silent(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT)
+    entry = await setup_xmltv(BASIC_FEED, calendars=F1_ONLY)
+
+    # The basic feed's two future ZDF programmes are the new calendar's silent baseline (D-10)
+    result = await complete_calendar_flow(hass, entry, {"name": "ZDF", "channels": ["zdf.de"]})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert hass.states.get("calendar.zdf") is not None
+    assert events == []
+
+    late = _programme_xml("zdf.de", "20261014220000 +0200", "20261014223000 +0200", "heute journal")
+    await _refresh(hass, aioclient_mock, entry, _with(late))
+    assert [(event.data["entity_id"], event.data["title"]) for event in events] == [("calendar.zdf", "heute journal")]
+
+
+async def test_filter_edit_is_silent(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT)
+    entry = await setup_xmltv(BASIC_FEED, calendars=F1_ONLY)
+    (subentry_id,) = entry.subentries
+
+    # Widening to all channels newly matches the ZDF programmes: a silent new baseline (D-11)
+    assert hass.config_entries.async_update_subentry(entry, entry.subentries[subentry_id], data={})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert events == []
+
+    await _refresh(hass, aioclient_mock, entry, BASIC_FEED)
+    assert events == []
+
+
+async def test_timezone_change_is_silent(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT)
+    entry = await setup_xmltv(BASIC_FEED, calendars=TEST_CALENDAR)
+
+    # Every UID changes with the shift; the source options change reloads and the reload is a silent baseline (D-11)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "offset_minutes": 30})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert entry.state is ConfigEntryState.LOADED
+    assert events == []
+
+    await _refresh(hass, aioclient_mock, entry, BASIC_FEED)
+    assert events == []
+
+
+async def test_removed_calendar_and_source_clean_up(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    hass_storage: dict[str, Any],
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    from custom_components.xmltv_calendar.cache import cache_key
+
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(BASIC_FEED, calendars=(("A", {}), ("B", {"channels": ["zdf.de"]})))
+    key = f"xmltv_calendar.matches.{cache_key(entry)}"
+    (b_id,) = [sid for sid, sub in entry.subentries.items() if sub.title == "B"]
+    await entry.runtime_data.match_store.async_flush()
+    assert b_id in hass_storage[key]["data"]["calendars"]
+
+    assert hass.config_entries.async_remove_subentry(entry, b_id)
+    await hass.async_block_till_done()
+    await entry.runtime_data.match_store.async_flush()
+    assert set(hass_storage[key]["data"]["calendars"]) == set(entry.subentries)
+
+    assert (await hass.config_entries.async_remove(entry.entry_id))["require_restart"] is False
+    await hass.async_block_till_done()
+    assert key not in hass_storage
+
+
+async def test_setup_drops_records_of_unknown_calendars(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    hass_storage: dict[str, Any],
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    from custom_components.xmltv_calendar.cache import cache_key
+
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(BASIC_FEED, calendars=TEST_CALENDAR)
+    key = f"xmltv_calendar.matches.{cache_key(entry)}"
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    # A record left behind by a calendar removed while the entry was not loaded
+    hass_storage[key]["data"]["calendars"]["gone"] = {"seen": {"uid": 1}}
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    await entry.runtime_data.match_store.async_flush()
+    assert set(hass_storage[key]["data"]["calendars"]) == set(entry.subentries)

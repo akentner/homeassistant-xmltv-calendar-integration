@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="12" time="1.022" timestamp="2026-10-21T11:32:13.326552+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_new_match_event" name="test_new_programme_fires_one_event" time="0.204" /><testcase classname="tests.test_new_match_event" name="test_seen_set_is_persisted" time="0.057" /><testcase classname="tests.test_new_match_event" name="test_burst_is_capped" time="0.064" /><testcase classname="tests.test_new_match_event" name="test_started_match_is_not_announced" time="0.060" /><testcase classname="tests.test_new_match_event" name="test_seen_is_pruned_after_the_window" time="0.056" /><testcase classname="tests.test_new_match_event" name="test_restart_does_not_announce_again" time="0.073" /><testcase classname="tests.test_new_match_event" name="test_double_reload_keeps_seen_set" time="0.080" /><testcase classname="tests.test_new_match_event" name="test_new_calendar_is_silent" time="0.064" /><testcase classname="tests.test_new_match_event" name="test_filter_edit_is_silent" time="0.055" /><testcase classname="tests.test_new_match_event" name="test_timezone_change_is_silent" time="0.068" /><testcase classname="tests.test_new_match_event" name="test_removed_calendar_and_source_clean_up" time="0.057"><failure message="AssertionError: assert {'01M4SXHAR0F...AK9GX07S93SM'} == {'01M4SXHAR0FGMV7YGYWFXK4AXC'}&#10;  &#10;  Extra items in the left set:&#10;  '01M4SXHAR0R7AXAK9GX07S93SM'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7ff5639145f0&gt;
+berlin_tz = None
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...294f3e': 1791912000}}}}, 'key': 'xmltv_calendar.matches.01M4SXHAR03M73GEP3WHBCDTJR', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff56154e8d0&gt;
+
+    async def test_removed_calendar_and_source_clean_up(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        from custom_components.xmltv_calendar.cache import cache_key
+    
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(BASIC_FEED, calendars=(("A", {}), ("B", {"channels": ["zdf.de"]})))
+        key = f"xmltv_calendar.matches.{cache_key(entry)}"
+        (b_id,) = [sid for sid, sub in entry.subentries.items() if sub.title == "B"]
+        await entry.runtime_data.match_store.async_flush()
+        assert b_id in hass_storage[key]["data"]["calendars"]
+    
+        assert hass.config_entries.async_remove_subentry(entry, b_id)
+        await hass.async_block_till_done()
+        await entry.runtime_data.match_store.async_flush()
+&gt;       assert set(hass_storage[key]["data"]["calendars"]) == set(entry.subentries)
+E       AssertionError: assert {'01M4SXHAR0F...AK9GX07S93SM'} == {'01M4SXHAR0FGMV7YGYWFXK4AXC'}
+E         
+E         Extra items in the left set:
+E         '01M4SXHAR0R7AXAK9GX07S93SM'
+E         Use -v to get more diff
+
+tests/test_new_match_event.py:358: AssertionError</failure></testcase><testcase classname="tests.test_new_match_event" name="test_setup_drops_records_of_unknown_calendars" time="0.062"><failure message="AssertionError: assert {'01M4SXHAR0H...QSWZ', 'gone'} == {'01M4SXHAR0HXSXJEDQFVRQQSWZ'}&#10;  &#10;  Extra items in the left set:&#10;  'gone'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7ff5603c0c80&gt;
+berlin_tz = None
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at... {'seen': {'uid': 1}}}}, 'key': 'xmltv_calendar.matches.01M4SXHAR0QNP3BW5BJSMD74MQ', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7ff56265c9e0&gt;
+
+    async def test_setup_drops_records_of_unknown_calendars(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        from custom_components.xmltv_calendar.cache import cache_key
+    
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(BASIC_FEED, calendars=TEST_CALENDAR)
+        key = f"xmltv_calendar.matches.{cache_key(entry)}"
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        # A record left behind by a calendar removed while the entry was not loaded
+        hass_storage[key]["data"]["calendars"]["gone"] = {"seen": {"uid": 1}}
+    
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        await entry.runtime_data.match_store.async_flush()
+&gt;       assert set(hass_storage[key]["data"]["calendars"]) == set(entry.subentries)
+E       AssertionError: assert {'01M4SXHAR0H...QSWZ', 'gone'} == {'01M4SXHAR0HXSXJEDQFVRQQSWZ'}
+E         
+E         Extra items in the left set:
+E         'gone'
+E         Use -v to get more diff
+
+tests/test_new_match_event.py:384: AssertionError</failure></testcase></testsuite></testsuites>
