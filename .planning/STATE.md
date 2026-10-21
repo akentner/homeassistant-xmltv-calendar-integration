@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-10-21T09:35:54.317Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-10-21T09:53:51.738Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: 6d43f8c40ad6da6b4bf316da5b3f8beab77c1c63
+state_head: 72f6cc4043972e10540f2e4cf1728c0507180272
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 35
+  completed_plans: 36
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-10-21 — Phase 04 execution started
 
@@ -93,6 +93,7 @@ Progress: [████████░░] 75%
 | Phase 04 P02 | 41 min | 2 tasks | 5 files |
 | Phase 04 P03 | 2 min | 2 tasks | 4 files |
 | Phase 04 P04 | 10min | 3 tasks | 8 files |
+| Phase 04 P05 | 15 min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -205,6 +206,9 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-04: New-match events fire only for refilter reason data after the entity's first completed refilter; initial (add, restart, reload, source option change) and config (filter/template edit) refilters update the persisted seen-set silently (D-10, D-11), no fingerprint
 - [Phase 04]: 04-04: Burst cap 50 events per calendar and refresh (earliest first, one WARNING); seen entries pruned at stop < now - KEEP_PAST until 04-06 introduces per-calendar retention
 - [Phase 04]: 04-04: Match store xmltv_calendar.matches.<cache key> is flushed on unload and calendars discard in-flight refilters on removal, so a late run never re-arms the old Store's delayed save (Pitfall 3)
+- [Phase 04]: 04-05: Last-fetch sensor vocabularies fixed: trigger startup/scheduled/retry/revalidate/manual, outcome downloaded/not_modified/unchanged/read/cache_start/failed, cache fresh_hit/stale_hit/written/touched/write_failed/dropped/none; attributes = RefreshAttempt.as_dict order without time, then last_success, next_refresh, consecutive_failures, matches; diagnostics last_attempt uses the same as_dict
+- [Phase 04]: 04-05: Run trigger = startup while coordinator.data is None, else the _target_kind of the target HA's timer serves (captured in a _handle_refresh_interval override), else manual; read before the cancellation fallback marks the target retry
+- [Phase 04]: 04-05: Store shape {meta, health, attempt}; success/failure save the run with the health in one save, a cache start via async_save_attempt; RefreshAttempt.from_dict validates every field (vocabularies, reason pattern, status 100..599, counts >= 0, finite duration) and reads anything else as no run
 
 ### Pending Todos
 
@@ -239,6 +243,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T09:35:54.044Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-10-21T09:53:51.470Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None

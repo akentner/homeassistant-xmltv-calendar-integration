@@ -289,3 +289,8 @@ None. The human check runs on ha-dev at end of phase:
 ---
 *Phase: 04-automation-extras-release*
 *Completed: 2026-10-21*
+
+## Self-Check: PASSED
+
+- Key files exist on disk (tests/test_last_fetch_sensor.py, cache.py, sensor.py, RED records)
+- All 8 plan commits are ancestors of HEAD; `check evaluation-scope --plan 04-05 --commits-only` resolved them on this branch
