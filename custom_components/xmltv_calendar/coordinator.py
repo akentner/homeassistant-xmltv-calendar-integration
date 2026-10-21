@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, timedelta
 from functools import partial
+from http import HTTPStatus
 from typing import TYPE_CHECKING, override
 
 from homeassistant.core import callback
@@ -132,6 +133,10 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         self._file_signature: tuple[int, int] | None = None
         # The refresh run in progress, None between runs (AUT-06)
         self._run: _Run | None = None
+        # What kind of run the armed target is (scheduled, retry, revalidate), set next to every target (Pattern 4)
+        self._target_kind = "scheduled"
+        # The kind of the target HA's timer is serving right now; None outside a timer-started refresh
+        self._run_trigger: str | None = None
         now = dt_util.utcnow()
         # Wall-clock target of the next refresh (aware UTC); turned into update_interval when HA arms its timer
         self._next_refresh_at: datetime = next_regular(now, self._schedule())
@@ -184,6 +189,15 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         super()._schedule_refresh()
 
     @override
+    async def _handle_refresh_interval(self, _now: datetime | None = None) -> None:
+        """Run a timer-started refresh, telling the run record which kind of target the timer serves (D-21)."""
+        self._run_trigger = self._target_kind
+        try:
+            await super()._handle_refresh_interval(_now)
+        finally:
+            self._run_trigger = None
+
+    @override
     async def _async_setup(self) -> None:
         """Load the cache metadata once, before the first refresh."""
         await self._cache.async_load()
@@ -193,6 +207,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         now = dt_util.utcnow()
         base = refresh_base(now, served)
         self._next_refresh_at = next_regular(base, self._schedule())
+        self._target_kind = "scheduled"
 
     @override
     async def _async_update_data(self) -> EpgData:
@@ -207,9 +222,15 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         streak (RESEARCH Pitfall 8). Any other exception (a latent bug, a `MemoryError`) while reading the cache,
         downloading or parsing is recorded as `unable_to_fetch`, backs off the same way and reaches Home Assistant as
         `UpdateFailed` (CR-02). Cancellation passes through unrecorded, with a safe provisional retry target.
+
+        Every run that ends (success, failure, start from the cache) is recorded as the source's last refresh run and
+        announced with `signal_attempt` (AUT-06): a start (no data yet), a timer-served target (scheduled, retry,
+        revalidate) or anything else, which is a manual `update_entity`. A cancelled run records nothing.
         """
         served = self._next_refresh_at
-        self._run = _Run(time=dt_util.utcnow(), trigger="startup" if self.data is None else "manual")
+        # Read the trigger before the cancellation fallback below replaces the target kind
+        trigger = "startup" if self.data is None else (self._run_trigger or "manual")
+        self._run = _Run(time=dt_util.utcnow(), trigger=trigger)
         try:
             return await self._async_run(served)
         finally:
@@ -221,6 +242,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         # A cancellation swallowed by HA must not re-arm an already served target every second.
         # Success, failure and cache startup replace this fallback with their own target.
         self._next_refresh_at = max(served, dt_util.utcnow() + BACKOFF_STEPS[0])
+        self._target_kind = "retry"
         is_file = self.config_entry.data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_FILE
         try:
             epg, from_cache = await self._async_read_source(is_file=is_file)
@@ -241,6 +263,11 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         if from_cache:
             # Non-persistent issues are not restored after a restart: re-raise a still-failing source's issue
             self._sync_issue(dt_util.utcnow())
+            # A start from the cache saves no health, only the run
+            attempt = self._finish_run(epg)
+            if attempt is not None:
+                await self._cache.async_save_attempt(attempt)
+            self._send_attempt()
             return epg
         self._set_regular_target(served)
         await self._async_record_success(dt_util.utcnow(), self._finish_run(epg))
@@ -268,14 +295,21 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         return await (self._async_update_file() if is_file else self._async_update_url()), False
 
     async def _async_handle_failure(self, reason: str | None, served: datetime) -> None:
-        """Record a failed refresh and set the retry target after the capped backoff (D-10)."""
+        """Record a failed refresh and its run, then set the retry target after the capped backoff (D-10)."""
         now = dt_util.utcnow()
-        await self._async_record_failure(now, reason)
+        reason = reason if reason in FAILURE_REASONS else _DEFAULT_REASON
+        if self._run is not None:
+            self._run.outcome = "failed"
+            self._run.failure_reason = reason
+        # The last good data stays in effect (SRC-08), so the run's counts describe it
+        await self._async_record_failure(now, reason, self._finish_run(self.data))
         # Capped backoff (D-10): 5 min, 15 min, 1 h, 3 h, 6 h ..., never later than the next regular refresh after
         # the target being served (an early-fired timer serves its target, CR-01)
         failures = self._cache.health.consecutive_failures
         base = refresh_base(now, served)
         self._next_refresh_at = now + backoff_delay(failures, now, next_regular(base, self._schedule()))
+        self._target_kind = "retry"
+        self._send_attempt()
 
     async def _async_record_success(self, now: datetime, attempt: RefreshAttempt | None) -> None:
         """End the failure streak, clear the Repairs issue (D-17); keep the last failure for diagnostics."""
@@ -290,7 +324,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         )
         ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.config_entry.entry_id))
 
-    async def _async_record_failure(self, now: datetime, reason: str | None) -> None:
+    async def _async_record_failure(self, now: datetime, reason: str | None, attempt: RefreshAttempt | None) -> None:
         """Record a failed refresh, extend the failure streak and raise the Repairs issue once it is persistent."""
         health = self._cache.health
         await self._cache.async_save_health(
@@ -300,7 +334,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
                 last_failure_at=now,
                 last_failure_reason=reason if reason in FAILURE_REASONS else _DEFAULT_REASON,
                 consecutive_failures=health.consecutive_failures + 1,
-            )
+            ),
+            attempt,
         )
         self._sync_issue(now)
 
@@ -348,12 +383,18 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             return None
         now = dt_util.utcnow()
         schedule = self._schedule()
-        if is_fresh(meta.fetched_at, now, schedule):
+        fresh = is_fresh(meta.fetched_at, now, schedule)
+        if fresh:
             _LOGGER.debug("Source %s: using the fresh disk cache", self.config_entry.title)
             self._next_refresh_at = fresh_until(meta.fetched_at, now, schedule)
+            self._target_kind = "scheduled"
         else:
             _LOGGER.debug("Source %s: using the stale disk cache, refreshing soon", self.config_entry.title)
             self._next_refresh_at = now
+            self._target_kind = "revalidate"
+        if self._run is not None:
+            self._run.outcome = "cache_start"
+            self._run.cache = "fresh_hit" if fresh else "stale_hit"
         return epg
 
     def _parser(self) -> Callable[[BinaryIO], EpgData]:
@@ -392,6 +433,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         payload = await self._cache.async_read()
         epg: EpgData | None = None
         if payload is not None:
+            if self._run is not None:
+                self._run.payload_bytes = len(payload)
             try:
                 epg = await self._async_parse_payload(payload)
             except MemoryError:
@@ -402,6 +445,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
                 epg = None
         if epg is None or not epg.programmes:
             _LOGGER.debug("Source %s: dropping an unusable disk cache", self.config_entry.title)
+            if self._run is not None:
+                self._run.cache = "dropped"
             await self._cache.async_drop()
             return None
         return epg
@@ -420,12 +465,19 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             )
         except SourceTooLargeError as err:
             _LOGGER.debug("Source %s is too large: %s", self.config_entry.title, err)
+            if run is not None:
+                run.http_status = err.status
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="feed_too_large") from err
         except SourceError as err:
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
+            if run is not None:
+                run.http_status = err.status
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
-        if run is not None and not isinstance(fetched, NotModified):
+        if run is not None and isinstance(fetched, NotModified):
+            run.http_status = HTTPStatus.NOT_MODIFIED.value
+        elif run is not None:
             run.http_status = fetched.status
+            run.payload_bytes = len(fetched.payload)
         return fetched
 
     async def _async_update_url(self) -> EpgData:
@@ -439,16 +491,19 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         # Validators only accompany a cache that belongs to this source, never a request without a payload on disk
         meta = self._cache.valid_meta(self._source_id)
         fetched = await self._async_fetch(meta)
+        run = self._run
         if isinstance(fetched, NotModified):
             if self.data is not None:
                 _LOGGER.debug("Source %s unchanged", self.config_entry.title)
                 _require_programmes(self.data, self.config_entry.title)
                 await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
+                self._note_confirmed("not_modified")
                 return self.data
             # No data in memory (RESEARCH Pitfall 3): the unchanged feed is the cached payload
             cached = await self._async_parse_cached()
             if cached is not None:
                 await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
+                self._note_confirmed("not_modified")
                 return cached
             # The unusable cache is dropped by now; ask again without validators, so the source never stays empty
             _LOGGER.debug("Source %s: unchanged, but the cache is unusable; downloading again", self.config_entry.title)
@@ -465,10 +520,8 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             _LOGGER.debug("Source %s unchanged (identical body)", self.config_entry.title)
             _require_programmes(self.data, self.config_entry.title)
             await self._cache.async_touch(now, etag=fetched.etag, last_modified=fetched.last_modified)
+            self._note_confirmed("unchanged")
             return self.data
-        run = self._run
-        if run is not None:
-            run.payload_bytes = len(fetched.payload)
         epg = _require_programmes(await self._async_parse_payload(fetched.payload), self.config_entry.title)
         written = await self._cache.async_write(
             fetched.payload,
@@ -482,6 +535,12 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
             run.cache = "written" if written else "write_failed"
         return epg
 
+    def _note_confirmed(self, outcome: str) -> None:
+        """Record a run in which the source confirmed the cached feed (304 or identical body); the cache was touched."""
+        if self._run is not None:
+            self._run.outcome = outcome
+            self._run.cache = "touched"
+
     async def _async_update_file(self) -> EpgData:
         """
         Check and read the local file in one executor job; the allowed-path check runs on every refresh.
@@ -489,6 +548,7 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         With data in memory, a file whose mtime and size are unchanged is not parsed again: the same data object is
         returned and counts as a successful refresh (D-11). File sources have no payload cache, so a reload parses.
         """
+        started = time.monotonic()
         try:
             with _feed_errors(self.config_entry.title):
                 result = await self.hass.async_add_executor_job(
@@ -509,13 +569,23 @@ class XmltvCoordinator(DataUpdateCoordinator[EpgData]):
         except SourceError as err:
             _LOGGER.debug("Source %s unavailable: %s", self.config_entry.title, err)
             raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch") from err
+        run = self._run
+        if run is not None:
+            run.payload_bytes = result.signature[1]
         if result.epg is not None:
+            if run is not None:
+                run.parse_duration = round(time.monotonic() - started, 3)
             epg = _require_programmes(result.epg, self.config_entry.title)
             self._file_signature = result.signature
+            if run is not None:
+                run.outcome = "read"
             return epg
         if self.data is not None:
             _LOGGER.debug("Source %s: file unchanged", self.config_entry.title)
-            return _require_programmes(self.data, self.config_entry.title)
+            epg = _require_programmes(self.data, self.config_entry.title)
+            if run is not None:
+                run.outcome = "unchanged"
+            return epg
         # Unreachable: a known signature is only passed while data is in memory
         raise UpdateFailed(translation_domain=DOMAIN, translation_key="unable_to_fetch")
 
