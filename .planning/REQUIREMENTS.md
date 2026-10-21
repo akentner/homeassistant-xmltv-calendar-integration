@@ -60,14 +60,14 @@
 - [x] **CFG-01**: All setup is possible via UI (config flow for source, subentry flow for calendars); no YAML
 - [x] **CFG-02**: User can edit source settings (refresh, timezone options) via options flow
 - [x] **CFG-03**: User sees a progress indicator while a source is downloaded during setup
-- [ ] **CFG-04**: UI is available in English and German
+- [x] **CFG-04**: UI is available in English and German
 
 ### Distribution
 
 - [x] **DST-01**: Integration installs via HACS (custom repository) with valid `hacs.json` / `manifest.json` and brand icon
 - [x] **DST-02**: CI runs hassfest, HACS validation, Ruff and pytest on every push
-- [ ] **DST-03**: Tagged releases are published with version matching `manifest.json`
-- [ ] **DST-04**: README documents setup, filter examples (regex), automation examples and calendar limitations (15-min trigger window, overlapping events)
+- [x] **DST-03**: Tagged releases are published with version matching `manifest.json`
+- [x] **DST-04**: README documents setup, filter examples (regex), automation examples and calendar limitations (15-min trigger window, overlapping events)
 
 ## v2 Requirements
 
@@ -143,11 +143,11 @@
 | CFG-01 | Phase 1 | Complete |
 | CFG-02 | Phase 3 | Complete |
 | CFG-03 | Phase 3 | Complete |
-| CFG-04 | Phase 4 | Pending |
+| CFG-04 | Phase 4 | Complete |
 | DST-01 | Phase 1 | Complete |
 | DST-02 | Phase 1 | Complete |
-| DST-03 | Phase 4 | Pending |
-| DST-04 | Phase 4 | Pending |
+| DST-03 | Phase 4 | Complete |
+| DST-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 46 total

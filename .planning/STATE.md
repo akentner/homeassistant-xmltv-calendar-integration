@@ -3,17 +3,17 @@ gsd_state_version: "1.0"
 milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
-status: executing
-stopped_at: Completed 04-07-PLAN.md
-last_updated: "2026-10-21T10:17:56.477Z"
+status: verifying
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-10-21T10:31:10.241Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 04 execution started
-state_head: 21d9a55f06306d84db409cd92ac7bd70a3eff466
+state_head: ad5690fed472d948552abbf78d9930b9bb2195a4
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 39
-  completed_plans: 38
+  completed_plans: 39
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-21 — Phase 04 execution started
 
 Progress: [████████░░] 75%
@@ -96,6 +96,7 @@ Progress: [████████░░] 75%
 | Phase 04 P05 | 15 min | 3 tasks | 13 files |
 | Phase 04 P06 | 14 min | 3 tasks | 12 files |
 | Phase 04 P07 | 4 min | 2 tasks | 6 files |
+| Phase 04 P08 | 11 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -215,6 +216,8 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-06: Retained past matches are stored as raw programme data plus channel name in the match store ({calendars: {sid: {seen, retained}}, source: {naive_timezone, offset_minutes}}), captured on every refilter (previous and new matches), on entity removal and on HA stop; feed wins on UID collision; filter edits re-check retained programmes; a changed timezone fingerprint drops retained programmes and keeps seen-sets; MAX_RETAINED 5000 latest per calendar
 - [Phase 04]: 04-06: Diagnostics calendar rows are {title, matches (feed), retained (shown in addition, inside the window)}; get_events hides retained programmes whose window ended even without a refilter
 - [Phase 04]: 04-07: Keep past matches (days) is the last advanced field, NumberSelector 0..7 box without unit; a cleared field stores the default 1, never 0 (D-15)
+- [Phase 04]: 04-08: translation completeness is derived from code (AST over config_flow.py + vocabularies); every step needs a title leaf; download step titled in en/de
+- [Phase 04]: 04-08: README documents 0.1.0 fully; release v0.1.0 is pushed by the user after phase UAT (no tag created by the assistant)
 
 ### Pending Todos
 
@@ -249,6 +252,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T10:17:56.213Z
-Stopped at: Completed 04-07-PLAN.md
+Last session: 2026-10-21T10:31:09.983Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None

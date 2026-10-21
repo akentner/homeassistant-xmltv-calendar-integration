@@ -161,7 +161,7 @@ Plans:
   4. Every config, subentry and options flow step, error and abort reason is shown in German when HA runs in German, and in English otherwise.
   5. Pushing a version tag publishes a GitHub release whose version matches `manifest.json`, and HACS offers it for install/update. The README documents setup, regex filter examples, automation examples and calendar limitations (15-min trigger window, overlapping events).
 
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans executed
 
 Plans:
 **Wave 1**
@@ -180,7 +180,7 @@ Plans:
 - [x] 04-07-PLAN.md — "Keep past matches (days)" in the calendar's advanced options, applied in place, English and German (EVT-07, CFG-04) (wave 4)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 04-08-PLAN.md — Code-derived EN/DE translation completeness, README, release readiness; user pushes v0.1.0 after UAT (CFG-04, DST-04, DST-03) (wave 5)
+- [x] 04-08-PLAN.md — Code-derived EN/DE translation completeness, README, release readiness; user pushes v0.1.0 after UAT (CFG-04, DST-04, DST-03) (wave 5)
 
 **Notes**: EVT-07 and EVT-08 share one persisted match store (HA `Store`) holding the seen-set and retained past matches. Copy the release workflow (tag == manifest version) from mqtt-actions.
 
@@ -194,4 +194,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
-| 4. Automation Extras & Release | 7/8 | In Progress | - |
+| 4. Automation Extras & Release | 8/8 | In Progress | - |
