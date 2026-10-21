@@ -50,6 +50,18 @@ def new_matches(
     return new, updated
 
 
+def split_announcements(new: Sequence[Programme], limit: int) -> tuple[list[Programme], int]:
+    """RED stub (04-04 Task 2): no cap yet, everything is announced."""
+    del limit
+    return list(new), 0
+
+
+def prune_seen(seen: Mapping[str, int], cutoff: datetime) -> dict[str, int]:
+    """RED stub (04-04 Task 2): nothing is pruned yet."""
+    del cutoff
+    return dict(seen)
+
+
 def records_to_dict(records: Mapping[str, CalendarMatches]) -> dict[str, Any]:
     """Return the JSON-ready stored form of all calendars' records."""
     return {"calendars": {subentry_id: {"seen": dict(record.seen)} for subentry_id, record in records.items()}}
