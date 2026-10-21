@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="35" time="2.369" timestamp="2026-10-21T12:14:17.511666+02:00" hostname="lap-aleken-tux1"><testcase classname="tests.test_retention" name="test_dropped_match_stays_for_retention_days" time="0.235" /><testcase classname="tests.test_retention" name="test_future_match_removed_from_feed_disappears" time="0.060" /><testcase classname="tests.test_retention" name="test_three_day_retention_survives_parser_cutoff" time="0.068" /><testcase classname="tests.test_retention" name="test_capture_on_reload" time="0.075" /><testcase classname="tests.test_retention" name="test_capture_on_stop" time="0.055" /><testcase classname="tests.test_retention" name="test_retention_zero_keeps_nothing" time="0.066" /><testcase classname="tests.test_retention" name="test_filter_edit_rechecks_retained" time="0.067" /><testcase classname="tests.test_retention" name="test_template_edit_changes_retained_text" time="0.067" /><testcase classname="tests.test_retention" name="test_retention_edit_applies_in_place" time="0.062" /><testcase classname="tests.test_retention" name="test_timezone_change_drops_retained" time="0.081" /><testcase classname="tests.test_retention" name="test_no_uid_is_shown_twice" time="0.061" /><testcase classname="tests.test_retention" name="test_expired_retained_hidden_without_refilter" time="0.064" /><testcase classname="tests.test_retention" name="test_retention_set_in_the_ui_applies_in_place" time="0.062"><failure message="homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'retention_days'">self = &lt;homeassistant.config_entries.ConfigSubentryFlowManager object at 0x7fc22af10e50&gt;
+flow_id = 'a88fdd120c66da13e585daf839334fce'
+user_input = {'exclude_fields': ['title', 'subtitle'], 'include_fields': ['title', 'subtitle'], 'retention_days': 3.0}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+&gt;               user_input = data_schema(user_input)
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/probatio/schema.py:342: in __call__
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:466: in _bootstrap
+    return self._compiled(data)
+           ^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/probatio/schema.py:493: in validate
+    return interpreted(data)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;probatio._engine._MappingValidator object at 0x7fc22bfe0fc0&gt;
+data = {'exclude_fields': ['title', 'subtitle'], 'include_fields': ['title', 'subtitle'], 'retention_days': 3.0}
+
+    def __call__(self, data: Any) -&gt; dict[Any, Any]:  # noqa: PLR0912
+        """Validate the mapping, gathering every error into one MultipleInvalid."""
+        # A plain dict is the common, hot case, so it short-circuits first.
+        # Anything else implementing the Mapping protocol (a MappingProxyType, a
+        # multidict, a custom mapping) is validated too, returning a plain dict;
+        # voluptuous accepts only dict, so this is a documented superset
+        # (carry-forward of voluptuous issue #299). A non-Mapping is rejected.
+        if not isinstance(data, dict) and not isinstance(data, Mapping):
+            raise DictInvalid(translation_key="expected_mapping")
+    
+        # Preserve real dict subclasses, matching voluptuous. Other Mapping
+        # implementations validate too, but rebuild as a plain dict.
+        data_type = type(data)
+    
+        if self._alias_lookup:
+            data = self._resolve_aliases(data)
+    
+        out: dict[Any, Any] = (
+            {} if data_type is dict or not issubclass(data_type, dict) else data_type()
+        )
+        errors: list[Invalid] = []
+    
+        # Track matches by candidate position. A bytearray is cheaper than a set
+        # here and lets the finalizer distinguish invalid keys from absent ones.
+        seen: bytearray | None = (
+            bytearray(len(self._candidates)) if self._track_seen else None
+        )
+    
+        # Inline the literal-key fast path. More complex keys fall back to helpers.
+        fast_get = self._literal_fast.get
+        literal_get = self._literal.get
+        for key, value in data.items():
+            entry = fast_get(key)
+            if entry is not None:
+                index, value_type, check_value = entry
+                if seen is not None:
+                    seen[index] = 1
+                if value_type is not None:
+                    # Inlined ``{"k": &lt;type&gt;}``: isinstance, no validator call.
+                    if isinstance(value, value_type):
+                        out[key] = value
+                    else:
+                        errors.append(
+                            _type_error(value_type.__name__, [key], self._invalid_msg),
+                        )
+                    continue
+                try:
+                    out[key] = check_value(value)
+                except Invalid as exc:
+                    self._collect(key, exc, errors)
+                continue
+            match = literal_get(key)
+            if match is None:
+                self._match_validator(key, value, out, errors, seen)
+                continue
+            # Only Forbidden and Remove literal keys reach here; plain literal
+            # keys took the fast path above. ``_apply`` raises the forbidden
+            # error or validates the Remove value, and a Remove whose value fails
+            # has not consumed the key, so the type/callable candidates get a
+            # turn (a ``str: str`` may take it) and ``_match_validator`` applies
+            # the extra-key policy if none match.
+            index, candidate = match
+            if not self._apply(key, value, index, candidate, out, errors, seen):
+                self._match_validator(key, value, out, errors, seen)
+    
+        if seen is not None:
+            self._finalize(out, errors, seen)
+        if self._has_groups and seen is not None:
+            self._check_groups(out, errors, seen)
+    
+        if errors:
+            if self._secret_keys:
+                self._redact_secrets(errors)
+&gt;           raise MultipleInvalid(errors)
+E           probatio.error.MultipleInvalid: not a valid option at 'retention_days'
+
+.venv/lib/python3.14/site-packages/probatio/_engine.py:286: MultipleInvalid
+
+The above exception was the direct cause of the following exception:
+
+hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fc22af11010&gt;
+berlin_tz = None
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7fc22bff6b30&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fc22bfa6e50&gt;
+
+    async def test_retention_set_in_the_ui_applies_in_place(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        entry = await _retain_race(hass, freezer, aioclient_mock, setup_xmltv)
+        (subentry_id,) = entry.subentries
+        requests = aioclient_mock.call_count
+    
+        # The user ticks "Advanced options" and sets "Keep past matches (days)" to 3
+        result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"name": "F1", "channels": ["daserste.de"], "advanced": True}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "advanced"
+&gt;       result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {"include_fields": ["title", "subtitle"], "exclude_fields": ["title", "subtitle"], "retention_days": 3.0},
+        )
+
+tests/test_retention.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:339: in async_configure
+    result = await self._async_configure(flow_id, user_input)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;homeassistant.config_entries.ConfigSubentryFlowManager object at 0x7fc22af10e50&gt;
+flow_id = 'a88fdd120c66da13e585daf839334fce'
+user_input = {'exclude_fields': ['title', 'subtitle'], 'include_fields': ['title', 'subtitle'], 'retention_days': 3.0}
+
+    async def _async_configure(
+        self, flow_id: str, user_input: dict | None = None
+    ) -&gt; _FlowResultT:
+        """Continue a data entry flow."""
+        if (flow := self._progress.get(flow_id)) is None:
+            raise UnknownFlow
+    
+        cur_step = flow.cur_step
+        assert cur_step is not None
+    
+        if (
+            data_schema := cur_step.get("data_schema")
+        ) is not None and user_input is not None:
+            data_schema = cast(probatio.Schema, data_schema)
+            try:
+                user_input = data_schema(user_input)
+            except probatio.Invalid as ex:
+                raised_errors = [ex]
+                if isinstance(ex, probatio.MultipleInvalid):
+                    raised_errors = ex.errors
+    
+                schema_errors: dict[str, Any] = {}
+                for error in raised_errors:
+                    try:
+                        _map_error_to_schema_errors(schema_errors, error, data_schema)
+                    except ValueError:
+                        # If we get here, the path in the exception
+                        # does not exist in the schema.
+                        schema_errors.setdefault("base", []).append(str(error))
+&gt;               raise InvalidData(
+                    "Schema validation failed",
+                    path=ex.path,
+                    error_message=ex.error_message,
+                    schema_errors=schema_errors,
+                ) from ex
+E               homeassistant.data_entry_flow.InvalidData: Schema validation failed at 'retention_days'
+
+.venv/lib/python3.14/site-packages/homeassistant/data_entry_flow.py:374: InvalidData</failure></testcase><testcase classname="tests.test_advanced_flow" name="test_advanced_options_end_to_end" time="0.066" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[include_fields_empty]" time="0.049" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[exclude_fields_empty]" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[time_to_missing]" time="0.048" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[time_from_missing]" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[time_equal]" time="0.053" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[duration_order]" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[title_braces]" time="0.048" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[title_description_field]" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[title_format_spec]" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_advanced_validation[description_attribute]" time="0.049" /><testcase classname="tests.test_advanced_flow" name="test_unknown_placeholder_names_the_offending_text" time="0.051" /><testcase classname="tests.test_advanced_flow" name="test_invalid_template_shows_the_parse_error" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_both_templates_invalid_get_their_own_errors" time="0.047" /><testcase classname="tests.test_advanced_flow" name="test_valid_edge_input_reaches_the_preview[equal_durations]" time="0.049" /><testcase classname="tests.test_advanced_flow" name="test_valid_edge_input_reaches_the_preview[description_placeholder]" time="0.050" /><testcase classname="tests.test_advanced_flow" name="test_cleared_time_window_is_stored_as_none_on_edit" time="0.057" /><testcase classname="tests.test_advanced_flow" name="test_back_keeps_advanced_values" time="0.056" /><testcase classname="tests.test_advanced_flow" name="test_case_sensitive_in_flow[lower_case_misses]" time="0.048" /><testcase classname="tests.test_advanced_flow" name="test_case_sensitive_in_flow[exact_case_matches]" time="0.050" /><testcase classname="tests.test_advanced_flow" name="test_translation_placeholders_are_provided" time="0.051" /><testcase classname="tests.test_advanced_flow" name="test_retention_days_in_advanced_step" time="0.050"><failure message="AssertionError: assert 'retention_days' in ['include_fields', 'exclude_fields', 'case_sensitive', 'time_from', 'time_to', 'weekdays', ...]&#10; +  where ['include_fields', 'exclude_fields', 'case_sensitive', 'time_from', 'time_to', 'weekdays', ...] = _schema_keys({'data_schema': &lt;Schema({'include_fields': &lt;homeassistant.helpers.selector.SelectSelector object at 0x7fc23a45c650&gt;, '...}, {subtitle}, {episode}, {category}, {channel_id}'}, 'errors': {}, 'flow_id': '3b1e62fad30295415f7203508b65c44e', ...})">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7fc22bfd8930&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7fc23a420d20&gt;
+
+    async def test_retention_days_in_advanced_step(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(FEED, calendars=())
+        result = await _advanced_form(hass, entry)
+&gt;       assert CONF_RETENTION_DAYS in _schema_keys(result)
+E       AssertionError: assert 'retention_days' in ['include_fields', 'exclude_fields', 'case_sensitive', 'time_from', 'time_to', 'weekdays', ...]
+E        +  where ['include_fields', 'exclude_fields', 'case_sensitive', 'time_from', 'time_to', 'weekdays', ...] = _schema_keys({'data_schema': &lt;Schema({'include_fields': &lt;homeassistant.helpers.selector.SelectSelector object at 0x7fc23a45c650&gt;, '...}, {subtitle}, {episode}, {category}, {channel_id}'}, 'errors': {}, 'flow_id': '3b1e62fad30295415f7203508b65c44e', ...})
+
+tests/test_advanced_flow.py:459: AssertionError</failure></testcase></testsuite></testsuites>

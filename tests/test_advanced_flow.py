@@ -22,6 +22,7 @@ from custom_components.xmltv_calendar.const import (
     CONF_INCLUDE_FIELDS,
     CONF_MAX_DURATION,
     CONF_MIN_DURATION,
+    CONF_RETENTION_DAYS,
     CONF_TIME_FROM,
     CONF_TIME_TO,
     CONF_TITLE_TEMPLATE,
@@ -108,7 +109,7 @@ async def test_advanced_options_end_to_end(
         CONF_MAX_DURATION: 120,
         CONF_TITLE_TEMPLATE: "{title} ({channel})",
         CONF_DESCRIPTION_TEMPLATE: "",
-        "retention_days": 1,  # the default of the stored key (04-06); 04-07 adds the form field
+        CONF_RETENTION_DAYS: 1,  # not submitted: a cleared field stores the default (D-15)
     }
     assert type(result["data"][CONF_MIN_DURATION]) is int
     assert type(result["data"][CONF_MAX_DURATION]) is int
@@ -436,3 +437,30 @@ async def test_translation_placeholders_are_provided(
 
     assert used  # the audit really sees the placeholders
     assert used - provided == set()
+
+
+async def _save_new(hass: HomeAssistant, result: Any, user_input: dict[str, Any]) -> Any:
+    """Submit the advanced form of a new calendar, then save from the preview; returns the created entry result."""
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], user_input)
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    return result
+
+
+async def test_retention_days_in_advanced_step(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+    assert CONF_RETENTION_DAYS in _schema_keys(result)
+    # The last field of the step (RESEARCH Pattern 5), suggested with the default for a new calendar
+    assert _schema_keys(result)[-1] == CONF_RETENTION_DAYS
+    assert _suggested(result, CONF_RETENTION_DAYS) == 1
+
+    result = await _save_new(hass, result, _without(**{CONF_RETENTION_DAYS: 0.0}))
+    assert result["data"][CONF_RETENTION_DAYS] == 0
+    assert type(result["data"][CONF_RETENTION_DAYS]) is int

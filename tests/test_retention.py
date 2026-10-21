@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.data_entry_flow import FlowResultType
 
 from .conftest import FEED_URL
 
@@ -396,3 +397,44 @@ async def test_expired_retained_hidden_without_refilter(
     await hass.async_block_till_done(wait_background_tasks=True)
     assert coordinator.data is data
     assert RACE_SUMMARY not in await _summaries(hass)
+
+
+async def test_retention_set_in_the_ui_applies_in_place(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await _retain_race(hass, freezer, aioclient_mock, setup_xmltv)
+    (subentry_id,) = entry.subentries
+    requests = aioclient_mock.call_count
+
+    # The user ticks "Advanced options" and sets "Keep past matches (days)" to 3
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "F1", "channels": ["daserste.de"], "advanced": True}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "advanced"
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"include_fields": ["title", "subtitle"], "exclude_fields": ["title", "subtitle"], "retention_days": 3.0},
+    )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    stored = entry.subentries[subentry_id].data["retention_days"]
+    assert stored == 3
+    assert type(stored) is int
+    # Applied in place: no reload, no download (D-14, Phase 2 D-04)
+    assert entry.state is ConfigEntryState.LOADED
+    assert aioclient_mock.call_count == requests
+
+    # 24.5 h after the end: beyond the old one-day window, inside the new three-day one
+    freezer.move_to("2026-10-14T12:00:00+00:00")
+    await _refresh(hass, aioclient_mock, entry, _variant(2, BASIC_FEED, RACE_MARKER))
+    assert RACE_SUMMARY in await _summaries(hass)
