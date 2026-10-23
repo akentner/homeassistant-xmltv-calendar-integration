@@ -228,6 +228,10 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-10: Pending configuration owns its config-time feed snapshot; newer DATA is diffed only after the silent baseline/recheck commits. Superseded DATA is coalesced independently.
 - [Phase 04]: 04-10: Template-only edits signal rendering without changing configuration revision, preserving real concurrent DATA announcements.
 
+### Roadmap Evolution
+
+- Phase 5 added: Richer title and description templating (current `str.format` placeholders judged too rudimentary)
+
 ### Pending Todos
 
 None yet.

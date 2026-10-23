@@ -202,3 +202,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
 | 4. Automation Extras & Release | 11/11 | Complete    | 2026-10-23 |
+
+### Phase 5: Richer title and description templating
+
+**Goal:** Replace the rudimentary `str.format` placeholder templating for calendar titles and descriptions with a richer mechanism (scope to be settled in discuss-phase)
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 5 to break down)
