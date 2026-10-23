@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.189" timestamp="2026-10-23T15:03:52.462807+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_matcher_runtime" name="test_disabled_counts_without_calendar_objects" time="0.139"><failure message="assert None == 3">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f04aa470830&gt;
+berlin_tz = None
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f04aa51ee00&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f04aa470980&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f04a826a090&gt;
+
+    async def test_disabled_counts_without_calendar_objects(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        monkeypatch: pytest.MonkeyPatch,
+        aioclient_mock: AiohttpClientMocker,
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        from custom_components.xmltv_calendar.diagnostics import async_get_config_entry_diagnostics
+        from custom_components.xmltv_calendar.sensor import LastFetchSensor
+    
+        monkeypatch.setattr(LastFetchSensor, "_attr_entity_registry_enabled_default", True)
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(BASIC_FEED, calendars=(*F1, ("ZDF", {"channels": ["zdf.de"]})))
+        registry = er.async_get(hass)
+        registry.async_update_entity("calendar.f1", disabled_by=er.RegistryEntryDisabler.USER)
+        await _reload(hass, entry)
+        # HA never admits this presentation; consumers must not need even a constructed calendar facade.
+        sid = next(sid for sid, sub in entry.subentries.items() if sub.title == "F1")
+        entry.runtime_data.calendars.pop(sid)
+        await _refresh(hass, aioclient_mock, entry, BASIC_FEED.replace(b"&lt;/tv&gt;", RACE))
+    
+&gt;       assert hass.states.get("sensor.f1_last_fetch").attributes["matches"] == 3
+E       assert None == 3
+
+tests/test_matcher_runtime.py:83: AssertionError</failure></testcase></testsuite></testsuites>
