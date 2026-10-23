@@ -161,7 +161,7 @@ Plans:
   4. Every config, subentry and options flow step, error and abort reason is shown in German when HA runs in German, and in English otherwise.
   5. Pushing a version tag publishes a GitHub release whose version matches `manifest.json`, and HACS offers it for install/update. The README documents setup, regex filter examples, automation examples and calendar limitations (15-min trigger window, overlapping events).
 
-**Plans**: 8/11 plans executed; 3 gap-closure plans ready
+**Plans**: 9/11 plans executed; 3 gap-closure plans ready
 
 Plans:
 **Wave 1**
@@ -183,7 +183,7 @@ Plans:
 - [x] 04-08-PLAN.md — Code-derived EN/DE translation completeness, README, release readiness; user pushes v0.1.0 after UAT (CFG-04, DST-04, DST-03) (wave 5)
 
 **Gap closure — Wave 1** *(after verification: gaps_found)*
-- [ ] 04-09-PLAN.md — CR-01: entity-independent matching keeps sensors, events and retention working with a disabled calendar; lifecycle regressions (AUT-03, AUT-06, EVT-07, EVT-08)
+- [x] 04-09-PLAN.md — CR-01: entity-independent matching keeps sensors, events and retention working with a disabled calendar; lifecycle regressions (AUT-03, AUT-06, EVT-07, EVT-08)
 - [ ] 04-11-PLAN.md — IN-05: complete EN/DE failure-reason state translations and vocabulary-derived completeness tests (CFG-04)
 
 **Gap closure — Wave 2** *(blocked on 04-09 completion)*
@@ -201,4 +201,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
-| 4. Automation Extras & Release | 8/11 | In Progress | - |
+| 4. Automation Extras & Release | 9/11 | In Progress | - |
