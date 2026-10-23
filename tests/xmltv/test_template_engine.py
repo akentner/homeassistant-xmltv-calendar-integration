@@ -1,5 +1,6 @@
 """The sandboxed Jinja engine: whitelist, error reasons, regex validation and sandbox (D-01, D-03, D-04, D-08)."""
 
+import contextlib
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -338,6 +339,138 @@ def test_regex_replace_function_treats_missing_values_as_empty() -> None:
     assert regex_replace("abc", "B", "x", ignorecase=True) == "axc"
     assert regex_replace(12, "1", "x") == "x2"
     assert regex_replace("abc", "b") == "ac"
+
+
+# --- Resource bounds (T-05-10, T-05-11) -----------------------------------------------------------------------------
+
+
+def _chain(count: int) -> str:
+    return "{{ title" + " | trim" * count + " }}"
+
+
+def test_the_bounds_are_the_documented_constants() -> None:
+    bounds = (template_engine.MAX_FILTER_CHAIN, template_engine.MAX_LITERAL_LENGTH, template_engine.MAX_RESULT_CHARS)
+    assert bounds == (16, 300, 50000)
+
+
+def test_a_chain_of_16_filters_compiles_and_17_is_rejected() -> None:
+    assert _render(_chain(16), title=" x ") == "x"
+    err = _reject(_chain(17))
+    assert err.reason == UNSUPPORTED_SYNTAX
+    assert "16" in err.detail
+
+
+@pytest.mark.parametrize("count", [143, 286])
+def test_very_long_filter_chains_are_rejected_quickly(count: int) -> None:
+    assert _reject(_chain(count), max_length=5000).reason == UNSUPPORTED_SYNTAX
+
+
+def test_two_short_chains_in_one_template_are_not_summed() -> None:
+    template = "{{ title" + " | trim" * 10 + " }}{{ subtitle" + " | trim" * 10 + " }}"
+    assert _render(template) == "Formel 1: Großer Preis von MexikoQualifying"
+
+
+def test_a_text_literal_in_an_expression_is_capped_at_300_characters() -> None:
+    compile_template("{{ '" + "a" * 300 + "' }}")
+    err = _reject("{{ '" + "a" * 301 + "' }}")
+    assert err.reason == INVALID_TEMPLATE
+    assert "300" in err.detail
+    assert _reject("{% if title == '" + "a" * 301 + "' %}x{% endif %}").reason == INVALID_TEMPLATE
+
+
+def test_long_literal_text_outside_braces_is_not_affected() -> None:
+    assert _render("a" * 1000 + "{{ title | first }}", title="x") == "a" * 1000 + "x"
+
+
+def _nested_ifs(depth: int) -> str:
+    return "{% if title %}" * depth + "x" + "{% endif %}" * depth
+
+
+HOSTILE: dict[str, tuple[str, int]] = {
+    "chain-143": (_chain(143), MAX_TITLE_TEMPLATE_LENGTH),
+    "chain-286": (_chain(286), MAX_TITLE_TEMPLATE_LENGTH),
+    "chain-1000": (_chain(1000), 10000),
+    "nested-if-130": (_nested_ifs(130), MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "nested-if-1000": (_nested_ifs(1000), 30000),
+    "parentheses-500": ("{{ " + "(" * 500 + "title" + ")" * 500 + " }}", MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "nested-list-500": ("{{ " + "[" * 500 + "title" + "]" * 500 + " }}", MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "nested-neg-1000": ("{{ " + "-" * 1000 + "1 }}", MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "nested-not-1000": ("{{ " + "not " * 1000 + "title }}", MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "nested-getitem": ("{{ title" + "[0]" * 1000 + " }}", MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "nested-cond-expr": ("{{ " + "1 if title else " * 400 + "2 }}", MAX_DESCRIPTION_TEMPLATE_LENGTH),
+    "huge-power": ("{{ (99 ** 99999999) | string | length }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "modulo-format": ("{{ '%s' % title }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "range": ("{{ range(10 ** 9) | list | length }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "method-call": ("{{ title.upper() }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "self-reference": ("{{ self }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "star-arguments": ("{{ categories | join(*categories) }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "long-literal": ("{{ '" + "a" * 1500 + "' }}", MAX_TITLE_TEMPLATE_LENGTH),
+    "unclosed-nesting": ("{{ " + "(" * 900, MAX_TITLE_TEMPLATE_LENGTH),
+}
+
+
+@pytest.mark.parametrize("name", sorted(HOSTILE))
+def test_hostile_templates_are_rejected_quickly(name: str) -> None:
+    text, max_length = HOSTILE[name]
+    started = time.perf_counter()
+    with contextlib.suppress(TemplateError):  # the only exception compile_template may raise
+        compile_template(text, max_length=max_length)
+    assert time.perf_counter() - started < 1
+
+
+@pytest.mark.parametrize("name", ["nested-if-130", "parentheses-500", "chain-143"])
+def test_hostile_templates_that_must_not_compile(name: str) -> None:
+    text, max_length = HOSTILE[name]
+    with pytest.raises(TemplateError) as err:
+        compile_template(text, max_length=max_length)
+    assert err.value.reason in {INVALID_TEMPLATE, UNSUPPORTED_SYNTAX}
+
+
+# --- replace and regex_replace refuse to amplify (T-05-11) ------------------------------------------------------------
+
+
+def _replace(*args: Any) -> str:
+    return ENV.filters["replace"](*args)
+
+
+def test_replace_behaves_like_the_standard_filter_for_ordinary_text() -> None:
+    assert _render("{{ title | replace('a', 'b') }}", title="banana") == "bbnbnb"
+    assert _render("{{ title | replace('a', 'b', 2) }}", title="banana") == "bbnbna"
+    assert _render("{{ title | replace('a', 'b', count=1) }}", title="banana") == "bbnana"
+    assert _render("{{ categories[9] | replace('a', 'b') }}") == ""
+    assert _replace(None, "a", "b") == ""
+    assert _replace(jinja2.Undefined(), "a", "b") == ""
+    assert _replace(12, "1", "x") == "x2"
+    assert _replace("abc", "b", None) == "ac"
+
+
+def test_replace_is_the_guarded_variant_not_the_standard_one() -> None:
+    assert "replace" in CUSTOM_FILTERS
+    assert ENV.filters["replace"] is CUSTOM_FILTERS["replace"]
+
+
+def test_an_oversized_replace_result_is_a_runtime_error() -> None:
+    assert len(_replace("a" * 100, "a", "b" * 400)) == 40000  # below the limit
+    with pytest.raises(ValueError, match="50000"):
+        _replace("a" * 5000, "a", "b" * 300)
+    with pytest.raises(ValueError, match="50000"):
+        _replace("a" * 50001, "x", "y")  # the result, not the growth, is bounded
+
+
+def test_an_oversized_regex_replace_result_is_a_runtime_error() -> None:
+    with pytest.raises(ValueError, match="50000"):
+        regex_replace("a" * 5000, "a", "b" * 300)
+    assert regex_replace("a" * 100, "a", "b" * 400) == "b" * 40000
+
+
+def test_a_compounding_chain_of_replace_calls_stops_at_the_first_oversized_step() -> None:
+    template = compile_template(
+        "{{ title | replace('a', '" + "b" * 300 + "') | replace('b', '" + "c" * 300 + "') | replace('c', 'd') }}"
+    )
+    started = time.perf_counter()
+    with pytest.raises(ValueError, match="50000"):
+        template.render(**{**VALUES, "title": "a" * 5000})
+    assert time.perf_counter() - started < 1
 
 
 # --- The sandbox (T-05-01) ------------------------------------------------------------------------------------------

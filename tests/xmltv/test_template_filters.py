@@ -1,5 +1,6 @@
 """The custom template filters of D-06 and the D-07 recipes, rendered through the real EventTemplates facade."""
 
+import logging
 from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from typing import Any
 
@@ -310,3 +311,23 @@ def test_no_filter_global_or_variable_reads_ha_state_the_clock_or_the_environmen
 
 def test_custom_filters_never_expose_the_environment() -> None:
     assert not {"now", "states", "env", "environ", "getenv", "is_state", "state_attr", "utcnow"} & set(ENV.filters)
+
+
+# --- An oversized replace falls back to the programme title (D-03, T-05-11) -------------------------------------------
+
+
+def test_an_oversized_replace_falls_back_with_one_warning_and_no_feed_text(caplog: pytest.LogCaptureFixture) -> None:
+    feed_title = "a" * 5000  # 5000 characters times a 300 character replacement is far over the 50000 limit
+    template = "{{ title | replace('a', '" + "b" * 300 + "') }}"
+    templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: template}, "F1 calendar")
+    programme = _programme(feed_title)
+    with caplog.at_level(logging.DEBUG, logger="custom_components.xmltv_calendar.xmltv.render"):
+        first = to_event_fields(programme, CHANNEL, templates)["summary"]
+        second = to_event_fields(programme, CHANNEL, templates)["summary"]
+    assert first == second == feed_title
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "F1 calendar" in warnings[0].getMessage()
+    assert "ValueError" in warnings[0].getMessage()
+    assert "aaaa" not in caplog.text
+    assert "bbbb" not in caplog.text
