@@ -215,7 +215,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
   4. Calendars that stored the old default `{channel}: {title}` keep working without a warning; custom old-syntax templates fall back to the new default `{{ channel }}: {{ title }}` with one warning, and the form refuses to save old-syntax text.
   5. Editing a template never changes event UIDs or re-announces matches, and the README documents variables, filters, limits, the upgrade and four recipes that tests render.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -224,7 +224,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 - [x] 05-02-PLAN.md — Flow surface: six translated error keys (EN/DE), legacy rejection, trial render, short help texts (D-10, D-12) (wave 2)
 - [x] 05-03-PLAN.md — Text filters (`first_line`, `lines`, `split`, `regex_search`, `strip_prefix`, `strip_suffix`, `remove`, `time`), chain, literal and result bounds (D-06, D-07, D-04) (wave 2)
-- [ ] 05-04-PLAN.md — Local start and end through calendar, sensor, event and preview; warn-once and no-re-announce regressions (D-05, D-03, D-08) (wave 2)
+- [x] 05-04-PLAN.md — Local start and end through calendar, sensor, event and preview; warn-once and no-re-announce regressions (D-05, D-03, D-08) (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 05-05-PLAN.md — README Templates section with four recipes verified by tests, stack notes rewritten (D-12, D-08, D-01, D-02) (wave 3)

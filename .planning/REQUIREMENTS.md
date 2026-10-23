@@ -45,7 +45,7 @@
 - [x] **EVT-06**: Events have stable UIDs across refreshes
 - [x] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
 - [x] **EVT-08**: An HA event is fired when a new matching programme appears in the feed (not on first refresh, not again after restart)
-- [ ] **EVT-10**: User can shape titles and descriptions with conditions, text filters and local start and end times (for example strip a redundant prefix or use the first description line as sub-title)
+- [x] **EVT-10**: User can shape titles and descriptions with conditions, text filters and local start and end times (for example strip a redundant prefix or use the first description line as sub-title)
 
 ### Automation
 
@@ -134,7 +134,7 @@
 | EVT-06 | Phase 1 | Complete |
 | EVT-07 | Phase 4 | Complete |
 | EVT-08 | Phase 4 | Complete |
-| EVT-10 | Phase 5 | Pending |
+| EVT-10 | Phase 5 | Complete |
 | AUT-01 | Phase 1 | Complete |
 | AUT-02 | Phase 1 | Complete |
 | AUT-03 | Phase 4 | Complete |

@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 05
 current_phase_name: Richer title and description templating
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-10-23T21:42:54.604Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-10-23T21:53:12.926Z"
 last_activity: 2026-10-23
 last_activity_desc: Phase 05 execution started
-state_head: d1a4903278d85bc2d78d983c90d26383bde82bfd
+state_head: 7d04a14d2116540e241f3dae6586c403af617633
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 47
-  completed_plans: 45
+  completed_plans: 46
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 05 (Richer title and description templating) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-10-23 — Phase 05 execution started
 
@@ -104,6 +104,7 @@ Progress: [██████████] 100%
 | Phase 05 P01 | 11 min | 2 tasks | 20 files |
 | Phase 05 P02 | 7min | 2 tasks | 13 files |
 | Phase 05 P03 | 6 min | 3 tasks | 3 files |
+| Phase 05 P04 | 10min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -235,6 +236,7 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-02: help texts pass variables and default_title as placeholder values; trial render uses synthetic samples and caps the detail at 200 characters
 - [Phase 05]: time filter never catches strftime errors: a bad directive is a render error handled by the D-03 fallback
 - [Phase 05]: Template caps: filter chain 16, text literal 300, replace/regex_replace result 50000 characters (A1, A12); T-05-12 tilde growth accepted as residual risk
+- [Phase 05]: 05-04: Home Assistant zone resolved once per batch on the event loop and passed explicitly to templates; build_events defaults tz to the HA zone
 
 ### Roadmap Evolution
 
@@ -273,6 +275,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-23T21:42:54.421Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-10-23T21:53:12.745Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
