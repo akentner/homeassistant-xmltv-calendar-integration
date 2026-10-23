@@ -39,8 +39,8 @@
 
 - [x] **EVT-01**: Each matching programme becomes exactly one calendar event (no merging); exact duplicates (same channel+start+title) are collapsed
 - [x] **EVT-02**: Event location is the channel display name
-- [ ] **EVT-03**: User can configure the event title with a sandboxed Jinja template over the variables `channel`, `channel_id`, `title`, `titles`, `subtitle`, `subtitles`, `episode`, `category`, `categories`, `description`, `start` and `end`; default `{{ channel }}: {{ title }}`; unknown variables, unknown filters, unsupported syntax and the retired single-brace syntax are rejected in the flow (reworked in Phase 5)
-- [ ] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template of the same Jinja kind as the title template (reworked in Phase 5)
+- [x] **EVT-03**: User can configure the event title with a sandboxed Jinja template over the variables `channel`, `channel_id`, `title`, `titles`, `subtitle`, `subtitles`, `episode`, `category`, `categories`, `description`, `start` and `end`; default `{{ channel }}: {{ title }}`; unknown variables, unknown filters, unsupported syntax and the retired single-brace syntax are rejected in the flow (reworked in Phase 5)
+- [x] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template of the same Jinja kind as the title template (reworked in Phase 5)
 - [x] **EVT-05**: Event start/end are correct and timezone-aware for all XMLTV timestamp variants; missing stop times are inferred
 - [x] **EVT-06**: Events have stable UIDs across refreshes
 - [x] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
@@ -128,8 +128,8 @@
 | FLT-11 | Phase 2 | Complete |
 | EVT-01 | Phase 1 | Complete |
 | EVT-02 | Phase 1 | Complete |
-| EVT-03 | Phase 5 | Pending |
-| EVT-04 | Phase 5 | Pending |
+| EVT-03 | Phase 5 | Complete |
+| EVT-04 | Phase 5 | Complete |
 | EVT-05 | Phase 1 | Complete |
 | EVT-06 | Phase 1 | Complete |
 | EVT-07 | Phase 4 | Complete |
