@@ -416,3 +416,25 @@ async def test_newer_data_supersedes_held_data(
     await hass.async_block_till_done()
     assert [e.data["title"] for e in events] == ["Formel 1: Sprint"]
     assert not any(uid.startswith("daserste.de-20261014T140000Z-") for uid in await _stored_seen(hass_storage, entry))
+
+
+async def test_invalid_initial_filter_retention_edit_finishes(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(BASIC_FEED, calendars=(("F1", {"include": "("}),))
+    (sid,) = entry.subentries
+    events = async_capture_events(hass, EVENT)
+    assert hass.config_entries.async_update_subentry(
+        entry, entry.subentries[sid], data={"include": "(", "retention_days": 7, "title_template": "New {title}"}
+    )
+    await hass.async_block_till_done()
+    matcher = entry.runtime_data.matchers[sid]
+    assert not matcher._config_pending
+    assert matcher._config_revision == matcher._committed_config_revision == 1
+    assert matcher.match_count == 0
+    assert hass.states.get(SENSOR).state == "unknown"
+    assert events == []

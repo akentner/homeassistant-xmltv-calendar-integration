@@ -1,0 +1,13 @@
+{
+  "command": "uv run pytest tests/test_matcher_races.py::test_invalid_initial_filter_retention_edit_finishes -q --junitxml=.planning/phases/04-automation-extras-release/tdd-evidence/04-10-red-4.xml",
+  "exitCode": 1,
+  "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"1\" skipped=\"0\" tests=\"1\" time=\"0.238\" timestamp=\"2026-10-23T15:54:10.374139+02:00\" hostname=\"lap-aleken-lati5540\"><testcase classname=\"tests.test_matcher_races\" name=\"test_invalid_initial_filter_retention_edit_finishes\" time=\"0.155\"><failure message=\"assert not True&#10; +  where True = &lt;custom_components.xmltv_calendar.matcher.CalendarMatcher object at 0x7f498933c440&gt;._config_pending\">hass = &lt;HomeAssistant RUNNING&gt;\nfreezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f498d658830&gt;\nberlin_tz = None\nsetup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f498d61fd70&gt;\n\n    async def test_invalid_initial_filter_retention_edit_finishes(\n        hass: HomeAssistant,\n        freezer: Any,\n        berlin_tz: None,\n        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],\n    ) -&gt; None:\n        freezer.move_to(NOW)\n        entry = await setup_xmltv(BASIC_FEED, calendars=((\"F1\", {\"include\": \"(\"}),))\n        (sid,) = entry.subentries\n        events = async_capture_events(hass, EVENT)\n        assert hass.config_entries.async_update_subentry(\n            entry, entry.subentries[sid], data={\"include\": \"(\", \"retention_days\": 7, \"title_template\": \"New {title}\"}\n        )\n        await hass.async_block_till_done()\n        matcher = entry.runtime_data.matchers[sid]\n&gt;       assert not matcher._config_pending\nE       assert not True\nE        +  where True = &lt;custom_components.xmltv_calendar.matcher.CalendarMatcher object at 0x7f498933c440&gt;._config_pending\n\ntests/test_matcher_races.py:436: AssertionError</failure></testcase></testsuite></testsuites>",
+  "targetTest": "test_invalid_initial_filter_retention_edit_finishes",
+  "targetFile": "tests/test_matcher_races.py",
+  "expected": "An initially invalid filter completes its empty configuration baseline on a retention edit",
+  "actual": "The empty baseline leaves config_pending true",
+  "reportPath": ".planning/phases/04-automation-extras-release/tdd-evidence/04-10-red-4.xml",
+  "runStartedAt": "2026-10-23T13:54:09.336997+00:00",
+  "reportModifiedAt": "2026-10-23T13:54:10.612058+00:00",
+  "semanticAssessment": "Actual initial invalid-filter setup and retention edit completed; target failed on sticky pending state, not pattern compilation, timeout or fixtures."
+}
