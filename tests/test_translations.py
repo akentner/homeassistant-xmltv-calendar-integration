@@ -8,6 +8,7 @@ import string
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pytest
 from homeassistant.helpers.translation import async_get_translations
 
 import custom_components.xmltv_calendar as integration
@@ -386,6 +387,42 @@ def test_failure_reason_vocabulary_is_required() -> None:
         assert _missing(reason_keys, _flatten(translations)) == [], path.name
         states = translations["entity"]["sensor"]["last_fetch"]["state_attributes"]["failure_reason"]["state"]
         assert set(states) == coordinator.FAILURE_REASONS
+
+
+@pytest.mark.parametrize("path", [EN_JSON, DE_JSON], ids=("en", "de"))
+@pytest.mark.parametrize("reason", sorted(coordinator.FAILURE_REASONS))
+def test_missing_failure_reason_translation_is_detected(path: Path, reason: str) -> None:
+    translations = _flatten(_load(path))
+    required = _vocabulary_requirements()
+    assert _missing(required, translations) == []
+    key = f"entity.sensor.last_fetch.state_attributes.failure_reason.state.{reason}"
+    del translations[key]
+    assert _missing(required, translations) == [key]
+
+
+@pytest.mark.parametrize("reason", sorted(coordinator.FAILURE_REASONS))
+def test_paired_failure_reason_omission_defeats_parity_but_not_completeness(reason: str) -> None:
+    english = _flatten(_load(EN_JSON))
+    german = _flatten(_load(DE_JSON))
+    key = f"entity.sensor.last_fetch.state_attributes.failure_reason.state.{reason}"
+    del english[key]
+    del german[key]
+    assert english.keys() == german.keys()
+    required = _vocabulary_requirements()
+    assert _missing(required, english) == [key]
+    assert _missing(required, german) == [key]
+
+
+def test_new_failure_reason_is_required_automatically(monkeypatch: pytest.MonkeyPatch) -> None:
+    reason = "synthetic_reason"
+    assert reason not in coordinator.FAILURE_REASONS
+    before = _vocabulary_requirements()
+    monkeypatch.setitem(ATTEMPT_VOCABULARIES, "failure_reason", coordinator.FAILURE_REASONS | {reason})
+    required = _vocabulary_requirements()
+    key = f"entity.sensor.last_fetch.state_attributes.failure_reason.state.{reason}"
+    assert required - before == {key}
+    for path in (EN_JSON, DE_JSON):
+        assert _missing(required, _flatten(_load(path))) == [key]
 
 
 async def test_german_ui_is_served_for_every_required_key(hass: HomeAssistant) -> None:
