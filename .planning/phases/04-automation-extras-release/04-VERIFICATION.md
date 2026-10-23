@@ -1,7 +1,7 @@
 ---
 phase: 04-automation-extras-release
 verified: 2026-10-23T13:00:00Z
-status: human_needed
+status: passed
 score: 83/87 must-haves verified (5 roadmap SCs + 68 plan truths of 04-01..04-08 + 14 gap-closure truths of 04-09..04-11; 0 failed, 4 human/backstop)
 covered_files: [".github/workflows/release.yml",".planning/phases/04-automation-extras-release/04-01-PLAN.md",".planning/phases/04-automation-extras-release/04-01-SUMMARY.md",".planning/phases/04-automation-extras-release/04-02-PLAN.md",".planning/phases/04-automation-extras-release/04-02-SUMMARY.md",".planning/phases/04-automation-extras-release/04-03-PLAN.md",".planning/phases/04-automation-extras-release/04-03-SUMMARY.md",".planning/phases/04-automation-extras-release/04-04-PLAN.md",".planning/phases/04-automation-extras-release/04-04-SUMMARY.md",".planning/phases/04-automation-extras-release/04-05-PLAN.md",".planning/phases/04-automation-extras-release/04-05-SUMMARY.md",".planning/phases/04-automation-extras-release/04-06-PLAN.md",".planning/phases/04-automation-extras-release/04-06-SUMMARY.md",".planning/phases/04-automation-extras-release/04-07-PLAN.md",".planning/phases/04-automation-extras-release/04-07-SUMMARY.md",".planning/phases/04-automation-extras-release/04-08-PLAN.md",".planning/phases/04-automation-extras-release/04-08-SUMMARY.md",".planning/phases/04-automation-extras-release/04-09-PLAN.md",".planning/phases/04-automation-extras-release/04-09-SUMMARY.md",".planning/phases/04-automation-extras-release/04-10-PLAN.md",".planning/phases/04-automation-extras-release/04-10-SUMMARY.md",".planning/phases/04-automation-extras-release/04-11-PLAN.md",".planning/phases/04-automation-extras-release/04-11-SUMMARY.md","README.md","blueprints/automation/xmltv_calendar/notify_before_programme.yaml","custom_components/xmltv_calendar/__init__.py","custom_components/xmltv_calendar/cache.py","custom_components/xmltv_calendar/calendar.py","custom_components/xmltv_calendar/config_flow.py","custom_components/xmltv_calendar/const.py","custom_components/xmltv_calendar/coordinator.py","custom_components/xmltv_calendar/data.py","custom_components/xmltv_calendar/diagnostics.py","custom_components/xmltv_calendar/manifest.json","custom_components/xmltv_calendar/match_store.py","custom_components/xmltv_calendar/matcher.py","custom_components/xmltv_calendar/sensor.py","custom_components/xmltv_calendar/source.py","custom_components/xmltv_calendar/translations/de.json","custom_components/xmltv_calendar/translations/en.json","custom_components/xmltv_calendar/xmltv/matches.py","custom_components/xmltv_calendar/xmltv/settings.py","custom_components/xmltv_calendar/xmltv/window.py","tests/test_advanced_flow.py","tests/test_blueprint.py","tests/test_cache.py","tests/test_diagnostics.py","tests/test_init.py","tests/test_last_fetch_sensor.py","tests/test_matcher_races.py","tests/test_matcher_runtime.py","tests/test_multiday_refresh.py","tests/test_new_match_event.py","tests/test_reconfigure.py","tests/test_repo_structure.py","tests/test_retention.py","tests/test_sensor.py","tests/test_source.py","tests/test_translations.py","tests/xmltv/test_matches.py","tests/xmltv/test_settings.py","tests/xmltv/test_window.py"]
 covered_digest: "v3:sha256:d23cff9b6a9a1b94c185aa9e3f79be458f6d6b12bf48bc284847cb8fda218bc0"
@@ -272,3 +272,12 @@ None. All previously failed truths pass with named, production-path tests that w
 
 _Verified: 2026-10-23T13:00:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Acknowledged Gaps
+
+Status set to `passed` manually by the user on 2026-10-23 after UAT (8 passed, 0 issues, 3 skipped). Open items accepted without verification:
+
+- UAT test 8: README end-to-end read (15-minute trigger-window wording, optional IN-04 sentence) not performed.
+- UAT test 9: final v0.1.0 tag/push not done; only v0.1.0-rc1 is published and the 22 unpushed commits (incl. gap-closure `matcher.py`) are not in it.
+- UAT test 10: backstop "cancelled refresh records no run" neither accepted formally nor covered by a test.
+- Advisory review findings (WR-01 matcher teardown on failed setup, WR-02 DeviceRegistry method vs. HA 2026.3.0 floor, WR-03/IN-04 time zone fingerprint) remain open.

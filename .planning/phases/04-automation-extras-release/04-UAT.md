@@ -43,17 +43,17 @@ result: pass
 ### 8. 04-08: read README.md end to end (setup, regex examples, sensors, event payload, automation examples, limitations incl. 15-minute trigger window and overlapping events, releases)
 expected: Prose is accurate. The backstop truth 'a match added < 15 min before its trigger time may not trigger' matches what HA does, or is accepted as documented HA core behaviour. Optionally add a sentence on the review IN-04 edge (a refresh that coincides with a filter edit is announced silently)
 result: skipped
-reason: user skipped
+reason: "Deferred follow-up: skipped by user; phase accepted as passed manually"
 
 ### 9. DST-03 / SC5: confirm that HACS offers XMLTV Calendar 0.1.0-rc1 (prereleases enabled) and later push the final v0.1.0 (manifest.json to 0.1.0 first). Note that the 22 unpushed commits, including the whole gap-closure work (matcher.py), are NOT in the published v0.1.0-rc1
 expected: The Release workflow passes check-version, CI and Validate and publishes the release; HACS lists the version. rc1 is published as a Pre-release (observed, run 39845820757 success). A final v0.1.0 containing the fixes is still to be tagged by the user
 result: skipped
-reason: user skipped
+reason: "Deferred follow-up: skipped by user; phase accepted as passed manually"
 
 ### 10. 04-05 T13 (backstop): accept or test 'a refresh cancelled part-way records no run; a manual refresh during a scheduled one is serialized by the coordinator lock'
 expected: Accepted as an HA guarantee, or a test asserting coordinator.last_attempt is unchanged after a cancelled refresh is added
 result: skipped
-reason: user skipped
+reason: "Deferred follow-up: skipped by user; phase accepted as passed manually"
 
 ### 11. Confirm the non-authoritative judgment-tier prohibition verdicts (11 items, see table) and set dispositions for the findings. 04-REVIEW-DISPOSITION.md still lists the 8 findings of the FIRST review, all 'open'; the fresh 04-REVIEW.md has different IDs (WR-01..03, IN-01..05)
 expected: All 11 prohibitions accepted as holding. Old CR-01, WR-01, IN-01, IN-05 recorded as fixed. IN-04 (time zone fingerprint), IN-02, IN-03, IN-06 and the new review warnings fixed or deferred with a reason
@@ -67,5 +67,17 @@ issues: 0
 pending: 0
 skipped: 3
 blocked: 0
+
+## Deferred Follow-Ups
+
+- test: 8
+  idea: "Read README.md end to end"
+  deferred_at: 2026-10-23
+- test: 9
+  idea: "Tag and push final v0.1.0 (includes gap-closure commits)"
+  deferred_at: 2026-10-23
+- test: 10
+  idea: "Accept or test: cancelled refresh records no run"
+  deferred_at: 2026-10-23
 
 ## Gaps
