@@ -129,7 +129,7 @@ async def test_disabled_edits_and_retained_reenable(
     assert hass.config_entries.async_update_subentry(
         entry,
         entry.subentries[sid],
-        data={"channels": ["daserste.de"], "title_template": "{title}", "retention_days": 3},
+        data={"channels": ["daserste.de"], "title_template": "{{ title }}", "retention_days": 3},
     )
     await hass.async_block_till_done()
     assert aioclient_mock.call_count == calls
@@ -148,7 +148,7 @@ async def test_disabled_edits_and_retained_reenable(
     assert hass.config_entries.async_update_subentry(
         entry,
         entry.subentries[sid],
-        data={"channels": ["zdf.de"], "title_template": "{title}"},
+        data={"channels": ["zdf.de"], "title_template": "{{ title }}"},
     )
     await hass.async_block_till_done()
     assert hass.states.get(SENSOR).attributes["summary"] == "heute"

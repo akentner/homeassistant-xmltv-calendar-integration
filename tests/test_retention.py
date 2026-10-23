@@ -281,7 +281,7 @@ async def test_template_edit_changes_retained_text(
     (subentry_id,) = entry.subentries
 
     assert hass.config_entries.async_update_subentry(
-        entry, entry.subentries[subentry_id], data={"channels": ["daserste.de"], "title_template": "{title}"}
+        entry, entry.subentries[subentry_id], data={"channels": ["daserste.de"], "title_template": "{{ title }}"}
     )
     await hass.async_block_till_done(wait_background_tasks=True)
     assert "Formel 1: Großer Preis von Mexiko" in await _summaries(hass)

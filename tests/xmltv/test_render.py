@@ -14,16 +14,26 @@ from custom_components.xmltv_calendar.xmltv.model import Channel, Programme
 from custom_components.xmltv_calendar.xmltv.parser import parse
 from custom_components.xmltv_calendar.xmltv.render import (
     DEFAULT_TEMPLATES,
-    DESCRIPTION_FIELDS,
     INVALID_TEMPLATE,
-    TITLE_FIELDS,
+    LEGACY_PLACEHOLDER,
+    MAX_DESCRIPTION_TEMPLATE_LENGTH,
+    MAX_TITLE_TEMPLATE_LENGTH,
     UNKNOWN_PLACEHOLDER,
+    VARIABLE_ORDER,
     EventTemplates,
     TemplateError,
-    compile_template,
+    template_values,
     to_event_fields,
+    validate_template,
 )
-from custom_components.xmltv_calendar.xmltv.settings import KEY_DESCRIPTION_TEMPLATE, KEY_TITLE_TEMPLATE
+from custom_components.xmltv_calendar.xmltv.settings import (
+    DEFAULT_TITLE_TEMPLATE,
+    KEY_CHANNELS,
+    KEY_DESCRIPTION_TEMPLATE,
+    KEY_INCLUDE,
+    KEY_TITLE_TEMPLATE,
+    LEGACY_DEFAULT_TITLE_TEMPLATE,
+)
 
 CEST = timezone(timedelta(hours=2))
 CHANNEL = Channel(id="daserste.de", display_name="Das Erste")
@@ -90,7 +100,7 @@ def test_summary_and_location_unchanged() -> None:
     assert to_event_fields(programme, None)["location"] == "daserste.de"
 
 
-# --- Templates (EVT-03, D-20 to D-22) ------------------------------------------------------------------------------
+# --- Templates (EVT-03, D-01, D-05, D-07, D-09, D-11) --------------------------------------------------------------
 
 BASIC = Path(__file__).parent.parent / "fixtures" / "basic.xml"
 START = datetime(2026, 10, 13, 18, tzinfo=UTC)
@@ -99,7 +109,7 @@ R1 = Programme(
     channel_id="daserste.de",
     start=START,
     stop=START + timedelta(minutes=90),
-    titles=("Tatort",),
+    titles=("Tatort", "Tatort (Wh.)"),
     sub_titles=("Der Fall", "Teil 2"),
     description="Kommissarin ermittelt.",
     categories=("Krimi", "Reihe"),
@@ -119,67 +129,58 @@ R3 = Programme(
 CHANNELS = {"daserste.de": CHANNEL}
 
 
-def _title(template: str, programme: Programme) -> str:
-    templates = EventTemplates(title=compile_template(template, TITLE_FIELDS))
-    return to_event_fields(programme, CHANNELS.get(programme.channel_id), templates)["summary"]
+def _title(template: str, programme: Programme, *, tz: timezone | None = None) -> str:
+    templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: template})
+    return to_event_fields(programme, CHANNELS.get(programme.channel_id), templates, tz=tz)["summary"]
 
 
 @pytest.mark.parametrize(
     ("template", "programme", "expected"),
     [
-        ("{channel}: {title}", R1, "Das Erste: Tatort"),
-        ("{channel}: {title}", R3, "x.de: Nachrichten"),
-        ("{title} – {subtitle}", R1, "Tatort – Der Fall"),
-        ("{title} – {subtitle}", R2, "Tagesschau"),
-        ("{title} ({episode})", R1, "Tatort (1.4.)"),
-        ("{category}: {title}", R2, "Tagesschau"),
-        ("{category}: {title}", R1, "Krimi, Reihe: Tatort"),
-        ("{channel_id} | {title}", R1, "daserste.de | Tatort"),
-        ("  {title}   {subtitle}  ", R1, "Tatort Der Fall"),
-        ("{subtitle}", R2, "Tagesschau"),
-        ("{{{title}}}", R1, "{Tatort}"),
+        ("{{ channel }}: {{ title }}", R1, "Das Erste: Tatort"),
+        ("{{ channel }}: {{ title }}", R3, "x.de: Nachrichten"),
+        ("{{ title }} – {{ subtitle }}", R1, "Tatort – Der Fall"),
+        ("{{ title }} – {{ subtitle }}", R2, "Tagesschau"),
+        ("{{ title }} ({{ episode }})", R1, "Tatort (1.4.)"),
+        ("{{ category }}: {{ title }}", R2, "Tagesschau"),
+        ("{{ category }}: {{ title }}", R1, "Krimi, Reihe: Tatort"),
+        ("{{ channel_id }} | {{ title }}", R1, "daserste.de | Tatort"),
+        ("  {{ title }}   {{ subtitle }}  ", R1, "Tatort Der Fall"),
+        ("{{ subtitle }}", R2, "Tagesschau"),
+        ("{{ '{' ~ title ~ '}' }}", R1, "{Tatort}"),
+        ("{{ titles | join(' / ') }}", R1, "Tatort / Tatort (Wh.)"),
+        ("{{ categories[0] }}", R1, "Krimi"),
+        ("{{ categories[0] }}: {{ title }}", R2, "Tagesschau"),
+        ("{% if subtitle %}{{ subtitle }}{% else %}{{ title }}{% endif %}", R1, "Der Fall"),
+        ("{% if subtitle %}{{ subtitle }}{% else %}{{ title }}{% endif %}", R2, "Tagesschau"),
+        ("{{ title }}\n{{ subtitle }}", R1, "Tatort Der Fall"),
     ],
 )
 def test_title_rendering(template: str, programme: Programme, expected: str) -> None:
     assert _title(template, programme) == expected
 
 
-@pytest.mark.parametrize(
-    ("template", "reason", "detail"),
-    [
-        ("{foo}", UNKNOWN_PLACEHOLDER, "{foo}"),
-        ("{title.__class__}", UNKNOWN_PLACEHOLDER, "{title.__class__}"),
-        ("{title[0]}", UNKNOWN_PLACEHOLDER, "{title[0]}"),
-        ("{}", UNKNOWN_PLACEHOLDER, "{}"),
-        ("{0}", UNKNOWN_PLACEHOLDER, "{0}"),
-        ("{title:>9}", UNKNOWN_PLACEHOLDER, "{title}"),
-        ("{title!r}", UNKNOWN_PLACEHOLDER, "{title}"),
-        ("{title:{channel}}", UNKNOWN_PLACEHOLDER, "{title}"),
-        ("{description}", UNKNOWN_PLACEHOLDER, "{description}"),
-        ("{title", INVALID_TEMPLATE, None),
-        ("title}", INVALID_TEMPLATE, None),
-    ],
-)
-def test_template_error_reasons(template: str, reason: str, detail: str | None) -> None:
-    with pytest.raises(TemplateError) as err:
-        compile_template(template, TITLE_FIELDS)
-    assert err.value.reason == reason
-    if detail is not None:
-        assert err.value.detail == detail
+def test_description_is_available_in_a_title_template() -> None:
+    # D-07: a title template may use the description
+    assert _title("{{ description }}", R1) == "Kommissarin ermittelt."
+    assert _title("{{ title }}: {{ description }}", R2) == "Tagesschau"
 
 
-def test_description_placeholder_allowed_in_description_fields() -> None:
-    assert compile_template("{description}", DESCRIPTION_FIELDS) == (("", "description"),)
+def test_title_whitespace_control_works_on_top_of_the_cleanup() -> None:
+    template = "{{ title }}  {%- if subtitle %} / {{ subtitle }}{%- endif %}"
+    assert _title(template, R1) == "Tatort / Der Fall"
+    assert _title(template, R2) == "Tagesschau"
 
 
-def test_feed_text_with_braces_renders_literally() -> None:
-    # T-02-13: feed values are data, never parsed as a template
-    programme = _programme("{channel} {title.__class__}", START)
-    assert _title("{title}", programme) == "{channel} {title.__class__}"
+def test_feed_text_is_data_never_template_source() -> None:
+    # T-05-04: feed values are only ever variable values, Jinja never re-renders them
+    programme = _programme("{{ 7 * 7 }} {% if 1 %}x{% endif %} {{ title }}", START)
+    assert _title("{{ title }}", programme) == "{{ 7 * 7 }} {% if 1 %}x{% endif %} {{ title }}"
+    assert to_event_fields(programme, CHANNEL)["summary"] == "Das Erste: {{ 7 * 7 }} {% if 1 %}x{% endif %} {{ title }}"
 
 
 def test_uid_ignores_templates() -> None:
-    templated = EventTemplates(title=compile_template("{title} – {subtitle}", TITLE_FIELDS))
+    templated = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{{ title }} – {{ subtitle }}"})
     assert to_event_fields(R1, CHANNEL, templated)["uid"] == to_event_fields(R1, CHANNEL, DEFAULT_TEMPLATES)["uid"]
 
 
@@ -191,6 +192,205 @@ def test_default_templates_reproduce_phase1_summary() -> None:
         fields = to_event_fields(programme, channel)
         assert fields["summary"] == f"{channel.display_name}: {programme.title}"
         assert fields == to_event_fields(programme, channel, DEFAULT_TEMPLATES)
+
+
+# --- Variables (D-05) ----------------------------------------------------------------------------------------------
+
+
+def test_template_values_are_flat_and_typed() -> None:
+    values = template_values(R1, CHANNEL)
+
+    assert set(values) == set(VARIABLE_ORDER)
+    assert values["channel"] == "Das Erste"
+    assert values["channel_id"] == "daserste.de"
+    assert values["title"] == "Tatort"
+    assert values["titles"] == ["Tatort", "Tatort (Wh.)"]
+    assert values["subtitle"] == "Der Fall"
+    assert values["subtitles"] == ["Der Fall", "Teil 2"]
+    assert values["episode"] == "1.4."
+    assert values["category"] == "Krimi, Reihe"
+    assert values["categories"] == ["Krimi", "Reihe"]
+    assert values["description"] == "Kommissarin ermittelt."
+    assert values["start"] == R1.start
+    assert values["end"] == R1.stop
+
+
+def test_template_values_of_a_sparse_programme_are_empty_not_missing() -> None:
+    values = template_values(R3, None)
+
+    assert set(values) == set(VARIABLE_ORDER)
+    assert values["channel"] == "x.de"
+    assert values["subtitle"] == ""
+    assert values["subtitles"] == []
+    assert values["episode"] == ""
+    assert values["category"] == ""
+    assert values["categories"] == []
+    assert values["description"] == ""
+
+
+def test_start_and_end_stay_as_parsed_without_a_zone_and_convert_with_one() -> None:
+    programme = _programme("Tagesschau", datetime(2026, 10, 13, 18, tzinfo=UTC))
+
+    assert _title("{{ start }}", programme) == "2026-10-13 18:00:00+00:00"
+    assert _title("{{ end }}", programme) == "2026-10-13 18:15:00+00:00"
+    assert _title("{{ start }}", programme, tz=CEST) == "2026-10-13 20:00:00+02:00"
+    assert _title("{{ end }}", programme, tz=CEST) == "2026-10-13 20:15:00+02:00"
+    assert template_values(programme, CHANNEL, tz=CEST)["start"] == programme.start  # same instant
+    assert template_values(programme, CHANNEL, tz=CEST)["start"].utcoffset() == timedelta(hours=2)
+
+
+# --- EventTemplates: equality, stored templates, fallbacks (D-03, D-08, D-11) ---------------------------------------
+
+
+def test_equality_compares_template_sources_only() -> None:
+    data = {KEY_TITLE_TEMPLATE: "{{ title }}", KEY_DESCRIPTION_TEMPLATE: "{{ description }}"}
+
+    assert EventTemplates.from_mapping(data) == EventTemplates.from_mapping(dict(data))
+    assert EventTemplates.from_mapping(data) != EventTemplates.from_mapping(
+        {**data, KEY_TITLE_TEMPLATE: "{{ channel }}"}
+    )
+    assert EventTemplates.from_mapping(data) != EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{{ title }}"})
+    # A filter-only edit never looks like a template change (matcher.async_apply_subentry compares these)
+    assert EventTemplates.from_mapping(
+        {**data, KEY_INCLUDE: "formel", KEY_CHANNELS: ["x"]}
+    ) == EventTemplates.from_mapping(data)
+    assert EventTemplates.from_mapping({}) == DEFAULT_TEMPLATES
+
+
+def _warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [record.getMessage() for record in caplog.records if record.levelno >= logging.WARNING]
+
+
+def test_from_mapping_without_a_name_logs_nothing(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.DEBUG):
+        templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{title}", KEY_DESCRIPTION_TEMPLATE: "{{ foo }}"})
+
+    assert _warnings(caplog) == []
+    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+
+
+def test_stored_legacy_template_falls_back_with_one_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{title} - {subtitle}"}, "Abend")
+
+    (message,) = _warnings(caplog)
+    assert "Abend" in message
+    assert "title" in message
+    assert LEGACY_PLACEHOLDER in message
+    assert "{subtitle}" not in message  # the template text never reaches the log
+    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+    assert templates == DEFAULT_TEMPLATES  # the effective source is the default
+
+
+def test_stored_legacy_description_falls_back_to_the_default_description(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        templates = EventTemplates.from_mapping({KEY_DESCRIPTION_TEMPLATE: "{description}"}, "Abend")
+
+    (message,) = _warnings(caplog)
+    assert "description" in message
+    assert LEGACY_PLACEHOLDER in message
+    assert to_event_fields(R1, CHANNEL, templates)["description"] == render.default_description(R1)
+
+
+def test_exact_legacy_default_logs_nothing(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.DEBUG):
+        templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: LEGACY_DEFAULT_TITLE_TEMPLATE}, "Abend")
+
+    assert _warnings(caplog) == []
+    assert templates == DEFAULT_TEMPLATES
+    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+
+
+def test_stored_uncompilable_template_falls_back_with_one_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        templates = EventTemplates.from_mapping(
+            {KEY_TITLE_TEMPLATE: "{{ title.__class__ | nope }}", KEY_DESCRIPTION_TEMPLATE: "{{ foo"}, "Abend"
+        )
+
+    messages = _warnings(caplog)
+    assert len(messages) == 2  # one per unusable stored template, each naming its kind
+    assert all("Abend" in message for message in messages)
+    assert all("__class__" not in message and "nope" not in message and "foo" not in message for message in messages)
+    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+    assert to_event_fields(R1, CHANNEL, templates)["description"] == render.default_description(R1)
+
+
+def test_template_that_raises_at_render_falls_back_with_one_warning(caplog: pytest.LogCaptureFixture) -> None:
+    data = {KEY_TITLE_TEMPLATE: "{{ 1 / 0 }}", KEY_DESCRIPTION_TEMPLATE: "{{ 1 / 0 }}"}
+    templates = EventTemplates.from_mapping(data, "Abend")
+    programmes = (R1, R2, R3, _programme("Streng geheimer Titel", START))
+
+    with caplog.at_level(logging.DEBUG):
+        results = [
+            to_event_fields(programme, CHANNELS.get(programme.channel_id), templates) for programme in programmes
+        ]
+
+    assert [fields["summary"] for fields in results] == [programme.title for programme in programmes]
+    assert [fields["description"] for fields in results] == [render.default_description(p) for p in programmes]
+    (message,) = _warnings(caplog)  # one WARNING per calendar across many renders and both templates
+    assert "Abend" in message
+    assert "ZeroDivisionError" in message
+    assert "Streng geheimer Titel" not in message
+    assert "1 / 0" not in message
+    later = [
+        record
+        for record in caplog.records
+        if record.levelno < logging.WARNING and "ZeroDivisionError" in record.getMessage()
+    ]
+    assert later  # later failures are logged at DEBUG
+
+
+def test_render_failure_without_a_name_is_quiet(caplog: pytest.LogCaptureFixture) -> None:
+    templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{{ 1 / 0 }}"})
+
+    with caplog.at_level(logging.DEBUG):
+        assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Tatort"
+
+    assert _warnings(caplog) == []
+
+
+def test_empty_rendered_title_falls_back_to_the_programme_title() -> None:
+    # D-11: CalendarEvent needs a summary
+    assert _title("{{ subtitle }}", R2) == "Tagesschau"
+    assert _title("{{ '' }}", R1) == "Tatort"
+    assert _title("{{ ' - ' }}", R1) == "Tatort"
+
+
+# --- validate_template (flow facade) -------------------------------------------------------------------------------
+
+
+def test_validate_template_uses_the_caps_of_the_template_kind() -> None:
+    validate_template("a" * MAX_TITLE_TEMPLATE_LENGTH)
+    validate_template("a" * MAX_DESCRIPTION_TEMPLATE_LENGTH, description=True)
+
+    with pytest.raises(TemplateError) as title_err:
+        validate_template("a" * (MAX_TITLE_TEMPLATE_LENGTH + 1))
+    assert title_err.value.reason == INVALID_TEMPLATE
+    with pytest.raises(TemplateError) as description_err:
+        validate_template("a" * (MAX_DESCRIPTION_TEMPLATE_LENGTH + 1), description=True)
+    assert description_err.value.reason == INVALID_TEMPLATE
+    # The description cap is the longer one
+    validate_template("a" * (MAX_TITLE_TEMPLATE_LENGTH + 1), description=True)
+
+
+@pytest.mark.parametrize(
+    ("template", "reason", "detail"),
+    [
+        ("{{ foo }}", UNKNOWN_PLACEHOLDER, "foo"),
+        ("{legacy} {title}", LEGACY_PLACEHOLDER, "{title}"),
+        ("{{ title", INVALID_TEMPLATE, None),
+    ],
+)
+def test_validate_template_raises_the_engine_reasons(template: str, reason: str, detail: str | None) -> None:
+    with pytest.raises(TemplateError) as err:
+        validate_template(template)
+    assert err.value.reason == reason
+    if detail is not None:
+        assert err.value.detail == detail
+
+
+def test_default_title_template_validates() -> None:
+    validate_template(DEFAULT_TITLE_TEMPLATE)
 
 
 # --- Descriptions (EVT-04, D-23) -----------------------------------------------------------------------------------
@@ -231,34 +431,40 @@ def test_default_description_helper() -> None:
 @pytest.mark.parametrize(
     ("template", "programme", "expected"),
     [
-        ("{description}\n\n{category}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
-        ("{description}\n\n{category}", R2, None),
-        ("- {subtitle}\n- {episode}", R1, "- Der Fall\n- 1.4."),
-        ("- {subtitle}\n- {episode}", R2, None),
-        ("{title}   {subtitle}\n\n\n\n{description}", R1, "Tatort Der Fall\n\nKommissarin ermittelt."),
-        ("{episode}: {description}", R2, None),
-        ("{channel}: {title}", R1, "Das Erste: Tatort"),
+        ("{{ description }}\n\n{{ category }}", R1, "Kommissarin ermittelt.\n\nKrimi, Reihe"),
+        ("{{ description }}\n\n{{ category }}", R2, None),
+        ("- {{ subtitle }}\n- {{ episode }}", R1, "- Der Fall\n- 1.4."),
+        ("- {{ subtitle }}\n- {{ episode }}", R2, None),
+        (
+            "{{ title }}   {{ subtitle }}\n\n\n\n{{ description }}",
+            R1,
+            "Tatort Der Fall\n\nKommissarin ermittelt.",
+        ),
+        ("{{ episode }}: {{ description }}", R2, None),
+        ("{{ channel }}: {{ title }}", R1, "Das Erste: Tatort"),
+        ("{{ categories | join(' · ') }}", R1, "Krimi · Reihe"),
+        (
+            "{% if episode %}Episode: {{ episode }}\n{% endif %}{{ description }}",
+            R1,
+            "Episode: 1.4.\nKommissarin ermittelt.",
+        ),
     ],
 )
 def test_description_template(template: str, programme: Programme, expected: str | None) -> None:
     assert _description(programme, {KEY_DESCRIPTION_TEMPLATE: template}) == expected
 
 
+def test_block_tags_on_their_own_lines_leave_no_blank_line() -> None:
+    # trim_blocks and lstrip_blocks keep a block tag on its own line from leaving a blank line (A2)
+    template = "{% if episode %}\nEpisode: {{ episode }}\n{% endif %}\n{{ description }}"
+    assert _description(R1, {KEY_DESCRIPTION_TEMPLATE: template}) == "Episode: 1.4.\nKommissarin ermittelt."
+    assert _description(_with(description="Text."), {KEY_DESCRIPTION_TEMPLATE: template}) == "Text."
+
+
 def test_description_template_strips_dangling_leading_punctuation() -> None:
-    assert _description(_with(description="Text."), {KEY_DESCRIPTION_TEMPLATE: "{episode}: {description}"}) == "Text."
+    template = {KEY_DESCRIPTION_TEMPLATE: "{{ episode }}: {{ description }}"}
+    assert _description(_with(description="Text."), template) == "Text."
 
 
-def test_broken_stored_template_falls_back(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING):
-        templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{title.__class__}"})
-    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
-    assert len(warnings) == 1
-    assert "title" in warnings[0].getMessage()
-    assert "__class__" not in warnings[0].getMessage()
-    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
-
-    caplog.clear()
-    with caplog.at_level(logging.WARNING):
-        templates = EventTemplates.from_mapping({KEY_DESCRIPTION_TEMPLATE: "{foo"})
-    assert len([record for record in caplog.records if record.levelno == logging.WARNING]) == 1
-    assert to_event_fields(R1, CHANNEL, templates)["description"] == render.default_description(R1)
+def test_empty_description_template_means_the_default_description() -> None:
+    assert _description(R1, {KEY_DESCRIPTION_TEMPLATE: "   "}) == render.default_description(R1)

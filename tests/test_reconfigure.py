@@ -483,7 +483,7 @@ async def test_back_in_edit_flow_keeps_edits(
     assert entry.subentries[a_id].data["include"] == "formel"
 
 
-SAT_DATA = {CONF_CHANNELS: ["daserste.de"], CONF_WEEKDAYS: ["sat"], CONF_TITLE_TEMPLATE: "{title}"}
+SAT_DATA = {CONF_CHANNELS: ["daserste.de"], CONF_WEEKDAYS: ["sat"], CONF_TITLE_TEMPLATE: "{{ title }}"}
 SAT_CALENDARS = (("Sat", SAT_DATA), ("Plain", {CONF_CHANNELS: ["zdf.de"]}))
 
 
@@ -523,7 +523,7 @@ async def test_advanced_checkbox_prechecked_on_edit(
     assert result["step_id"] == "advanced"
     suggestions = _suggestions(result)
     assert suggestions[CONF_WEEKDAYS] == ["sat"]
-    assert suggestions[CONF_TITLE_TEMPLATE] == "{title}"
+    assert suggestions[CONF_TITLE_TEMPLATE] == "{{ title }}"
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {**suggestions, CONF_WEEKDAYS: ["tue"]}
@@ -539,7 +539,7 @@ async def test_advanced_checkbox_prechecked_on_edit(
 
     stored = dict(entry.subentries[sat_id].data)
     assert stored[CONF_WEEKDAYS] == ["tue"]
-    assert stored[CONF_TITLE_TEMPLATE] == "{title}"
+    assert stored[CONF_TITLE_TEMPLATE] == "{{ title }}"
     assert CONF_ADVANCED not in stored
     assert await _summaries(hass, "calendar.sat") == ["Formel 1: Großer Preis von Mexiko", "Tagesschau"]
     # D-04, D-19: applied in place, no download, no parse, no reload, sibling untouched

@@ -205,8 +205,8 @@ async def test_template_only_edit_does_not_scan(
         data={
             "channels": ["daserste.de"],
             "include": pattern,
-            "title_template": "New {title}",
-            "description_template": "On {channel_id}",
+            "title_template": "New {{ title }}",
+            "description_template": "On {{ channel_id }}",
         },
     )
     await hass.async_block_till_done()
@@ -247,7 +247,7 @@ async def test_template_edit_during_data_preserves_new_event(
     async with _held_filter(hass, monkeypatch) as (entered, release):
         await _deliver(aioclient_mock, entry, _with(RACE_XML))
         await entered()
-        await _accept_edit(hass, monkeypatch, entry, {"channels": ["daserste.de"], "title_template": "New {title}"})
+        await _accept_edit(hass, monkeypatch, entry, {"channels": ["daserste.de"], "title_template": "New {{ title }}"})
         release()
     await hass.async_block_till_done()
     assert [(e.data["title"], e.data["summary"]) for e in events] == [("Formel 1: Rennen", "New Formel 1: Rennen")]
@@ -283,7 +283,7 @@ async def test_newer_edit_keeps_pending_config_semantics(
     latest = {
         "channels": ["daserste.de"],
         "include": "Tagesschau|Rennen|Sprint",
-        "title_template": "Latest {title}",
+        "title_template": "Latest {{ title }}",
         "retention_days": 7,
     }
     feed = _variant(2, _with(RACE_XML), RACE_MARKER)
@@ -294,7 +294,7 @@ async def test_newer_edit_keeps_pending_config_semantics(
                 await _deliver(aioclient_mock, entry, feed)
             else:
                 data = (
-                    {"title_template": "Old {title}", "retention_days": 0}
+                    {"title_template": "Old {{ title }}", "retention_days": 0}
                     if index == 0 and order.count("config") == 2
                     else latest
                 )
@@ -429,7 +429,7 @@ async def test_invalid_initial_filter_retention_edit_finishes(
     (sid,) = entry.subentries
     events = async_capture_events(hass, EVENT)
     assert hass.config_entries.async_update_subentry(
-        entry, entry.subentries[sid], data={"include": "(", "retention_days": 7, "title_template": "New {title}"}
+        entry, entry.subentries[sid], data={"include": "(", "retention_days": 7, "title_template": "New {{ title }}"}
     )
     await hass.async_block_till_done()
     matcher = entry.runtime_data.matchers[sid]

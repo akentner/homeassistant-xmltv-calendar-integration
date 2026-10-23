@@ -329,6 +329,6 @@ def test_preview_uses_title_template() -> None:
     feed = (Path(__file__).parent.parent / "fixtures" / "basic.xml").read_bytes()
     epg = parse(io.BytesIO(feed), yield_every=0)
 
-    result = build_preview({KEY_TITLE_TEMPLATE: "{title} – {subtitle}"}, epg, datetime(2026, 10, 13, 6, tzinfo=UTC), TZ)
+    result = build_preview({KEY_TITLE_TEMPLATE: "{{ title }} – {{ subtitle }}"}, epg, datetime(2026, 10, 13, 6, tzinfo=UTC), TZ)
 
     assert result.lines[0].endswith("· Das Erste · Formel 1: Großer Preis von Mexiko – Qualifying")

@@ -1,0 +1,411 @@
+"""The sandboxed Jinja engine: whitelist, error reasons, regex validation and sandbox (D-01, D-03, D-04, D-08)."""
+
+import time
+from datetime import UTC, datetime
+from typing import Any
+
+import jinja2
+import pytest
+from custom_components.xmltv_calendar.xmltv.template_engine import (
+    CUSTOM_FILTERS,
+    ENV,
+    INVALID_TEMPLATE,
+    LEGACY_PLACEHOLDER,
+    MAX_DESCRIPTION_TEMPLATE_LENGTH,
+    MAX_TITLE_TEMPLATE_LENGTH,
+    TEMPLATE_ERROR_REASONS,
+    TEMPLATE_RUNTIME_ERROR,
+    UNKNOWN_FILTER,
+    UNKNOWN_PLACEHOLDER,
+    UNSUPPORTED_SYNTAX,
+    VARIABLE_ORDER,
+    VARIABLES,
+    TemplateError,
+    compile_template,
+    regex_replace,
+)
+from jinja2.sandbox import SandboxedEnvironment
+
+from custom_components.xmltv_calendar.xmltv import template_engine
+from custom_components.xmltv_calendar.xmltv.filter import NESTED_REPETITION_MESSAGE
+
+START = datetime(2026, 10, 13, 18, tzinfo=UTC)
+# The variables a programme produces, as render.template_values builds them
+VALUES: dict[str, Any] = {
+    "channel": "Das Erste",
+    "channel_id": "daserste.de",
+    "title": "Formel 1: Großer Preis von Mexiko",
+    "titles": ["Formel 1: Großer Preis von Mexiko", "Formula 1"],
+    "subtitle": "Qualifying",
+    "subtitles": ["Qualifying", "Teil 2"],
+    "episode": "S01E04",
+    "category": "Sport, Motorsport",
+    "categories": ["Sport", "Motorsport", "Live"],
+    "description": "Kommissarin ermittelt.\nZweite Zeile.",
+    "start": START,
+    "end": START,
+}
+
+
+def _render(text: str, **overrides: Any) -> str:
+    return compile_template(text).render(**{**VALUES, **overrides})
+
+
+def _reject(text: str, **kwargs: Any) -> TemplateError:
+    started = time.perf_counter()
+    with pytest.raises(TemplateError) as err:
+        compile_template(text, **kwargs)
+    assert time.perf_counter() - started < 1  # rejected by the walk, nothing evaluated (T-05-02)
+    return err.value
+
+
+# --- Rendering ------------------------------------------------------------------------------------------------------
+
+
+def test_formula_one_prefix_recipe() -> None:
+    assert _render("{{ title | regex_replace('^Formel ?1:? ?', '') }}") == "Großer Preis von Mexiko"
+    assert _render("{{ title | regex_replace('^Formel ?1:? ?', '') }}", title="Tagesschau") == "Tagesschau"
+
+
+@pytest.mark.parametrize(
+    ("template", "overrides", "expected"),
+    [
+        ("{{ channel }}: {{ title }}", {}, "Das Erste: Formel 1: Großer Preis von Mexiko"),
+        ("{% if subtitle %}{{ subtitle }}{% elif episode %}{{ episode }}{% else %}-{% endif %}", {}, "Qualifying"),
+        (
+            "{% if subtitle %}{{ subtitle }}{% elif episode %}{{ episode }}{% else %}-{% endif %}",
+            {"subtitle": ""},
+            "S01E04",
+        ),
+        (
+            "{% if subtitle %}{{ subtitle }}{% elif episode %}{{ episode }}{% else %}-{% endif %}",
+            {"subtitle": "", "episode": ""},
+            "-",
+        ),
+        ("{% set sub = description %}{% if sub %}{{ sub }}{% endif %}", {"description": "Text"}, "Text"),
+        ("{% set sub = description %}{% if sub %}{{ sub }}{% endif %}", {"description": ""}, ""),
+        ("{% set a, b = categories[0], categories[1] %}{{ b }}/{{ a }}", {}, "Motorsport/Sport"),
+        ("{{ categories[:2] | join('/') }}", {}, "Sport/Motorsport"),
+        ("{{ categories[-1] }}", {}, "Live"),
+        ("{{ categories[1:] | join('/') }}", {}, "Motorsport/Live"),
+        ("{{ title ~ ' (' ~ channel ~ ')' }}", {"title": "A"}, "A (Das Erste)"),
+        ("{{ 'yes' if 1 < 2 < 3 else 'no' }}", {}, "yes"),
+        ("{{ 'yes' if 3 > 2 > 2 else 'no' }}", {}, "no"),
+        ("{{ 'yes' if categories[5] is defined else 'no' }}", {}, "no"),
+        ("{{ 'yes' if categories[0] is defined else 'no' }}", {}, "yes"),
+        ("{{ 'yes' if subtitle is string and subtitle is not none else 'no' }}", {}, "yes"),
+        ("{{ description | truncate(10, killwords=true) }}", {}, "Kommiss..."),
+        ("{{ title | regex_replace('^FORMEL ?1:? ?', '', ignorecase=true) }}", {}, "Großer Preis von Mexiko"),
+        ("{{ title | regex_replace('^FORMEL ?1:? ?', '', true) }}", {}, "Großer Preis von Mexiko"),
+        ("{{ title | regex_replace('^FORMEL ?1:? ?', '') }}", {}, "Formel 1: Großer Preis von Mexiko"),
+        ("{{ 7 // 2 }} {{ 7 / 2 }} {{ 7 - 2 }} {{ -3 | abs }}", {}, "3 3.5 5 3"),
+        (
+            "{{ titles | length }}|{{ titles | first }}|{{ titles | last }}",
+            {},
+            "2|Formel 1: Großer Preis von Mexiko|Formula 1",
+        ),
+        ("{{ category | upper }}", {}, "SPORT, MOTORSPORT"),
+    ],
+)
+def test_compile_and_render_table(template: str, overrides: dict[str, Any], expected: str) -> None:
+    assert _render(template, **overrides) == expected
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        "{{ categories[5] }}",
+        "{{ categories[5] | upper }}",
+        "{{ title.nope }}",
+        "{{ title.nope.deeper | upper }}",
+        "{{ subtitles[9] | regex_replace('a', 'b') }}",
+        "{{ categories[5] | first }}",
+    ],
+)
+def test_undefined_values_render_empty(template: str) -> None:
+    # D-03: lenient undefined, so a missing field never fails a window
+    assert _render(template) == ""
+
+
+def test_empty_and_missing_fields_render_as_empty_strings() -> None:
+    sparse = {"subtitle": "", "subtitles": [], "episode": "", "category": "", "categories": [], "description": ""}
+    assert (
+        _render("[{{ subtitle }}|{{ episode }}|{{ category }}|{{ description }}|{{ categories[0] }}]", **sparse)
+        == "[||||]"
+    )
+
+
+def test_trim_blocks_leaves_no_blank_line_for_block_tags_on_their_own_lines() -> None:
+    template = (
+        "{% if subtitle %}\nSub: {{ subtitle }}\n{% endif %}\n{% if episode %}\nEp: {{ episode }}\n{% endif %}\nEnd"
+    )
+    assert _render(template) == "Sub: Qualifying\nEp: S01E04\nEnd"
+    assert _render(template, subtitle="", episode="") == "End"
+
+
+def test_whitespace_control_is_available() -> None:
+    assert _render("{{ title -}}   {{ '!' }}", title="A") == "A!"
+
+
+# --- Rejections: the whitelist (D-04, A6, A7) -----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("template", "node"),
+    [
+        ("{% for c in categories %}{{ c }}{% endfor %}", "For"),
+        ("{% macro m() %}x{% endmacro %}{{ m() }}", "Macro"),
+        ("{% call title() %}x{% endcall %}", "CallBlock"),
+        ("{% include 'x' %}", "Include"),
+        ("{% import 'x' as y %}", "Import"),
+        ("{% from 'x' import y %}", "FromImport"),
+        ("{% extends 'x' %}", "Extends"),
+        ("{% block b %}x{% endblock %}", "Block"),
+        ("{% with a = 1 %}{{ a }}{% endwith %}", "With"),
+        ("{% set x %}abc{% endset %}{{ x }}", "AssignBlock"),
+        ("{% filter upper %}x{% endfilter %}", "FilterBlock"),
+        ("{{ title.upper() }}", "Call"),
+        ("{{ (title | upper).lower() }}", "Call"),
+        ("{{ title * 3 }}", "Mul"),
+        ("{{ 2 ** 3 }}", "Pow"),
+        ("{{ 5 % 2 }}", "Mod"),
+        ("{{ title + 'x' }}", "Add"),
+        ("{{ {'a': 1} }}", "Dict"),
+    ],
+)
+def test_unsupported_syntax_is_rejected(template: str, node: str) -> None:
+    err = _reject(template)
+    assert err.reason == UNSUPPORTED_SYNTAX
+    assert err.detail.startswith(node)
+    assert "line 1" in err.detail
+
+
+def test_the_name_self_is_rejected() -> None:
+    err = _reject("{{ self }}")
+    assert err.reason == UNSUPPORTED_SYNTAX
+    assert "self" in err.detail
+
+
+def test_star_arguments_to_a_filter_are_rejected() -> None:
+    assert _reject("{{ categories | join(*categories) }}").reason == UNSUPPORTED_SYNTAX
+    assert _reject("{{ title | truncate(**subtitles) }}").reason == UNSUPPORTED_SYNTAX
+
+
+def test_a_huge_constant_power_expression_is_rejected_before_it_is_evaluated() -> None:
+    err = _reject("{{ (99 ** 99999999) | string | length }}")
+    assert err.reason == UNSUPPORTED_SYNTAX
+    assert err.detail.startswith("Pow")
+
+
+@pytest.mark.parametrize("name", ["center", "format", "attr", "safe", "tojson", "indent", "e", "wordwrap", "urlize"])
+def test_pruned_filters_are_unknown(name: str) -> None:
+    err = _reject(f"{{{{ title | {name} }}}}")
+    assert err.reason == UNKNOWN_FILTER
+    assert err.detail == name
+
+
+def test_unknown_filter_and_unknown_test_name_the_offender() -> None:
+    err = _reject("{{ title | nope }}")
+    assert (err.reason, err.detail) == (UNKNOWN_FILTER, "nope")
+    err = _reject("{% if title is nope %}x{% endif %}")
+    assert err.reason == UNKNOWN_FILTER
+    assert err.detail == "nope"
+    assert _reject("{% if title is divisibleby(3) %}x{% endif %}").reason == UNKNOWN_FILTER
+
+
+def test_unknown_variables_are_listed_sorted() -> None:
+    err = _reject("{{ nope }}")
+    assert (err.reason, err.detail) == (UNKNOWN_PLACEHOLDER, "nope")
+    err = _reject("{{ zeta }}{{ alpha }}{{ title }}")
+    assert (err.reason, err.detail) == (UNKNOWN_PLACEHOLDER, "alpha, zeta")
+    assert _reject("{{ titel }}").reason == UNKNOWN_PLACEHOLDER
+
+
+@pytest.mark.parametrize("name", ["range", "dict", "lipsum", "cycler", "joiner", "namespace"])
+def test_pruned_globals_are_unknown_variables(name: str) -> None:
+    err = _reject(f"{{{{ {name} }}}}")
+    assert err.reason == UNKNOWN_PLACEHOLDER
+    assert err.detail == name
+
+
+def test_a_name_assigned_by_set_is_not_flagged() -> None:
+    assert _render("{% set sub = subtitle %}{{ sub }}") == "Qualifying"
+
+
+def test_every_variable_is_known() -> None:
+    for name in VARIABLE_ORDER:
+        compile_template("{{ " + name + " }}")
+
+
+def test_syntax_errors_name_the_line() -> None:
+    err = _reject("{{ title")
+    assert err.reason == INVALID_TEMPLATE
+    assert err.detail.startswith("line 1")
+    err = _reject("first line\n{% if title %}\nno end")
+    assert err.reason == INVALID_TEMPLATE
+    assert err.detail.startswith("line ")
+
+
+def test_deeply_nested_input_is_a_template_error_not_a_crash() -> None:
+    err = _reject("{{ " + "(" * 900 + "title" + ")" * 900 + " }}", max_length=5000)
+    assert err.reason in {INVALID_TEMPLATE, UNSUPPORTED_SYNTAX}
+
+
+@pytest.mark.parametrize(
+    ("template", "detail"),
+    [
+        ("{channel}: {title}", "{channel}"),
+        ("x {title}", "{title}"),
+        ("{channel_id}", "{channel_id}"),
+        ("{episode}", "{episode}"),
+    ],
+)
+def test_legacy_single_brace_text_is_detected(template: str, detail: str) -> None:
+    err = _reject(template)
+    assert err.reason == LEGACY_PLACEHOLDER
+    assert err.detail == detail
+
+
+@pytest.mark.parametrize(
+    ("template", "expected"),
+    [
+        ("{{ title }} {live}", "T {live}"),
+        ("{live}", "{live}"),
+        ("{title} {{ channel }}", "{title} Das Erste"),
+        ("{% if title %}{title}{% endif %}", "{title}"),
+    ],
+)
+def test_only_pure_legacy_text_is_legacy(template: str, expected: str) -> None:
+    assert _render(template, title="T") == expected
+
+
+def test_text_longer_than_the_cap_is_rejected() -> None:
+    err = _reject("a" * 11, max_length=10)
+    assert err.reason == INVALID_TEMPLATE
+    assert "longer than 10 characters" in err.detail
+    compile_template("a" * 10, max_length=10)
+    assert _reject("a" * (MAX_TITLE_TEMPLATE_LENGTH + 1)).reason == INVALID_TEMPLATE
+    compile_template("a" * MAX_DESCRIPTION_TEMPLATE_LENGTH, max_length=MAX_DESCRIPTION_TEMPLATE_LENGTH)
+
+
+# --- Regex arguments are validated at compile time (T-05-03) --------------------------------------------------------
+
+
+def test_regex_pattern_must_be_a_text_literal() -> None:
+    for template in (
+        "{{ title | regex_replace(subtitle, '') }}",
+        "{{ title | regex_replace(1, '') }}",
+        "{{ title | regex_replace(('a' ~ 'b'), '') }}",
+        "{{ title | regex_replace() }}",
+    ):
+        err = _reject(template)
+        assert err.reason == UNSUPPORTED_SYNTAX, template
+        assert "text literal" in err.detail
+
+
+def test_invalid_regex_is_rejected() -> None:
+    err = _reject("{{ title | regex_replace('(', '') }}")
+    assert err.reason == INVALID_TEMPLATE
+    assert err.detail
+
+
+def test_nested_unbounded_repetition_is_rejected() -> None:
+    err = _reject("{{ title | regex_replace('(a+)+$', '') }}")
+    assert err.reason == INVALID_TEMPLATE
+    assert err.detail == NESTED_REPETITION_MESSAGE
+
+
+def test_overlong_pattern_is_rejected() -> None:
+    err = _reject("{{ title | regex_replace('" + "a" * 301 + "', '') }}")
+    assert err.reason == INVALID_TEMPLATE
+    assert "300" in err.detail
+    compile_template("{{ title | regex_replace('" + "a" * 300 + "', '') }}")
+
+
+def test_replacement_with_a_bad_group_reference_is_rejected_at_compile_time() -> None:
+    err = _reject(r"{{ title | regex_replace('a', '\\g<9>') }}")
+    assert err.reason == INVALID_TEMPLATE
+    assert _render(r"{{ title | regex_replace('(F)', '<\\1>') }}", title="Fx") == "<F>x"
+
+
+def test_regex_replace_accepts_keyword_arguments() -> None:
+    assert _render("{{ title | regex_replace(find='x', replace='y') }}", title="axb") == "ayb"
+
+
+def test_regex_replace_function_treats_missing_values_as_empty() -> None:
+    assert regex_replace(None, "a", "b") == ""
+    assert regex_replace(jinja2.Undefined(), "a", "b") == ""
+    assert regex_replace("abc", "B", "x", ignorecase=True) == "axc"
+    assert regex_replace(12, "1", "x") == "x2"
+    assert regex_replace("abc", "b") == "ac"
+
+
+# --- The sandbox (T-05-01) ------------------------------------------------------------------------------------------
+
+
+def test_unsafe_attributes_render_empty() -> None:
+    assert _render("{{ title.__class__ }}") == ""
+    assert _render("{{ title.__class__.__mro__ }}") == ""
+    assert _render("{{ categories.__class__.__base__ }}") == ""
+    assert _render("{% set a = title %}{{ a.__class__ }}") == ""
+
+
+def test_the_environment_is_a_sandbox_without_globals() -> None:
+    assert isinstance(ENV, SandboxedEnvironment)
+    assert isinstance(ENV, jinja2.sandbox.ImmutableSandboxedEnvironment)
+    assert ENV.globals == {}
+
+
+def test_filters_and_tests_are_pruned_to_the_allow_lists() -> None:
+    assert set(ENV.filters) == template_engine.STANDARD_FILTERS | set(CUSTOM_FILTERS)
+    assert set(ENV.tests) == template_engine.STANDARD_TESTS
+    assert "regex_replace" in CUSTOM_FILTERS
+    assert not {"center", "format", "attr", "safe", "tojson", "indent", "e"} & set(ENV.filters)
+
+
+# --- The contract other modules rely on -----------------------------------------------------------------------------
+
+
+def test_error_reasons_are_the_six_flow_keys_in_order() -> None:
+    assert TEMPLATE_ERROR_REASONS == (
+        INVALID_TEMPLATE,
+        UNKNOWN_PLACEHOLDER,
+        UNSUPPORTED_SYNTAX,
+        UNKNOWN_FILTER,
+        LEGACY_PLACEHOLDER,
+        TEMPLATE_RUNTIME_ERROR,
+    )
+    assert len(set(TEMPLATE_ERROR_REASONS)) == 6
+    for reason in TEMPLATE_ERROR_REASONS:
+        assert isinstance(reason, str)
+        assert reason == reason.lower()
+    assert TEMPLATE_RUNTIME_ERROR == "template_runtime_error"
+    assert UNSUPPORTED_SYNTAX == "unsupported_syntax"
+
+
+def test_template_error_carries_reason_and_detail() -> None:
+    err = TemplateError("invalid_template", "line 3: oops")
+    assert isinstance(err, ValueError)
+    assert (err.reason, err.detail) == ("invalid_template", "line 3: oops")
+    assert str(err) == "invalid_template: line 3: oops"
+
+
+def test_variables_and_caps() -> None:
+    assert VARIABLE_ORDER == (
+        "channel",
+        "channel_id",
+        "title",
+        "titles",
+        "subtitle",
+        "subtitles",
+        "episode",
+        "category",
+        "categories",
+        "description",
+        "start",
+        "end",
+    )
+    assert frozenset(VARIABLE_ORDER) == VARIABLES
+    assert MAX_TITLE_TEMPLATE_LENGTH == 2000
+    assert MAX_DESCRIPTION_TEMPLATE_LENGTH == 5000
+    assert set(VALUES) == set(VARIABLES)  # the fixture mirrors what template_values builds

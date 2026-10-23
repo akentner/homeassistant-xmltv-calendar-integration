@@ -26,6 +26,7 @@ from custom_components.xmltv_calendar.xmltv.settings import (
     KEY_TIME_TO,
     KEY_TITLE_TEMPLATE,
     KEY_WEEKDAYS,
+    LEGACY_DEFAULT_TITLE_TEMPLATE,
     has_advanced,
     normalize_time,
     with_defaults,
@@ -135,9 +136,11 @@ def test_advanced_defaults_are_the_phase2_defaults() -> None:
         pytest.param(KEY_TITLE_TEMPLATE, "", DEFAULT_TITLE_TEMPLATE, id="title-template-empty"),
         pytest.param(KEY_TITLE_TEMPLATE, "   ", DEFAULT_TITLE_TEMPLATE, id="title-template-blank"),
         pytest.param(KEY_TITLE_TEMPLATE, 5, DEFAULT_TITLE_TEMPLATE, id="title-template-int"),
-        pytest.param(KEY_TITLE_TEMPLATE, "{title}", "{title}", id="title-template-kept"),
+        pytest.param(KEY_TITLE_TEMPLATE, "{{ title }}", "{{ title }}", id="title-template-kept"),
         pytest.param(KEY_DESCRIPTION_TEMPLATE, None, "", id="description-template-none"),
-        pytest.param(KEY_DESCRIPTION_TEMPLATE, "{description}", "{description}", id="description-template-kept"),
+        pytest.param(
+            KEY_DESCRIPTION_TEMPLATE, "{{ description }}", "{{ description }}", id="description-template-kept"
+        ),
         pytest.param(KEY_CHANNELS, "zdf.de", ["zdf.de"], id="channels-string"),
         pytest.param(KEY_CHANNELS, ["zdf.de", "", "zdf.de", "sky.de"], ["zdf.de", "sky.de"], id="channels-dedup"),
         pytest.param(KEY_CHANNELS, 5, [], id="channels-int"),
@@ -190,7 +193,7 @@ def test_with_defaults_never_raises_and_drops_unknown_keys() -> None:
         PHASE1_DATA,
         GARBAGE,
         {KEY_INCLUDE_FIELDS: [FIELD_CATEGORY, FIELD_TITLE], KEY_TIME_FROM: "22:00:00", KEY_MIN_DURATION: 45.0},
-        {KEY_WEEKDAYS: ["sun", "sat"], KEY_TITLE_TEMPLATE: "{title}", KEY_CASE_SENSITIVE: True},
+        {KEY_WEEKDAYS: ["sun", "sat"], KEY_TITLE_TEMPLATE: "{{ title }}", KEY_CASE_SENSITIVE: True},
     ],
 )
 def test_with_defaults_is_idempotent(data: dict[str, Any]) -> None:
@@ -216,7 +219,7 @@ def test_with_defaults_returns_fresh_lists() -> None:
         pytest.param({KEY_INCLUDE_FIELDS: [FIELD_SUBTITLE, FIELD_TITLE]}, False, id="default-fields-reordered"),
         pytest.param({KEY_TIME_FROM: "", KEY_MIN_DURATION: -1}, False, id="invalid-values-are-defaults"),
         pytest.param({KEY_WEEKDAYS: ["sat"]}, True, id="weekdays"),
-        pytest.param({KEY_TITLE_TEMPLATE: "{title}"}, True, id="title-template"),
+        pytest.param({KEY_TITLE_TEMPLATE: "{{ title }}"}, True, id="title-template"),
         pytest.param({KEY_CASE_SENSITIVE: True}, True, id="case-sensitive"),
         pytest.param({KEY_EXCLUDE_FIELDS: [FIELD_DESCRIPTION]}, True, id="exclude-fields"),
         pytest.param({KEY_MAX_DURATION: 0}, True, id="zero-duration"),
@@ -245,3 +248,26 @@ def test_has_advanced(data: dict[str, Any], *, expected: bool) -> None:
 )
 def test_normalize_time(value: object, expected: str | None) -> None:
     assert normalize_time(value) == expected
+
+
+# --- Legacy default normalization (D-08, D-09) ---------------------------------------------------------------------
+
+
+def test_default_title_template_is_the_double_brace_default() -> None:
+    assert DEFAULT_TITLE_TEMPLATE == "{{ channel }}: {{ title }}"
+    assert LEGACY_DEFAULT_TITLE_TEMPLATE == "{channel}: {title}"
+
+
+@pytest.mark.parametrize("stored", [LEGACY_DEFAULT_TITLE_TEMPLATE, f"  {LEGACY_DEFAULT_TITLE_TEMPLATE}\n"])
+def test_exact_legacy_default_maps_to_the_new_default(stored: str) -> None:
+    settings = with_defaults({KEY_TITLE_TEMPLATE: stored})
+
+    assert settings[KEY_TITLE_TEMPLATE] == DEFAULT_TITLE_TEMPLATE
+    # The Phase 2 flow stored this literal for every calendar: it must not pre-check "Advanced options"
+    assert has_advanced({KEY_TITLE_TEMPLATE: stored}) is False
+
+
+@pytest.mark.parametrize("stored", ["{title}", "{channel}: {title} ({subtitle})", "{title} - {subtitle}"])
+def test_other_single_brace_text_is_kept_unchanged(stored: str) -> None:
+    assert with_defaults({KEY_TITLE_TEMPLATE: stored})[KEY_TITLE_TEMPLATE] == stored
+    assert has_advanced({KEY_TITLE_TEMPLATE: stored}) is True

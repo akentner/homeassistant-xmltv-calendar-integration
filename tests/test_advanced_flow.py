@@ -48,7 +48,7 @@ ADVANCED = {
     CONF_WEEKDAYS: ["tue"],
     CONF_MIN_DURATION: 10.0,
     CONF_MAX_DURATION: 120.0,
-    CONF_TITLE_TEMPLATE: "{title} ({channel})",
+    CONF_TITLE_TEMPLATE: "{{ title }} ({{ channel }})",
 }
 
 
@@ -107,7 +107,7 @@ async def test_advanced_options_end_to_end(
         CONF_WEEKDAYS: ["tue"],
         CONF_MIN_DURATION: 10,
         CONF_MAX_DURATION: 120,
-        CONF_TITLE_TEMPLATE: "{title} ({channel})",
+        CONF_TITLE_TEMPLATE: "{{ title }} ({{ channel }})",
         CONF_DESCRIPTION_TEMPLATE: "",
         CONF_RETENTION_DAYS: 1,  # not submitted: a cleared field stores the default (D-15)
     }
@@ -169,22 +169,17 @@ def _without(*keys: str, **changes: Any) -> dict[str, Any]:
             id="duration_order",
         ),
         pytest.param(
-            _without(**{CONF_TITLE_TEMPLATE: "{title"}), {CONF_TITLE_TEMPLATE: "invalid_template"}, id="title_braces"
+            _without(**{CONF_TITLE_TEMPLATE: "{{ title"}), {CONF_TITLE_TEMPLATE: "invalid_template"}, id="title_braces"
         ),
         pytest.param(
-            _without(**{CONF_TITLE_TEMPLATE: "{description}"}),
-            {CONF_TITLE_TEMPLATE: "unknown_placeholder"},
-            id="title_description_field",
+            _without(**{CONF_TITLE_TEMPLATE: "{{ title | center(9) }}"}),
+            {CONF_TITLE_TEMPLATE: "unknown_filter"},
+            id="title_pruned_filter",
         ),
         pytest.param(
-            _without(**{CONF_TITLE_TEMPLATE: "{title:>9}"}),
-            {CONF_TITLE_TEMPLATE: "unknown_placeholder"},
-            id="title_format_spec",
-        ),
-        pytest.param(
-            _without(**{CONF_DESCRIPTION_TEMPLATE: "{channel.x}"}),
+            _without(**{CONF_DESCRIPTION_TEMPLATE: "{{ nope.x }}"}),
             {CONF_DESCRIPTION_TEMPLATE: "unknown_placeholder"},
-            id="description_attribute",
+            id="description_unknown_variable",
         ),
     ],
 )
@@ -220,11 +215,11 @@ async def test_unknown_placeholder_names_the_offending_text(
     result = await _advanced_form(hass, entry)
 
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{foo}"})
+        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{{ foo }}"})
     )
 
     assert result.get("errors") == {CONF_TITLE_TEMPLATE: "unknown_placeholder"}
-    assert result["description_placeholders"]["template_error"] == "{foo}"
+    assert result["description_placeholders"]["template_error"] == "foo"
     assert "pattern" not in result["description_placeholders"]
     assert "error" not in result["description_placeholders"]
 
@@ -239,7 +234,7 @@ async def test_invalid_template_shows_the_parse_error(
     result = await _advanced_form(hass, entry)
 
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{title"})
+        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{{ title"})
     )
 
     assert result.get("errors") == {CONF_TITLE_TEMPLATE: "invalid_template"}
@@ -256,14 +251,14 @@ async def test_both_templates_invalid_get_their_own_errors(
     result = await _advanced_form(hass, entry)
 
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{foo}", CONF_DESCRIPTION_TEMPLATE: "{bar[0]}"})
+        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{{ foo }}", CONF_DESCRIPTION_TEMPLATE: "{{ bar[0] }}"})
     )
 
     assert result.get("errors") == {
         CONF_TITLE_TEMPLATE: "unknown_placeholder",
         CONF_DESCRIPTION_TEMPLATE: "unknown_placeholder",
     }
-    assert result["description_placeholders"]["template_error"] == "{foo}"
+    assert result["description_placeholders"]["template_error"] == "foo"
     assert "pattern" not in result["description_placeholders"]
     assert "error" not in result["description_placeholders"]
 
@@ -272,7 +267,8 @@ async def test_both_templates_invalid_get_their_own_errors(
     "user_input",
     [
         pytest.param(_without(**{CONF_MIN_DURATION: 30.0, CONF_MAX_DURATION: 30.0}), id="equal_durations"),
-        pytest.param(_without(**{CONF_DESCRIPTION_TEMPLATE: "{description}"}), id="description_placeholder"),
+        pytest.param(_without(**{CONF_DESCRIPTION_TEMPLATE: "{{ description }}"}), id="description_placeholder"),
+        pytest.param(_without(**{CONF_TITLE_TEMPLATE: "{{ description }}"}), id="description_in_title"),
     ],
 )
 async def test_valid_edge_input_reaches_the_preview(
@@ -344,7 +340,7 @@ async def test_back_keeps_advanced_values(
     result = await _advanced_form(hass, entry)
 
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], _without(**{CONF_WEEKDAYS: ["fri"], CONF_TITLE_TEMPLATE: "{title}"})
+        result["flow_id"], _without(**{CONF_WEEKDAYS: ["fri"], CONF_TITLE_TEMPLATE: "{{ title }}"})
     )
     assert result["type"] is FlowResultType.MENU
     result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "back"})
@@ -358,7 +354,7 @@ async def test_back_keeps_advanced_values(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "advanced"
     assert _suggested(result, CONF_WEEKDAYS) == ["fri"]
-    assert _suggested(result, CONF_TITLE_TEMPLATE) == "{title}"
+    assert _suggested(result, CONF_TITLE_TEMPLATE) == "{{ title }}"
     assert not entry.subentries
 
 

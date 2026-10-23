@@ -235,7 +235,7 @@ async def test_sensor_follows_filter_and_template_edits(
 
     # A template-only edit changes the summary without a refilter
     assert hass.config_entries.async_update_subentry(
-        entry, entry.subentries[subentry_id], data={"channels": ["zdf.de"], "title_template": "{title}"}
+        entry, entry.subentries[subentry_id], data={"channels": ["zdf.de"], "title_template": "{{ title }}"}
     )
     await hass.async_block_till_done()
     assert hass.states.get(SENSOR).attributes["summary"] == "heute"
@@ -260,7 +260,7 @@ async def test_template_edit_with_invalid_pattern_reaches_sensor(
     assert hass.config_entries.async_update_subentry(
         entry,
         entry.subentries[subentry_id],
-        data={"channels": ["daserste.de"], "include": "(", "title_template": "{title}"},
+        data={"channels": ["daserste.de"], "include": "(", "title_template": "{{ title }}"},
     )
     await hass.async_block_till_done()
 
