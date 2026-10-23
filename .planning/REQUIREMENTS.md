@@ -39,12 +39,13 @@
 
 - [x] **EVT-01**: Each matching programme becomes exactly one calendar event (no merging); exact duplicates (same channel+start+title) are collapsed
 - [x] **EVT-02**: Event location is the channel display name
-- [x] **EVT-03**: User can configure the event title via placeholder template (`{channel}`, `{title}`, `{subtitle}`, `{episode}`, `{category}`, `{channel_id}`); default `{channel}: {title}`; unknown placeholders rejected in flow
-- [x] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template
+- [ ] **EVT-03**: User can configure the event title with a sandboxed Jinja template over the variables `channel`, `channel_id`, `title`, `titles`, `subtitle`, `subtitles`, `episode`, `category`, `categories`, `description`, `start` and `end`; default `{{ channel }}: {{ title }}`; unknown variables, unknown filters, unsupported syntax and the retired single-brace syntax are rejected in the flow (reworked in Phase 5)
+- [ ] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template of the same Jinja kind as the title template (reworked in Phase 5)
 - [x] **EVT-05**: Event start/end are correct and timezone-aware for all XMLTV timestamp variants; missing stop times are inferred
 - [x] **EVT-06**: Events have stable UIDs across refreshes
 - [x] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
 - [x] **EVT-08**: An HA event is fired when a new matching programme appears in the feed (not on first refresh, not again after restart)
+- [ ] **EVT-10**: User can shape titles and descriptions with conditions, text filters and local start and end times (for example strip a redundant prefix or use the first description line as sub-title)
 
 ### Automation
 
@@ -90,7 +91,6 @@
 | Bundled country/source catalogue | Sources die/move; maintenance burden |
 | Full schedule as entity attributes | Recorder bloat, 16 KB limit; use `get_events` |
 | Merging consecutive/simulcast programmes | User decision: 1 programme = 1 event, exclude regex for noise |
-| Jinja title templates | Too slow for thousands of events; `str.format_map` instead |
 | Plain-text / mixed match syntax | Regex only + preview |
 | Writable calendar | EPG is read-only truth |
 | PVR/recorder control, artwork, custom card | Not requested; calendar triggers drive PVR scripts |
@@ -128,12 +128,13 @@
 | FLT-11 | Phase 2 | Complete |
 | EVT-01 | Phase 1 | Complete |
 | EVT-02 | Phase 1 | Complete |
-| EVT-03 | Phase 2 | Complete |
-| EVT-04 | Phase 2 | Complete |
+| EVT-03 | Phase 5 | Pending |
+| EVT-04 | Phase 5 | Pending |
 | EVT-05 | Phase 1 | Complete |
 | EVT-06 | Phase 1 | Complete |
 | EVT-07 | Phase 4 | Complete |
 | EVT-08 | Phase 4 | Complete |
+| EVT-10 | Phase 5 | Pending |
 | AUT-01 | Phase 1 | Complete |
 | AUT-02 | Phase 1 | Complete |
 | AUT-03 | Phase 4 | Complete |
@@ -150,10 +151,10 @@
 | DST-04 | Phase 4 | Complete |
 
 **Coverage:**
-- v1 requirements: 46 total
-- Mapped to phases: 46
+- v1 requirements: 47 total
+- Mapped to phases: 47
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-12*
-*Last updated: 2026-10-21 after AUT-06 added in Phase 4 discussion*
+*Last updated: 2026-10-23 after Phase 5 planning (EVT-03 and EVT-04 reworked, EVT-10 added, Jinja templates no longer out of scope)*

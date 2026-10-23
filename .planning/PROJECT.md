@@ -21,8 +21,8 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 - ✓ Event location = channel name — Phase 1
 - ✓ Calendar works with HA calendar triggers (automations) and the calendar dashboard/card — Phase 1
 - ✓ Filter by include regex and exclude regex on title, sub-title, description and category (field-scoped, Unicode-safe, case toggle, ReDoS-guarded) plus duration, time-window and weekday filters — Phase 2
-- ✓ Event title is configurable via template (e.g. `{channel}: {title}`); default includes the channel — Phase 2
-- ✓ Event description carries programme details (subtitle, description, category, episode where available), overridable via description template — Phase 2
+- ✓ Event title is configurable via sandboxed Jinja template (e.g. `{{ channel }}: {{ title }}`); default includes the channel — Phase 2, reworked in Phase 5
+- ✓ Event description carries programme details (subtitle, description, category, episode where available), overridable via sandboxed Jinja description template — Phase 2, reworked in Phase 5
 - ✓ Live filter preview in the flow (match count + next matches) before saving; calendars editable in place without re-downloading the source — Phase 2
 - ✓ Refresh schedule configurable and editable per source: interval or daily at a fixed time — Phase 3
 - ✓ Complete setup and later editing of all settings via Config Flow, Subentry Flow and Options Flow (no YAML), with a progress indicator during the setup download — Phase 3
@@ -63,7 +63,8 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 | Source = config entry, calendar = config subentry | HA-native sharing of one download/parse per source (coordinator in runtime_data), no custom ref-counting; chosen after research (2026-10-12) | ✓ Good — Phase 1 (UAT: independent per-source refresh, multiple calendars per source) |
 | One calendar entity per subentry | Simple mental model: one filter set = one calendar | ✓ Good — Phase 1 (entity_id stable across delete/re-add) |
 | 1 programme = 1 event, no merging | Predictable; exclude regex handles noise | ✓ Good — Phase 1 (exact duplicates collapsed, stable UIDs) |
-| Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | ✓ Good — Phase 2 (restricted placeholder templates for title and description, validated in the flow) |
+| Templated event title, channel as location | Channel must be visible at a glance; flexible formatting | ✓ Good — Phase 2 shipped restricted placeholder templates, validated in the flow; Phase 5 supersedes them with sandboxed Jinja templates |
+| Sandboxed Jinja2 templates for event titles and descriptions | Conditions, text filters and local time are needed (for example strip a redundant Formel 1 prefix, use the first description line); jinja2 ships with HA core, the sandbox is used directly (not the HA Template class), templates are precompiled and only the requested window is rendered, so the Phase 2 speed objection no longer applies; hard break for stored single-brace templates, no migration | Pending, Phase 5 |
 | Preview renders feed text literally | Feed text is untrusted; HA renders the flow description as Markdown (marked GFM) | ✓ Good — Phase 2 (HTML/Markdown/autolink/tilde escaping, whitespace collapsed; verified live in ha-dev) |
 | German UI translation (de.json) alongside en.json | User runs HA in German; parity tests keep keys/placeholders in sync | ✓ Good — quick 261015-su3 |
 | UI-only configuration | User preference, editable via Options Flow | ✓ Good — Phase 3 (source options flow reloads once from cache; no YAML anywhere) |
@@ -90,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-21 after Phase 3*
+*Last updated: 2026-10-23 after Phase 5 planning (sandboxed Jinja templates replace restricted placeholders)*
