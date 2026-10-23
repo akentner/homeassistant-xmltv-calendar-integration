@@ -184,8 +184,22 @@ def regex_replace(value: object, find: object, replace: object = "", ignorecase:
     return _pattern(_text(find), flags).sub(_text(replace), _text(value))
 
 
+def lines(value: object) -> list[str]:
+    """Return the text as a list of lines, each stripped, blank ones dropped (A9)."""
+    return [line for raw in _text(value).splitlines() if (line := raw.strip())]
+
+
+def first_line(value: object) -> str:
+    """Return the first non-blank line, stripped, or the empty string (A9)."""
+    return next(iter(lines(value)), "")
+
+
 # Filter functions come first, so later plans only add functions and registry entries
-CUSTOM_FILTERS: dict[str, Callable[..., Any]] = {"regex_replace": regex_replace}
+CUSTOM_FILTERS: dict[str, Callable[..., Any]] = {
+    "regex_replace": regex_replace,
+    "lines": lines,
+    "first_line": first_line,
+}
 
 
 def _build_env() -> ImmutableSandboxedEnvironment:

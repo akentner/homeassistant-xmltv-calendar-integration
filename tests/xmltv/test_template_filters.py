@@ -85,4 +85,5 @@ def test_lines_of_a_missing_description_is_an_empty_list(description: str | None
 
 def test_first_line_and_lines_treat_an_undefined_value_as_empty() -> None:
     programme = _programme("Tagesschau")
-    assert _title("{{ categories[3] | first_line }}|{{ categories[3] | lines | length }}", programme) == "|0"
+    template = "[{{ categories[3] | first_line }}|{{ categories[3] | lines | length }}]"
+    assert _title(template, programme) == "[|0]"
