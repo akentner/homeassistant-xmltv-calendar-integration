@@ -205,10 +205,27 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 ### Phase 5: Richer title and description templating
 
-**Goal:** Replace the rudimentary `str.format` placeholder templating for calendar titles and descriptions with a richer mechanism (scope to be settled in discuss-phase)
-**Requirements**: TBD
+**Goal:** User can shape calendar event titles and descriptions with sandboxed Jinja templates (conditions, text filters, local start and end time) instead of the rudimentary `str.format` placeholders, with errors shown in the flow, a preview on real programmes and documented recipes; stored single-brace templates fall back to the default with a warning (hard break, no migration)
+**Requirements**: EVT-03, EVT-04, EVT-10
 **Depends on:** Phase 4
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. A calendar's title template can strip a redundant "Formel 1" prefix, use the first line of the description as a title part and show an optional sub-title only when present; the flow preview and `calendar.get_events` show the result, and templates can print the programme's start and end in the Home Assistant time zone.
+  2. The title and description templates run in a sandbox: loops, macros, includes, imports, method calls and expensive operators are rejected, regular expressions are validated, and a template that fails on a sample programme or at render time never breaks the calendar (fallback title or default description, one warning per calendar).
+  3. The advanced form shows a translated (English and German) error naming the problem for unknown variables or filters, unsupported syntax, invalid syntax, the retired single-brace syntax and sample-render failures.
+  4. Calendars that stored the old default `{channel}: {title}` keep working without a warning; custom old-syntax templates fall back to the new default `{{ channel }}: {{ title }}` with one warning, and the form refuses to save old-syntax text.
+  5. Editing a template never changes event UIDs or re-announces matches, and the README documents variables, filters, limits, the upgrade and four recipes that tests render.
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 5 to break down)
+**Wave 1**
+- [ ] 05-01-PLAN.md — Tracer: sandboxed Jinja engine replaces `str.format` end to end (Formel 1 prefix recipe through flow, preview, storage and `get_events`), legacy fallback, reversed decision recorded (D-01..D-05, D-08, D-09, D-11) (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 05-02-PLAN.md — Flow surface: six translated error keys (EN/DE), legacy rejection, trial render, short help texts (D-10, D-12) (wave 2)
+- [ ] 05-03-PLAN.md — Text filters (`first_line`, `lines`, `split`, `regex_search`, `strip_prefix`, `strip_suffix`, `remove`, `time`), chain, literal and result bounds (D-06, D-07, D-04) (wave 2)
+- [ ] 05-04-PLAN.md — Local start and end through calendar, sensor, event and preview; warn-once and no-re-announce regressions (D-05, D-03, D-08) (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 05-05-PLAN.md — README Templates section with four recipes verified by tests, stack notes rewritten (D-12, D-08, D-01, D-02) (wave 3)
+
+**Notes**: `jinja2` ships with HA core and is imported without a manifest requirement. Storage keys and `VERSION` are unchanged (no migration, D-08). Choices inside the room D-01..D-12 leave, to confirm in plan review: sandbox class `ImmutableSandboxedEnvironment` (subclass of the one D-01 names), `trim_blocks`/`lstrip_blocks` on, error key `unknown_placeholder` kept for typos, expression calls and the operators `+ * ** %` rejected, size-guarded `replace`; accepted residual risk: a hand-crafted template can still grow a value exponentially through repeated `set` and `~` (admin-only, bounded by the length cap).
