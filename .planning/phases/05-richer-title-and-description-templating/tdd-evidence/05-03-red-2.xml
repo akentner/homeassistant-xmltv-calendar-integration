@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="16" skipped="0" tests="36" time="0.422" timestamp="2026-10-23T23:38:08.394934+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.xmltv.test_template_filters" name="test_first_description_line_as_title_part" time="0.090" /><testcase classname="tests.xmltv.test_template_filters" name="test_missing_description_cleans_the_dangling_separator" time="0.005" /><testcase classname="tests.xmltv.test_template_filters" name="test_a_title_template_that_renders_nothing_falls_back_to_the_programme_title" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_optional_sub_title_behind_if" time="0.006" /><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[\n  \n  Zweite Zeile  \nDritte-Zweite Zeile]" time="0.005" /><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[Erste\nZweite-Erste]" time="0.005" /><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[  Eine  -Eine]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[-]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[None-]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_lines_drops_blank_lines_and_strips_each" time="0.006" /><testcase classname="tests.xmltv.test_template_filters" name="test_lines_of_a_missing_description_is_an_empty_list[]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_lines_of_a_missing_description_is_an_empty_list[None]" time="0.005" /><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_and_lines_treat_an_undefined_value_as_empty" time="0.005" /><testcase classname="tests.xmltv.test_template_filters" name="test_split_takes_the_part_before_and_after_the_separator" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: split">def test_split_takes_the_part_before_and_after_the_separator() -&gt; None:
+&gt;       assert _render("{{ title | split(':') | first }}") == "Formel 1"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='title', ctx='load'), name='split', args=[Const(value=':')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: split
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_split_maxsplit_whitespace_default_and_empty_separator" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: split">def test_split_maxsplit_whitespace_default_and_empty_separator() -&gt; None:
+&gt;       assert _render("{{ 'a:b:c' | split(':', 1) | join('|') }}") == "a|b:c"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:119: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Const(value='a:b:c'), name='split', args=[Const(value=':'), Const(value=1)], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: split
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_split_of_missing_text_is_an_empty_list" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: split">def test_split_of_missing_text_is_an_empty_list() -&gt; None:
+&gt;       assert _render("{{ description | split(':') | length }}") == "0"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='description', ctx='load'), name='split', args=[Const(value=':')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: split
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_regex_search_is_a_boolean_for_if" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: regex_search">def test_regex_search_is_a_boolean_for_if() -&gt; None:
+        template = "{% if title | regex_search('^Formel') %}F1{% else %}other{% endif %}"
+&gt;       assert _render(template) == "F1"
+               ^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:137: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='title', ctx='load'), name='regex_search', args=[Const(value='^Formel')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: regex_search
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_regex_search_ignorecase_and_missing_text" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: regex_search">def test_regex_search_ignorecase_and_missing_text() -&gt; None:
+&gt;       assert _render("{{ title | regex_search('^FORMEL', ignorecase=true) }}") == "True"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='title', ctx='load'), name='regex_search', args=[Const(value='^FORMEL')], kwargs=[Keyword(key='ignorecase', value=Const(value=True))], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: regex_search
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_regex_search_arguments_are_validated_at_compile_time[{{ title | regex_search('(') }}-invalid_template]" time="0.005"><failure message="AssertionError: assert 'unknown_filter' == 'invalid_template'&#10;  &#10;  - invalid_template&#10;  + unknown_filter">template = "{{ title | regex_search('(') }}", reason = 'invalid_template'
+
+    @pytest.mark.parametrize(
+        ("template", "reason"),
+        [
+            ("{{ title | regex_search('(') }}", INVALID_TEMPLATE),
+            ("{{ title | regex_search('(a+)+$') }}", INVALID_TEMPLATE),
+            ("{{ title | regex_search(subtitle) }}", UNSUPPORTED_SYNTAX),
+        ],
+    )
+    def test_regex_search_arguments_are_validated_at_compile_time(template: str, reason: str) -&gt; None:
+        with pytest.raises(TemplateError) as err:
+            compile_template(template)
+&gt;       assert err.value.reason == reason
+E       AssertionError: assert 'unknown_filter' == 'invalid_template'
+E         
+E         - invalid_template
+E         + unknown_filter
+
+tests/xmltv/test_template_filters.py:162: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_regex_search_arguments_are_validated_at_compile_time[{{ title | regex_search('(a+)+$') }}-invalid_template]" time="0.004"><failure message="AssertionError: assert 'unknown_filter' == 'invalid_template'&#10;  &#10;  - invalid_template&#10;  + unknown_filter">template = "{{ title | regex_search('(a+)+$') }}", reason = 'invalid_template'
+
+    @pytest.mark.parametrize(
+        ("template", "reason"),
+        [
+            ("{{ title | regex_search('(') }}", INVALID_TEMPLATE),
+            ("{{ title | regex_search('(a+)+$') }}", INVALID_TEMPLATE),
+            ("{{ title | regex_search(subtitle) }}", UNSUPPORTED_SYNTAX),
+        ],
+    )
+    def test_regex_search_arguments_are_validated_at_compile_time(template: str, reason: str) -&gt; None:
+        with pytest.raises(TemplateError) as err:
+            compile_template(template)
+&gt;       assert err.value.reason == reason
+E       AssertionError: assert 'unknown_filter' == 'invalid_template'
+E         
+E         - invalid_template
+E         + unknown_filter
+
+tests/xmltv/test_template_filters.py:162: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_regex_search_arguments_are_validated_at_compile_time[{{ title | regex_search(subtitle) }}-unsupported_syntax]" time="0.004"><failure message="AssertionError: assert 'unknown_filter' == 'unsupported_syntax'&#10;  &#10;  - unsupported_syntax&#10;  + unknown_filter">template = '{{ title | regex_search(subtitle) }}', reason = 'unsupported_syntax'
+
+    @pytest.mark.parametrize(
+        ("template", "reason"),
+        [
+            ("{{ title | regex_search('(') }}", INVALID_TEMPLATE),
+            ("{{ title | regex_search('(a+)+$') }}", INVALID_TEMPLATE),
+            ("{{ title | regex_search(subtitle) }}", UNSUPPORTED_SYNTAX),
+        ],
+    )
+    def test_regex_search_arguments_are_validated_at_compile_time(template: str, reason: str) -&gt; None:
+        with pytest.raises(TemplateError) as err:
+            compile_template(template)
+&gt;       assert err.value.reason == reason
+E       AssertionError: assert 'unknown_filter' == 'unsupported_syntax'
+E         
+E         - unsupported_syntax
+E         + unknown_filter
+
+tests/xmltv/test_template_filters.py:162: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_strip_prefix_and_suffix_remove_the_exact_text_once" time="0.005"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: strip_prefix">def test_strip_prefix_and_suffix_remove_the_exact_text_once() -&gt; None:
+&gt;       assert _render("{{ title | strip_prefix('Formel 1: ') }}") == "Großer Preis von Mexiko"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:169: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='title', ctx='load'), name='strip_prefix', args=[Const(value='Formel 1: ')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: strip_prefix
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_strip_prefix_and_suffix_leave_a_value_that_does_not_match_unchanged" time="0.006"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: strip_prefix">def test_strip_prefix_and_suffix_leave_a_value_that_does_not_match_unchanged() -&gt; None:
+&gt;       assert _render("{{ title | strip_prefix('Spa') }}") == "Formel 1: Großer Preis von Mexiko"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='title', ctx='load'), name='strip_prefix', args=[Const(value='Spa')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: strip_prefix
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_remove_deletes_every_occurrence_of_each_part" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: remove">def test_remove_deletes_every_occurrence_of_each_part() -&gt; None:
+&gt;       assert _render("{{ 'a-b-c_d' | remove('-', '_') }}") == "abcd"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:183: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Const(value='a-b-c_d'), name='remove', args=[Const(value='-'), Const(value='_')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: remove
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_time_formats_start_and_end_in_the_zone_the_caller_converted_them_to" time="0.004"><failure message="AssertionError: assert 'Das Erste: F...is von Mexiko' == '19:00'&#10;  &#10;  - 19:00&#10;  + Das Erste: Formel 1: Großer Preis von Mexiko">def test_time_formats_start_and_end_in_the_zone_the_caller_converted_them_to() -&gt; None:
+        programme = _programme()
+&gt;       assert _title("{{ start | time('%H:%M') }}", programme, tz=ONE_HOUR) == "19:00"
+E       AssertionError: assert 'Das Erste: F...is von Mexiko' == '19:00'
+E         
+E         - 19:00
+E         + Das Erste: Formel 1: Großer Preis von Mexiko
+
+tests/xmltv/test_template_filters.py:198: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_time_of_a_value_that_is_not_a_datetime_renders_empty" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: time">def test_time_of_a_value_that_is_not_a_datetime_renders_empty() -&gt; None:
+&gt;       assert _render("[{{ title | time('%H:%M') }}]") == "[]"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='title', ctx='load'), name='time', args=[Const(value='%H:%M')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: time
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_time_with_a_non_text_format_uses_the_default" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: time">def test_time_with_a_non_text_format_uses_the_default() -&gt; None:
+&gt;       assert _render("{{ start | time(5) }}", tz=ONE_HOUR) == "19:00"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/xmltv/test_template_filters.py:107: in _render
+    return compile_template(template).render(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='start', ctx='load'), name='time', args=[Const(value=5)], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: time
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_a_malformed_directive_is_a_render_error_not_a_compile_error" time="0.004"><failure message="custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: time">def test_a_malformed_directive_is_a_render_error_not_a_compile_error() -&gt; None:
+        class Broken(datetime):
+            def strftime(self, format: str) -&gt; str:  # noqa: A002 - mirrors the datetime signature
+                msg = "bad directive"
+                raise ValueError(msg)
+    
+        broken = Broken(2026, 10, 13, 18, tzinfo=UTC)
+&gt;       template = compile_template("{{ start | time('%Q') }}")  # compiles
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_filters.py:224: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+custom_components/xmltv_calendar/xmltv/template_engine.py:329: in compile_template
+    _check_tree(tree)
+custom_components/xmltv_calendar/xmltv/template_engine.py:298: in _check_tree
+    _check_filter(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node = Filter(node=Name(name='start', ctx='load'), name='time', args=[Const(value='%Q')], kwargs=[], dyn_args=None, dyn_kwargs=None)
+
+    def _check_filter(node: nodes.Filter) -&gt; None:
+        if node.name not in ENV.filters:
+&gt;           raise TemplateError(UNKNOWN_FILTER, node.name)
+E           custom_components.xmltv_calendar.xmltv.template_engine.TemplateError: unknown_filter: time
+
+custom_components/xmltv_calendar/xmltv/template_engine.py:279: TemplateError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_every_d06_filter_is_available" time="0.004"><failure message="AssertionError: assert not ['split', 'regex_search', 'strip_prefix', 'strip_suffix', 'remove', 'time']">def test_every_d06_filter_is_available() -&gt; None:
+        assert set(SMOKE) == set(D06_FILTERS)
+        missing = [name for name in D06_FILTERS if name not in ENV.filters]
+&gt;       assert not missing
+E       AssertionError: assert not ['split', 'regex_search', 'strip_prefix', 'strip_suffix', 'remove', 'time']
+
+tests/xmltv/test_template_filters.py:284: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_the_tilde_operator_joins_text" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_no_filter_global_or_variable_reads_ha_state_the_clock_or_the_environment[now]" time="0.003" /><testcase classname="tests.xmltv.test_template_filters" name="test_no_filter_global_or_variable_reads_ha_state_the_clock_or_the_environment[states]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_no_filter_global_or_variable_reads_ha_state_the_clock_or_the_environment[hass]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_no_filter_global_or_variable_reads_ha_state_the_clock_or_the_environment[environ]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_no_filter_global_or_variable_reads_ha_state_the_clock_or_the_environment[config]" time="0.004" /><testcase classname="tests.xmltv.test_template_filters" name="test_custom_filters_never_expose_the_environment" time="0.007" /></testsuite></testsuites>
