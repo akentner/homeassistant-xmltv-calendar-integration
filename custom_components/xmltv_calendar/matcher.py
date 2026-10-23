@@ -256,6 +256,10 @@ class CalendarMatcher:
                     self._retained_shown = frozenset()
                     self._index = MatchIndex(())
                     self._baseline_ready = True
+                    if change is not None:
+                        self._committed_config_revision = change.revision
+                        self._pending_config = None
+                        self._config_pending = False
                     async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
                     return
                 result, allowed = await self.hass.async_add_executor_job(_apply_filter, spec, epg, recheck, tz)
