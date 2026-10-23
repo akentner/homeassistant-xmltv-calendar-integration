@@ -171,13 +171,168 @@ Every variable is always present. A missing value is empty text (or an empty lis
 | `start` | date and time | Start, in the Home Assistant time zone |
 | `end` | date and time | End, in the Home Assistant time zone |
 
+#### Syntax
+
+Write a variable or an expression in double braces, for example `{{ title }}`. These parts are available:
+
+- **Conditions**: `{% if subtitle %}...{% elif episode %}...{% else %}...{% endif %}`. Text, empty lists and missing
+  values count as false.
+- **Variables of your own**: `{% set short = title | truncate(20) %}`, used afterwards as `{{ short }}`.
+- **Filters**: `{{ title | upper }}`, chained and with arguments: `{{ title | strip_prefix('Formel 1: ') | trim }}`.
+  Pick them from [Filters](#filters).
+- **Tests**: `{% if title is lower %}`. Available: `defined`, `undefined`, `none`, `string`, `number`, `integer`,
+  `eq`, `equalto`, `ne`, `ge`, `gt`, `le`, `lt`, `in`, `sameas`, `lower`, `upper`, `odd`, `even`.
+- **Joining text**: the tilde, `{{ channel ~ ': ' ~ title }}`.
+- **Comparisons and logic**: `==`, `!=`, `<`, `>`, `<=`, `>=`, `and`, `or`, `not`, `in`, and
+  `{{ 'live' if episode else 'rerun' }}`.
+- **Indexing and slices**: `{{ categories[0] }}`, `{{ categories[-1] }}`, `{{ title[:10] }}`. An index that does not
+  exist is empty.
+
+These constructs are rejected, and the form answers "This syntax is not allowed here": loops (`for`), macros, `include`,
+`import`, `extends`, `block`, `with`, method calls such as `title.upper()` (use the filter `upper`), and the operators
+for multiply, power, modulo and plus (`*`, `**`, `%`, `+`; join text with the tilde instead). A variable that does not
+exist, for example the typo `titel`, is rejected too.
+
+#### Whitespace
+
+- A block tag (`{% ... %}`) on a line of its own leaves no blank line behind: the line break after a tag and the
+  indentation before it are removed. A hyphen next to the brace, `{%- ... -%}` or `{{- ... -}}`, removes the white
+  space on that side as well.
+- A **title** is cleaned after rendering: it becomes one line, repeated spaces collapse, and separators such as `-`,
+  `:`, `,`, `|` and `/` are removed from both ends. A title that renders empty falls back to the programme title.
+- A **description** keeps its line breaks. Repeated spaces collapse, at most one blank line stays, and stray separators
+  are removed from the end (and, apart from a leading `-` bullet, from the start). A description that renders empty
+  shows no description.
+
+#### Filters
+
+In the tables, `\|` stands for a plain `|` in the template.
+
+Standard filters, as in Jinja:
+
+| Filter | What it does |
+|--------|--------------|
+| `abs` | Absolute value of a number |
+| `capitalize` | First letter upper case, the rest lower case |
+| `count` | Number of items or characters, same as `length` |
+| `d` | Short name of `default` |
+| `default` | A fallback for a missing value: `{{ subtitle \| default('n/a', true) }}` (the `true` also replaces empty text) |
+| `first` | First item of a list |
+| `int` | Text to a whole number |
+| `join` | Items joined with a separator: `{{ categories \| join(' / ') }}` |
+| `last` | Last item of a list |
+| `length` | Number of items or characters |
+| `list` | Turns the result of another filter into a list |
+| `lower` | Lower case |
+| `map` | Applies a filter to every item: `{{ categories \| map('upper') \| join(', ') }}` |
+| `max` | Largest item |
+| `min` | Smallest item |
+| `reject` | Drops the items that pass a test |
+| `reverse` | Reverses a list or text |
+| `round` | Rounds a number |
+| `select` | Keeps the items that pass a test |
+| `sort` | Sorts a list |
+| `string` | Turns a value into text |
+| `title` | Upper-cases the first letter of every word (also the name of a variable; the filter is the part after the `\|`) |
+| `trim` | Removes white space at both ends |
+| `truncate` | Shortens long text: `{{ title \| truncate(20) }}` |
+| `unique` | Drops repeated items |
+| `upper` | Upper case |
+| `wordcount` | Number of words |
+
+Filters added by this integration. The first argument is always the text that is piped in:
+
+| Filter | Use | What it does | Example |
+|--------|-----|--------------|---------|
+| `regex_replace` | `regex_replace(find, replace, ignorecase)` | Replaces every match of a regular expression. `replace` defaults to empty text, `ignorecase` to `false`. | `{{ title \| regex_replace('^Formel ?1:? ?', '') }}` |
+| `regex_search` | `regex_search(find, ignorecase)` | `true` when the regular expression matches anywhere, for use behind `if`. | `{% if title \| regex_search('^tatort', true) %}...{% endif %}` |
+| `strip_prefix` | `strip_prefix(text)` | Removes `text` once from the start; unchanged when it does not match. | `{{ title \| strip_prefix('Tatort: ') }}` |
+| `strip_suffix` | `strip_suffix(text)` | Removes `text` once from the end. | `{{ title \| strip_suffix(' (HD)') }}` |
+| `remove` | `remove(part, ...)` | Deletes every occurrence of each part. | `{{ title \| remove('(HD)', '(UT)') \| trim }}` |
+| `replace` | `replace(old, new, count)` | Replaces plain text; `count` limits the number of replacements. | `{{ title \| replace('Formel 1', 'F1') }}` |
+| `split` | `split(sep, maxsplit)` | Splits text into a list, at white space when `sep` is omitted. | `{{ (title \| split(':'))[0] }}` |
+| `lines` | `lines()` | The lines of a text as a list, each stripped, blank lines dropped. | `{{ (description \| lines)[1] }}` |
+| `first_line` | `first_line()` | The first non-blank line, or empty text. | `{{ description \| first_line }}` |
+| `time` | `time(format)` | Formats `start` or `end`; the format defaults to `%H:%M`. See [Time directives](#time-directives). | `{{ start \| time('%d.%m. %H:%M') }}` |
+
+Patterns of `regex_replace` and `regex_search` follow Python's regular expression syntax, like the filter fields of a
+calendar. The pattern has to be written out in the template (a text in quotes), not taken from a variable. In the
+replacement of `regex_replace`, refer to a group as `\g<1>` (a plain `\1` does not work, because the template language
+reads it as a control character): `{{ title | regex_replace('(\d+)', '[\g<1>]') }}`.
+
+#### Time directives
+
+`start` and `end` are in the Home Assistant time zone, whatever offset the feed uses. Use numeric directives with the
+`time` filter, such as `%H:%M`, `%d.%m.`, `%Y-%m-%d`. The names of weekdays and months (`%a`, `%B`) follow the language
+of the machine Home Assistant runs on and are not guaranteed.
+
+#### Limits
+
+- A title template may have up to 2000 characters, a description template up to 5000.
+- At most 16 filters may be chained in one expression.
+- A text in quotes may have up to 300 characters. A regular expression may have up to 300 characters and no nested
+  repetition such as `(a+)+`.
+- `replace` and `regex_replace` may produce up to 50000 characters.
+- Templates are meant to be written by hand and kept short. Deliberately crafted templates that reuse a variable many
+  times with the tilde to grow a text exponentially are not a supported use; they are not reachable from feed content.
+
+#### Checking templates
+
+When you save, the form renders the template for two sample programmes, one with every field filled and one with every
+optional field empty, so a template that fails on data is rejected before it is stored. The preview of the form shows
+the rendered title of your next matches. The form can show these messages:
+
+| Message | Meaning |
+|---------|---------|
+| The template is not valid | A syntax error (for example a missing closing brace), a template, text or pattern over the limits, or an invalid regular expression |
+| ... is not a known variable | A variable name that does not exist, usually a typo; the message lists the available variables |
+| This syntax is not allowed here | A construct from the rejected list under [Syntax](#syntax) |
+| ... is not an available filter or test | A filter or test name that does not exist |
+| ... uses the retired single-brace syntax | Old-style `{channel}` placeholders, see [Upgrading](#upgrading) |
+| The template failed on a sample programme | The template raised an error while rendering the samples |
+
+Should a stored template still fail while rendering a programme, that event shows the programme title (or the default
+description) instead, and one warning per calendar is logged.
+
+#### Upgrading
+
+Earlier versions used single-brace placeholders such as `{channel}: {title}`. That syntax is no longer supported:
+
+- A calendar that kept the old default title `{channel}: {title}` is unaffected: it shows the new default
+  `{{ channel }}: {{ title }}`.
+- A custom template in the old syntax is ignored: a warning in the log names the calendar, and the default is used
+  until you rewrite the template. The form refuses to save old-syntax text.
+- To convert a template, put every placeholder in double braces: `{channel}: {title}` becomes
+  `{{ channel }}: {{ title }}`.
+
 #### Recipes
 
-Strip a redundant "Formel 1" prefix from the title (title template). `Formel 1: Großer Preis von Mexiko` on Das Erste
-becomes `Das Erste: Großer Preis von Mexiko`:
+**Strip a redundant "Formel 1" prefix** (title template). Input: `Formel 1: Großer Preis von Mexiko` on Das Erste. Result:
+`Das Erste: Großer Preis von Mexiko`.
 
 ```
 {{ channel }}: {{ title | regex_replace('^Formel ?1:? ?', '') }}
+```
+
+**First description line as sub-title** (title template). Input: title `Formel 1`, description `Qualifying` followed by a
+line break and more text. Result: `Formel 1 – Qualifying`. Without a description the title stays `Formel 1`.
+
+```
+{{ title }}{% if description | first_line %} – {{ description | first_line }}{% endif %}
+```
+
+**Sub-title in brackets, only when there is one** (title template). Input: title `Tatort` with sub-title `Der Fall`.
+Result: `Tatort (Der Fall)`. A programme without sub-title, such as `Tagesschau`, stays `Tagesschau`.
+
+```
+{% set sub = subtitle | trim %}{{ title }}{% if sub %} ({{ sub }}){% endif %}
+```
+
+**Local start time in the description** (description template). Input: a programme that starts at 10:00 UTC on
+Das Erste, in a Home Assistant time zone that is two hours ahead. Result: `Starts 12:00 on Das Erste`.
+
+```
+Starts {{ start | time('%H:%M') }} on {{ channel }}
 ```
 
 ## Entities
