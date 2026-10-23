@@ -87,7 +87,7 @@ from .source import (
 )
 from .xmltv.filter import first_invalid_pattern
 from .xmltv.preview import build_preview
-from .xmltv.render import DESCRIPTION_FIELDS, TITLE_FIELDS, TemplateError, compile_template
+from .xmltv.render import VARIABLE_ORDER, TemplateError, validate_template
 from .xmltv.schedule import NAIVE_TIMEZONES, REFRESH_MODES, SourceOptions
 from .xmltv.settings import (
     ADVANCED_DEFAULTS,
@@ -438,11 +438,12 @@ class XmltvOptionsFlow(OptionsFlow):
 # Free-text filter fields: one pattern per line, blank lines ignored (D-05)
 _PATTERN_FIELDS = (CONF_CHANNEL_REGEX, CONF_INCLUDE, CONF_EXCLUDE)
 
-# Placeholder names shown in the advanced step help texts; a literal {channel} in a translation is an ICU placeholder
-_TITLE_FIELD_NAMES = "{channel}, {title}, {subtitle}, {episode}, {category}, {channel_id}"
+# Variable names shown in the advanced step help texts; passed as a placeholder value because a literal {{ x }} in a
+# translation would be an ICU placeholder
+_VARIABLE_NAMES = ", ".join(VARIABLE_ORDER)
 _ADVANCED_PLACEHOLDERS = {
-    "title_fields": _TITLE_FIELD_NAMES,
-    "description_fields": _TITLE_FIELD_NAMES + ", {description}",
+    "title_fields": _VARIABLE_NAMES,
+    "description_fields": _VARIABLE_NAMES,
     "default_title": DEFAULT_TITLE_TEMPLATE,
 }
 
@@ -539,13 +540,13 @@ def _advanced_errors(values: dict[str, Any]) -> tuple[dict[str, str], dict[str, 
     minimum, maximum = values[CONF_MIN_DURATION], values[CONF_MAX_DURATION]
     if minimum is not None and maximum is not None and minimum > maximum:
         errors[CONF_MAX_DURATION] = "duration_order"
-    # D-21: only allowed plain placeholders; a blank description template means the default description
-    templates = [(CONF_TITLE_TEMPLATE, TITLE_FIELDS)]
+    # D-10: the engine's reason is the form error key; a blank description template means the default description
+    templates = [(CONF_TITLE_TEMPLATE, False)]
     if values[CONF_DESCRIPTION_TEMPLATE].strip():
-        templates.append((CONF_DESCRIPTION_TEMPLATE, DESCRIPTION_FIELDS))
-    for field, allowed in templates:
+        templates.append((CONF_DESCRIPTION_TEMPLATE, True))
+    for field, description in templates:
         try:
-            compile_template(values[field], allowed)
+            validate_template(values[field], description=description)
         except TemplateError as err:
             errors[field] = err.reason
             placeholders.setdefault("template_error", err.detail)

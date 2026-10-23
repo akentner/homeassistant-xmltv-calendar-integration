@@ -2,38 +2,70 @@
 
 import logging
 import re
-import string
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from .settings import DEFAULT_TITLE_TEMPLATE, KEY_DESCRIPTION_TEMPLATE, KEY_TITLE_TEMPLATE, with_defaults
+from .template_engine import (
+    INVALID_TEMPLATE,
+    LEGACY_PLACEHOLDER,
+    MAX_DESCRIPTION_TEMPLATE_LENGTH,
+    MAX_TITLE_TEMPLATE_LENGTH,
+    TEMPLATE_ERROR_REASONS,
+    TEMPLATE_RUNTIME_ERROR,
+    UNKNOWN_FILTER,
+    UNKNOWN_PLACEHOLDER,
+    UNSUPPORTED_SYNTAX,
+    VARIABLE_ORDER,
+    VARIABLES,
+    TemplateError,
+    compile_template,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from datetime import tzinfo
+
+    from jinja2 import Template
 
     from .model import Channel, Programme
 
+__all__ = [
+    "DEFAULT_TEMPLATES",
+    "INVALID_TEMPLATE",
+    "LEGACY_PLACEHOLDER",
+    "MAX_DESCRIPTION_TEMPLATE_LENGTH",
+    "MAX_TITLE_TEMPLATE_LENGTH",
+    "TEMPLATE_ERROR_REASONS",
+    "TEMPLATE_RUNTIME_ERROR",
+    "UNKNOWN_FILTER",
+    "UNKNOWN_PLACEHOLDER",
+    "UNSUPPORTED_SYNTAX",
+    "VARIABLES",
+    "VARIABLE_ORDER",
+    "EventFields",
+    "EventTemplates",
+    "TemplateError",
+    "clean_description",
+    "clean_title",
+    "compile_template",
+    "default_description",
+    "event_uid",
+    "template_values",
+    "to_event_fields",
+    "validate_template",
+]
+
 _LOGGER = logging.getLogger(__name__)
-
-TITLE_FIELDS = frozenset({"channel", "title", "subtitle", "episode", "category", "channel_id"})  # D-21
-DESCRIPTION_FIELDS = TITLE_FIELDS | {"description"}
-
-# TemplateError reasons, also the flow's form error keys
-INVALID_TEMPLATE = "invalid_template"
-UNKNOWN_PLACEHOLDER = "unknown_placeholder"
-
-type CompiledTemplate = tuple[tuple[str, str | None], ...]
-
-_FORMATTER = string.Formatter()
 
 # Separators left dangling at the edges of a rendered title (D-22, RESEARCH A7)
 _SEP = r"[\s\-–—:,;|·/]"
 _TITLE_EDGES = re.compile(rf"^{_SEP}+|{_SEP}+$")
 _SPACES = re.compile(r"[ \t]{2,}")
 # Descriptions are cleaned as a whole, never per line (Pitfall 9). A dash or "·" at the very start is kept as a
-# bullet ("- {subtitle}"); other dangling punctuation at the start and any separators at the end are stripped
+# bullet ("- {{ subtitle }}"); other dangling punctuation at the start and any separators at the end are stripped
 _DESCRIPTION_START = re.compile(r"^[\s:,;|/]+")
 _DESCRIPTION_END = re.compile(rf"{_SEP}+$")
 _BLANK_LINES = re.compile(r"\n{3,}")
@@ -46,40 +78,6 @@ class EventFields(TypedDict):
     location: str
     description: str | None
     uid: str
-
-
-class TemplateError(ValueError):
-    """A template that cannot be used; `reason` is a flow error key, `detail` the offending part."""
-
-    def __init__(self, reason: str, detail: str) -> None:
-        """Store the flow error key (invalid_template or unknown_placeholder) and the detail."""
-        super().__init__(f"{reason}: {detail}")
-        self.reason = reason
-        self.detail = detail
-
-
-def compile_template(text: str, allowed: frozenset[str]) -> CompiledTemplate:
-    """
-    Parse a template once into (literal, field | None) pairs, accepting only plain allowed field names.
-
-    Attribute or index access, positional fields, format specs, conversions and nested fields are rejected, so
-    nothing in a template can execute at render time (T-02-12, Pitfall 3).
-    """
-    try:
-        pieces = list(_FORMATTER.parse(text))  # parse() is lazy: malformed braces raise while iterating
-    except ValueError as err:
-        raise TemplateError(INVALID_TEMPLATE, str(err)) from None
-    compiled: list[tuple[str, str | None]] = []
-    for literal, field, spec, conversion in pieces:
-        if field is not None and (field not in allowed or spec or conversion):
-            raise TemplateError(UNKNOWN_PLACEHOLDER, "{" + field + "}")
-        compiled.append((literal, field))
-    return tuple(compiled)
-
-
-def render_template(compiled: CompiledTemplate, values: Mapping[str, str]) -> str:
-    """Join literals and values; values are data and are never parsed as a template (T-02-13)."""
-    return "".join(literal + ((values.get(field) or "") if field is not None else "") for literal, field in compiled)
 
 
 def clean_title(text: str) -> str:
@@ -108,57 +106,127 @@ def default_description(programme: Programme) -> str | None:
     return "\n\n".join(part for part in (head, programme.description or "") if part) or None
 
 
-def template_values(programme: Programme, channel: Channel | None) -> dict[str, str]:
-    """Return the placeholder values of a programme; missing values are empty strings (D-21, D-22)."""
+def validate_template(text: str, *, description: bool = False) -> None:
+    """Raise a TemplateError when `text` is not a usable title (or description) template; the flow's validation."""
+    compile_template(text, max_length=MAX_DESCRIPTION_TEMPLATE_LENGTH if description else MAX_TITLE_TEMPLATE_LENGTH)
+
+
+def template_values(programme: Programme, channel: Channel | None, *, tz: tzinfo | None = None) -> dict[str, Any]:
+    """
+    Return the template variables of a programme: flat, typed, every name of VARIABLE_ORDER always present (D-05).
+
+    Missing text is an empty string and missing lists are empty. start and end stay as parsed, in the zone of the feed
+    offset, unless the caller passes its local zone.
+    """
+    start, end = programme.start, programme.stop
+    if tz is not None:
+        start, end = start.astimezone(tz), end.astimezone(tz)
     return {
         "channel": channel.display_name if channel is not None else programme.channel_id,
         "channel_id": programme.channel_id,
         "title": programme.title,
+        "titles": list(programme.titles),
         "subtitle": programme.sub_titles[0] if programme.sub_titles else "",
+        "subtitles": list(programme.sub_titles),
         "episode": programme.episode or "",
         "category": ", ".join(programme.categories),
+        "categories": list(programme.categories),
         "description": programme.description or "",
+        "start": start,
+        "end": end,
     }
 
 
-def _stored[T](text: str, allowed: frozenset[str], default: T, name: str) -> CompiledTemplate | T:
-    """Compile a stored template; one that does not compile (hand-edited storage) falls back to `default`."""
+@dataclass(slots=True)
+class _RenderLog:
+    """Holds the calendar name and whether its one render WARNING was already logged (A11)."""
+
+    name: str | None
+    warned: bool = False
+
+    def failed(self, kind: str, err: Exception) -> None:
+        """Log a render failure: one WARNING per calendar, naming the exception type only, later ones at DEBUG."""
+        if self.name is None or self.warned:
+            _LOGGER.debug("Calendar %s: %s template failed to render (%s)", self.name, kind, type(err).__name__)
+            return
+        self.warned = True
+        _LOGGER.warning(
+            "Calendar %s: %s template failed to render (%s), using the fallback", self.name, kind, type(err).__name__
+        )
+
+
+def _stored(text: str, kind: str, max_length: int, name: str | None) -> Template | None:
+    """Compile a stored template; unusable text (legacy syntax, hand-edited storage) is None after one WARNING."""
     try:
-        return compile_template(text, allowed)
-    except TemplateError:
-        _LOGGER.warning("Invalid stored %s template, using the default", name)
-        return default
+        return compile_template(text, max_length=max_length)
+    except TemplateError as err:
+        if name is not None:  # the flow preview builds templates without a name and stays quiet
+            _LOGGER.warning(
+                "Calendar %s: stored %s template is not usable (%s), using the default", name, kind, err.reason
+            )
+        return None
+
+
+_DEFAULT_TITLE = compile_template(DEFAULT_TITLE_TEMPLATE)
 
 
 @dataclass(frozen=True, slots=True)
 class EventTemplates:
-    """The compiled templates of one calendar: shared by the calendar entity and the flow preview (D-17)."""
+    """
+    The compiled templates of one calendar: shared by the calendar entity, the matcher and the flow preview (D-01).
 
-    title: CompiledTemplate
-    description: CompiledTemplate | None = None  # None: the default description (D-20)
+    Equality compares the effective template sources only, so a filter-only edit never looks like a template change.
+    """
+
+    title_source: str
+    description_source: str | None  # None: the default description (EVT-04)
+    title: Template = field(compare=False, repr=False)
+    description: Template | None = field(default=None, compare=False, repr=False)
+    log: _RenderLog = field(default_factory=lambda: _RenderLog(None), compare=False, repr=False)
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, object]) -> EventTemplates:
-        """Build from stored subentry data; an uncompilable stored template logs one WARNING and uses the default."""
+    def from_mapping(cls, data: Mapping[str, object], name: str | None = None) -> EventTemplates:
+        """
+        Build from stored subentry data; an unusable stored template logs one WARNING naming `name`, then falls back.
+
+        Without a name nothing is logged (the flow preview). Legacy single-brace text is unusable (D-08), except the
+        exact legacy default, which `with_defaults` already maps to the new default.
+        """
         settings = with_defaults(data)
-        description = settings[KEY_DESCRIPTION_TEMPLATE]
-        return cls(
-            title=_stored(settings[KEY_TITLE_TEMPLATE], TITLE_FIELDS, DEFAULT_TEMPLATES.title, "title"),
-            description=_stored(description, DESCRIPTION_FIELDS, None, "description") if description else None,
-        )
+        title_source = settings[KEY_TITLE_TEMPLATE]
+        title = _stored(title_source, "title", MAX_TITLE_TEMPLATE_LENGTH, name)
+        if title is None:
+            title_source, title = DEFAULT_TITLE_TEMPLATE, _DEFAULT_TITLE
+        description_source = settings[KEY_DESCRIPTION_TEMPLATE] or None
+        description = None
+        if description_source is not None:
+            description = _stored(description_source, "description", MAX_DESCRIPTION_TEMPLATE_LENGTH, name)
+            if description is None:
+                description_source = None
+        return cls(title_source, description_source, title, description, _RenderLog(name))
 
-    def render_title(self, programme: Programme, values: Mapping[str, str]) -> str:
-        """Return the cleaned title, or the programme title when it renders empty (CalendarEvent needs a summary)."""
-        return clean_title(render_template(self.title, values)) or programme.title
+    def _render(self, template: Template, values: Mapping[str, object], kind: str) -> str | None:
+        """Return the rendered text, or None after logging when the template raised (D-03)."""
+        try:
+            return template.render(**values)
+        except Exception as err:  # noqa: BLE001 - user template code can raise anything; one programme must not fail the window
+            self.log.failed(kind, err)
+            return None
 
-    def render_description(self, programme: Programme, values: Mapping[str, str]) -> str | None:
-        """Return the templated description, else the default description (EVT-04)."""
+    def render_title(self, programme: Programme, values: Mapping[str, object]) -> str:
+        """Return the cleaned title, or the programme title when it fails or renders empty (CalendarEvent needs one)."""
+        text = self._render(self.title, values, "title")
+        return (clean_title(text) if text is not None else "") or programme.title
+
+    def render_description(self, programme: Programme, values: Mapping[str, object]) -> str | None:
+        """Return the templated description, else the default description (EVT-04) also when the template fails."""
         if self.description is None:
             return default_description(programme)
-        return clean_description(render_template(self.description, values))
+        text = self._render(self.description, values, "description")
+        return clean_description(text) if text is not None else default_description(programme)
 
 
-DEFAULT_TEMPLATES = EventTemplates(title=compile_template(DEFAULT_TITLE_TEMPLATE, TITLE_FIELDS))
+DEFAULT_TEMPLATES = EventTemplates.from_mapping({})
 
 
 def event_uid(programme: Programme) -> str:
@@ -169,10 +237,14 @@ def event_uid(programme: Programme) -> str:
 
 
 def to_event_fields(
-    programme: Programme, channel: Channel | None, templates: EventTemplates = DEFAULT_TEMPLATES
+    programme: Programme,
+    channel: Channel | None,
+    templates: EventTemplates = DEFAULT_TEMPLATES,
+    *,
+    tz: tzinfo | None = None,
 ) -> EventFields:
     """Return templated summary and description, location = display name else channel ID, and the UID."""
-    values = template_values(programme, channel)
+    values = template_values(programme, channel, tz=tz)
     return EventFields(
         summary=templates.render_title(programme, values),
         location=values["channel"],

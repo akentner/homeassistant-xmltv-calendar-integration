@@ -6,6 +6,10 @@ from typing import Any
 
 import jinja2
 import pytest
+from jinja2.sandbox import SandboxedEnvironment
+
+from custom_components.xmltv_calendar.xmltv import template_engine
+from custom_components.xmltv_calendar.xmltv.filter import NESTED_REPETITION_MESSAGE
 from custom_components.xmltv_calendar.xmltv.template_engine import (
     CUSTOM_FILTERS,
     ENV,
@@ -24,10 +28,6 @@ from custom_components.xmltv_calendar.xmltv.template_engine import (
     compile_template,
     regex_replace,
 )
-from jinja2.sandbox import SandboxedEnvironment
-
-from custom_components.xmltv_calendar.xmltv import template_engine
-from custom_components.xmltv_calendar.xmltv.filter import NESTED_REPETITION_MESSAGE
 
 START = datetime(2026, 10, 13, 18, tzinfo=UTC)
 # The variables a programme produces, as render.template_values builds them

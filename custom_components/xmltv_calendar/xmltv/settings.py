@@ -46,7 +46,10 @@ DEFAULT_MATCH_FIELDS = (FIELD_TITLE, FIELD_SUBTITLE)  # D-05
 # Same values as homeassistant.const.WEEKDAYS; index == datetime.weekday()
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
-DEFAULT_TITLE_TEMPLATE = "{channel}: {title}"  # D-20
+DEFAULT_TITLE_TEMPLATE = "{{ channel }}: {{ title }}"  # D-09
+# The single-brace default of Phases 2 to 4, stored literally by every calendar saved before Phase 5; read as the new
+# default so such calendars neither warn nor open "Advanced options" (D-08)
+LEGACY_DEFAULT_TITLE_TEMPLATE = "{channel}: {title}"
 
 # Defaults of the advanced keys (the ten Phase 2 keys, then retention_days), in storage shape; also used for missing,
 # None or invalid values. Key order matters: retention_days stays last
@@ -133,6 +136,8 @@ def with_defaults(data: Mapping[str, object]) -> dict[str, Any]:
     ordered, unknown keys are not returned. It never raises, so hand-edited or Phase 1 data keeps working (D-06).
     """
     title_template = _text(data.get(KEY_TITLE_TEMPLATE))
+    if title_template.strip() == LEGACY_DEFAULT_TITLE_TEMPLATE:
+        title_template = DEFAULT_TITLE_TEMPLATE
     description_template = _text(data.get(KEY_DESCRIPTION_TEMPLATE))
     case_sensitive = data.get(KEY_CASE_SENSITIVE)
     return {

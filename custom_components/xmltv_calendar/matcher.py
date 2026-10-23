@@ -127,7 +127,7 @@ class CalendarMatcher:
         self._subentry_title = subentry.title
         self._subentry_data = subentry.data
         self._spec = _build_spec(subentry.data, subentry.title)
-        self._templates = render.EventTemplates.from_mapping(subentry.data)
+        self._templates = render.EventTemplates.from_mapping(subentry.data, subentry.title)
         self._retention_days: int = with_defaults(subentry.data)[KEY_RETENTION_DAYS]
         self._epg: EpgData | None = None
         # Feed channels plus the names of retained matches' channels: used for every rendering (Pitfall 11)
@@ -413,7 +413,7 @@ class CalendarMatcher:
             refilter = retention_days != self._retention_days
             self._retention_days = retention_days
             # Templates only change the event text: rebuilt without a refilter (EVT-03, EVT-04)
-            templates = render.EventTemplates.from_mapping(subentry.data)
+            templates = render.EventTemplates.from_mapping(subentry.data, subentry.title)
             write_state = templates != self._templates
             self._templates = templates
             spec = _build_spec(subentry.data, self.entity_id or subentry.title)
