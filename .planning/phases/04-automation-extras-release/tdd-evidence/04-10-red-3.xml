@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.235" timestamp="2026-10-23T15:52:26.440311+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_matcher_races" name="test_newer_data_supersedes_held_data" time="0.156"><failure message="AssertionError: assert ['Formel 1: R...el 1: Sprint'] == ['Formel 1: Sprint']&#10;  &#10;  At index 0 diff: 'Formel 1: Rennen' != 'Formel 1: Sprint'&#10;  Left contains one more item: 'Formel 1: Sprint'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f279a0706e0&gt;
+berlin_tz = None
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f279a26f240&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f279a070830&gt;
+hass_storage = {'http': {'data': {'pending': None, 'stable': {'cors_allowed_origins': ['https://cast.home-assistant.io'], 'created_at...e1376c18f0fbd78a13777fa', ...}}, 'key': 'xmltv_calendar.01M4SXHAR004SGR8T6FR8VKE1H', 'minor_version': 1, 'version': 1}}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f279a0d7cc0&gt;
+
+    async def test_newer_data_supersedes_held_data(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        monkeypatch: pytest.MonkeyPatch,
+        aioclient_mock: AiohttpClientMocker,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    ) -&gt; None:
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(BASIC_FEED, calendars=F1_ONLY)
+        events = async_capture_events(hass, EVENT)
+        async with _held_filter(hass, monkeypatch) as (entered, release):
+            await _deliver(aioclient_mock, entry, _with(RACE_XML))
+            await entered()
+            await _deliver(aioclient_mock, entry, _with(SPRINT_XML))
+            release()
+        await hass.async_block_till_done()
+&gt;       assert [e.data["title"] for e in events] == ["Formel 1: Sprint"]
+E       AssertionError: assert ['Formel 1: R...el 1: Sprint'] == ['Formel 1: Sprint']
+E         
+E         At index 0 diff: 'Formel 1: Rennen' != 'Formel 1: Sprint'
+E         Left contains one more item: 'Formel 1: Sprint'
+E         Use -v to get more diff
+
+tests/test_matcher_races.py:417: AssertionError</failure></testcase></testsuite></testsuites>

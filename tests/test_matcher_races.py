@@ -179,6 +179,7 @@ async def test_template_only_edit_does_not_scan(
     monkeypatch: pytest.MonkeyPatch,
     aioclient_mock: AiohttpClientMocker,
     hass_storage: dict[str, Any],
+    caplog: pytest.LogCaptureFixture,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
     pattern: str,
 ) -> None:
@@ -223,6 +224,13 @@ async def test_template_only_edit_does_not_scan(
     assert aioclient_mock.call_count == calls
     assert events == []
     assert not runtime.matchers[sid].differs_from(entry.subentries[sid])
+    warnings = [r.message for r in caplog.records if "stored filter pattern is invalid" in r.message]
+    assert len(warnings) == int(pattern == "(")
+    # An unrelated listener call must not re-log or re-apply the same bad stored diff base.
+    hass.config_entries.async_update_entry(entry, title="Source renamed")
+    await hass.async_block_till_done()
+    assert [r.message for r in caplog.records if "stored filter pattern is invalid" in r.message] == warnings
+    assert scan.call_count == 0
 
 
 async def test_template_edit_during_data_preserves_new_event(
@@ -360,3 +368,51 @@ async def test_held_config_teardown_does_not_commit(
     else:
         assert not runtime.active
         assert runtime.match_store._store._delay_handle is None
+
+
+async def test_retention_only_edits_zero_and_seven(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    aioclient_mock: AiohttpClientMocker,
+    hass_storage: dict[str, Any],
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    entry = await _retain_race(hass, freezer, aioclient_mock, setup_xmltv)
+    (sid,) = entry.subentries
+    runtime = entry.runtime_data
+    calls = aioclient_mock.call_count
+    events = async_capture_events(hass, EVENT)
+    for days, retained in [(7, ["Formel 1: Großer Preis von Mexiko"]), (0, []), (7, [])]:
+        assert hass.config_entries.async_update_subentry(
+            entry, entry.subentries[sid], data={"channels": ["daserste.de"], "retention_days": days}
+        )
+        await hass.async_block_till_done()
+        assert _retained_titles(await _stored(hass_storage, entry)) == retained
+        assert runtime.matchers[sid]._retention_days == days
+        assert not runtime.matchers[sid]._config_pending
+    assert entry.runtime_data is runtime
+    assert aioclient_mock.call_count == calls
+    assert events == []
+
+
+async def test_newer_data_supersedes_held_data(
+    hass: HomeAssistant,
+    freezer: Any,
+    berlin_tz: None,
+    monkeypatch: pytest.MonkeyPatch,
+    aioclient_mock: AiohttpClientMocker,
+    hass_storage: dict[str, Any],
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(BASIC_FEED, calendars=F1_ONLY)
+    events = async_capture_events(hass, EVENT)
+    async with _held_filter(hass, monkeypatch) as (entered, release):
+        await _deliver(aioclient_mock, entry, _with(RACE_XML))
+        await entered()
+        await _deliver(aioclient_mock, entry, _with(SPRINT_XML))
+        release()
+    await hass.async_block_till_done()
+    assert [e.data["title"] for e in events] == ["Formel 1: Sprint"]
+    assert not any(uid.startswith("daserste.de-20261014T140000Z-") for uid in await _stored_seen(hass_storage, entry))
