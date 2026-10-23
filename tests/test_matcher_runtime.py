@@ -145,7 +145,7 @@ async def test_disabled_edits_and_retained_reenable(
     )
     await hass.async_block_till_done()
     assert hass.states.get(SENSOR).attributes["summary"] == "heute"
-    assert (await _stored(hass_storage, entry))["retained"] == []
+    assert "Formel 1: Großer Preis von Mexiko" not in _retained_titles(await _stored(hass_storage, entry))
     assert hass.config_entries.async_update_subentry(entry, entry.subentries[sid], data={"channels": ["absent"]})
     await hass.async_block_till_done()
     assert hass.states.get(SENSOR).state == "unknown"

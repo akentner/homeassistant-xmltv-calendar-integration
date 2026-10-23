@@ -96,13 +96,13 @@ def _calendars(entry: XmltvConfigEntry, runtime: XmltvRuntimeData) -> list[dict[
     `matches` counts the feed's matches, `retained` the past matches shown from the store in addition (D-19).
     """
     rows = []
-    for subentry_id, entity in runtime.calendars.items():
+    for subentry_id, matcher in runtime.matchers.items():
         subentry = entry.subentries.get(subentry_id)
         rows.append(
             {
                 "title": subentry.title if subentry is not None else subentry_id,
-                "matches": entity.match_count,
-                "retained": entity.retained_count,
+                "matches": matcher.match_count,
+                "retained": matcher.retained_count,
             }
         )
     return sorted(rows, key=lambda row: row["title"])

@@ -116,19 +116,19 @@ class NextMatchSensor(CoordinatorEntity[XmltvCoordinator], SensorEntity):
         """
         Set value and attributes from one next-match lookup, so they always describe the same match.
 
-        A calendar not created yet (concurrent platform setup, Pitfall 1) has no next match: state unknown and no
-        match attributes (D-02). The timer is re-armed for the match found; `at` is the start that just passed, so a
+        A missing matcher has no next match: state unknown and no match attributes (D-02). Matchers are initialized
+        before platform setup. The timer is re-armed for the match found; `at` is the start that just passed, so a
         timer firing a little early still moves on.
         """
         self._cancel_start_timer()
         now = dt_util.utcnow() if at is None else max(dt_util.utcnow(), at)
-        calendar = self._entry.runtime_data.calendars.get(self._subentry_id)
-        programme = calendar.next_match(now) if calendar is not None else None
-        if calendar is None or programme is None:
+        matcher = self._entry.runtime_data.matchers.get(self._subentry_id)
+        programme = matcher.next_match(now) if matcher is not None else None
+        if matcher is None or programme is None:
             self._attr_native_value = None
             self._attr_extra_state_attributes = None
             return
-        described = calendar.describe_match(programme)
+        described = matcher.describe_match(programme)
         self._attr_native_value = programme.start
         self._attr_extra_state_attributes = {key: described[key] for key in MATCH_ATTRIBUTES}
         self._unsub_start = async_track_point_in_utc_time(self.hass, self._handle_start, programme.start)
@@ -207,11 +207,11 @@ class LastFetchSensor(CoordinatorEntity[XmltvCoordinator], SensorEntity):
         attributes = attempt.as_dict()
         del attributes["time"]
         health = self.coordinator.health
-        calendar = self._entry.runtime_data.calendars.get(self._subentry_id)
+        matcher = self._entry.runtime_data.matchers.get(self._subentry_id)
         attributes["last_success"] = (
             dt_util.as_local(health.last_success).isoformat() if health.last_success is not None else None
         )
         attributes["next_refresh"] = dt_util.as_local(self.coordinator.next_refresh_at).isoformat()
         attributes["consecutive_failures"] = health.consecutive_failures
-        attributes["matches"] = calendar.match_count if calendar is not None else None
+        attributes["matches"] = matcher.match_count if matcher is not None else None
         return attributes
