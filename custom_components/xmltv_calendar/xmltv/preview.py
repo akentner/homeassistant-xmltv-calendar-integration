@@ -84,6 +84,6 @@ def build_preview(  # noqa: PLR0913, PLR0917 - positional for async_add_executor
     for programme in upcoming[:limit]:
         channel = epg.channels.get(programme.channel_id)
         channel_name = channel.display_name if channel is not None else programme.channel_id
-        title = to_event_fields(programme, channel, templates)["summary"]
+        title = to_event_fields(programme, channel, templates, tz=tz)["summary"]
         lines.append(format_line(programme, channel_name, title, tz, language))
     return PreviewResult(count=len(upcoming), lines=tuple(lines))

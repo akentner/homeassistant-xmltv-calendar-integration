@@ -372,7 +372,9 @@ class CalendarMatcher:
         title is the raw feed title, summary the title rendered with the calendar's template, start and end are
         ISO 8601 in Home Assistant's local time; values the feed lacks are None.
         """
-        values = render.template_values(programme, self._channels.get(programme.channel_id))
+        values = render.template_values(
+            programme, self._channels.get(programme.channel_id), tz=dt_util.get_default_time_zone()
+        )
         return {
             "title": programme.title,
             "summary": self._templates.render_title(programme, values),

@@ -17,7 +17,7 @@ from .xmltv import render
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-    from datetime import datetime
+    from datetime import datetime, tzinfo
 
     from homeassistant.config_entries import ConfigSubentry
     from homeassistant.core import HomeAssistant
@@ -34,11 +34,16 @@ MAX_EVENTS_PER_QUERY = 5000
 EXECUTOR_BUILD_THRESHOLD = 200
 
 
-def _to_event(programme: Programme, channels: Mapping[str, Channel], templates: render.EventTemplates) -> CalendarEvent:
+def _to_event(
+    programme: Programme,
+    channels: Mapping[str, Channel],
+    templates: render.EventTemplates,
+    tz: tzinfo | None = None,
+) -> CalendarEvent:
     return CalendarEvent(
         start=dt_util.as_local(programme.start),
         end=dt_util.as_local(programme.stop),
-        **render.to_event_fields(programme, channels.get(programme.channel_id), templates),
+        **render.to_event_fields(programme, channels.get(programme.channel_id), templates, tz=tz),
     )
 
 
@@ -46,12 +51,19 @@ def build_events(
     programmes: Sequence[Programme],
     channels: Mapping[str, Channel],
     templates: render.EventTemplates = render.DEFAULT_TEMPLATES,
+    tz: tzinfo | None = None,
 ) -> list[CalendarEvent]:
-    """Build a bounded query slice; skip invalid events without breaking reads or trigger polling."""
+    """
+    Build a bounded query slice; skip invalid events without breaking reads or trigger polling.
+
+    Templates see start and end in `tz`; without one the Home Assistant zone is resolved once for the whole slice.
+    """
+    if tz is None:
+        tz = dt_util.get_default_time_zone()
     events = []
     for programme in programmes:
         try:
-            events.append(_to_event(programme, channels, templates))
+            events.append(_to_event(programme, channels, templates, tz))
         except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s at %s", programme.channel_id, programme.start)
     return events
@@ -156,7 +168,9 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
         if programme is None:
             return None
         try:
-            return _to_event(programme, self._matcher.channels, self._matcher.templates)
+            return _to_event(
+                programme, self._matcher.channels, self._matcher.templates, dt_util.get_default_time_zone()
+            )
         except HomeAssistantError, OverflowError, ValueError:
             _LOGGER.debug("Skipping invalid programme on %s", programme.channel_id)
             return None
@@ -167,6 +181,8 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
     ) -> list[CalendarEvent]:
         """Return a capped overlapping slice, building large slices off the event loop."""
         programmes = self._matcher.overlapping(start_date, end_date)
+        # Resolved here on the event loop: executor threads must not depend on thread-local context
+        tz = dt_util.get_default_time_zone()
         if len(programmes) > MAX_EVENTS_PER_QUERY:
             _LOGGER.debug(
                 "Calendar %s: %d matches between %s and %s, returning the first %d",
@@ -179,6 +195,6 @@ class XmltvCalendarEntity(CoordinatorEntity[XmltvCoordinator], CalendarEntity):
             programmes = programmes[:MAX_EVENTS_PER_QUERY]
         if len(programmes) > EXECUTOR_BUILD_THRESHOLD:
             return await hass.async_add_executor_job(
-                build_events, programmes, self._matcher.channels, self._matcher.templates
+                build_events, programmes, self._matcher.channels, self._matcher.templates, tz
             )
-        return build_events(programmes, self._matcher.channels, self._matcher.templates)
+        return build_events(programmes, self._matcher.channels, self._matcher.templates, tz)
