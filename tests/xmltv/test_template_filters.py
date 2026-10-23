@@ -16,6 +16,8 @@ from custom_components.xmltv_calendar.xmltv.template_engine import (
     UNSUPPORTED_SYNTAX,
     TemplateError,
     compile_template,
+    format_time,
+    split,
 )
 
 CHANNEL = Channel(id="daserste.de", display_name="Das Erste")
@@ -126,7 +128,8 @@ def test_split_maxsplit_whitespace_default_and_empty_separator() -> None:
 def test_split_of_missing_text_is_an_empty_list() -> None:
     assert _render("{{ description | split(':') | length }}") == "0"
     assert _render("{{ categories[3] | split(':') | length }}") == "0"
-    assert _render("{{ nothing | split(':') | length }}", nothing=None) == "0"
+    assert split(None, ":") == []
+    assert split("", ":") == []
 
 
 # --- regex_search ---------------------------------------------------------------------------------------------------
@@ -206,7 +209,7 @@ def test_time_formats_start_and_end_in_the_zone_the_caller_converted_them_to() -
 def test_time_of_a_value_that_is_not_a_datetime_renders_empty() -> None:
     assert _render("[{{ title | time('%H:%M') }}]") == "[]"
     assert _render("[{{ categories[3] | time }}]") == "[]"
-    assert _render("[{{ nothing | time }}]", nothing=None) == "[]"
+    assert format_time(None) == ""
     assert _render("[{{ 5 | time }}]") == "[]"
 
 
@@ -264,7 +267,7 @@ SMOKE = {
     "select": "{{ titles | select('string') | list | length }}",
     "reject": "{{ titles | reject('none') | list | length }}",
     "map": "{{ titles | map('upper') | join }}",
-    "default": "{{ nothing | default('x') }}",
+    "default": "{{ categories[3] | default('x') }}",
     "upper": "{{ title | upper }}",
     "title": "{{ title | title }}",
     "length": "{{ title | length }}",
@@ -284,7 +287,7 @@ def test_every_d06_filter_is_available() -> None:
     missing = [name for name in D06_FILTERS if name not in ENV.filters]
     assert not missing
     for name in D06_FILTERS:
-        _render(SMOKE[name], _programme("Formel 1: Mexiko", "Eins\nZwei"), nothing=None)
+        _render(SMOKE[name], _programme("Formel 1: Mexiko", "Eins\nZwei"))
 
 
 def test_the_tilde_operator_joins_text() -> None:

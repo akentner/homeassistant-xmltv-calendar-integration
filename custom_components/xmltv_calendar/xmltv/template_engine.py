@@ -8,6 +8,7 @@ ever a variable value, never template source (T-05-04).
 """
 
 import re
+from datetime import datetime
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
@@ -52,6 +53,9 @@ VARIABLE_ORDER = (
     "end",
 )
 VARIABLES = frozenset(VARIABLE_ORDER)
+
+# The format of the time filter when none is given
+DEFAULT_TIME_FORMAT = "%H:%M"
 
 # A1: bounds on the compile cost of admin-supplied text
 MAX_TITLE_TEMPLATE_LENGTH = 2000
@@ -148,7 +152,7 @@ STANDARD_TESTS = frozenset(
 )
 
 # Filters whose first argument is a regex pattern that must be a text literal, and the position of their ignorecase
-# argument (A8: regex_search is registered by a later plan)
+# argument (assumption A8: regex_search answers with a boolean)
 REGEX_FILTERS = ("regex_replace", "regex_search")
 _IGNORECASE_POSITION = {"regex_replace": 2, "regex_search": 1}
 
@@ -194,11 +198,70 @@ def first_line(value: object) -> str:
     return next(iter(lines(value)), "")
 
 
+def split(value: object, sep: object = None, maxsplit: object = -1) -> list[str]:
+    """
+    Return the text split at `sep` (whitespace when omitted) at most `maxsplit` times; missing text is an empty list.
+
+    An empty or non-text separator returns the whole text as one element instead of raising.
+    """
+    text = _text(value)
+    if not text:
+        return []
+    limit = maxsplit if isinstance(maxsplit, int) else -1
+    if sep is None or isinstance(sep, jinja2.Undefined):
+        return text.split(None, limit)
+    separator = _text(sep)
+    return text.split(separator, limit) if separator else [text]
+
+
+def regex_search(value: object, find: object, ignorecase: object = False) -> bool:  # noqa: FBT002
+    """Return whether the regex `find` matches anywhere in `value` (A8: a boolean, for use behind if)."""
+    flags = re.IGNORECASE if ignorecase else 0
+    return _pattern(_text(find), flags).search(_text(value)) is not None
+
+
+def strip_prefix(value: object, text: object) -> str:
+    """Remove `text` once from the start of `value`; unchanged when it does not match or `text` is empty."""
+    return _text(value).removeprefix(_text(text))
+
+
+def strip_suffix(value: object, text: object) -> str:
+    """Remove `text` once from the end of `value`; unchanged when it does not match or `text` is empty."""
+    return _text(value).removesuffix(_text(text))
+
+
+def remove(value: object, *parts: object) -> str:
+    """Delete every occurrence of each non-empty part from `value`, in order."""
+    result = _text(value)
+    for part in parts:
+        if text := _text(part):
+            result = result.replace(text, "")
+    return result
+
+
+def format_time(value: object, fmt: object = DEFAULT_TIME_FORMAT) -> str:
+    """
+    Return `value` formatted with strftime in its own zone, or the empty string when it is not a datetime.
+
+    The caller converts start and end to the local zone before rendering, so no zone or clock is read here (D-06). Only
+    numeric directives are documented: the names of months and weekdays follow the process locale (A3).
+    """
+    if not isinstance(value, datetime):  # not hasattr: an undefined value answers hasattr and would raise
+        return ""
+    return value.strftime(fmt if isinstance(fmt, str) else DEFAULT_TIME_FORMAT)
+
+
 # Filter functions come first, so later plans only add functions and registry entries
 CUSTOM_FILTERS: dict[str, Callable[..., Any]] = {
     "regex_replace": regex_replace,
+    "regex_search": regex_search,
+    "strip_prefix": strip_prefix,
+    "strip_suffix": strip_suffix,
+    "remove": remove,
+    "split": split,
     "lines": lines,
     "first_line": first_line,
+    "time": format_time,
 }
 
 
