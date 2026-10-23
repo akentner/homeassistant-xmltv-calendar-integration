@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="12" time="0.315" timestamp="2026-10-23T23:55:38.634636+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_readme_recipes" name="test_recipe_is_documented_verbatim" time="0.077"><failure message="AssertionError: assert ['first-descr...l-start-time'] == []&#10;  &#10;  Left contains 3 more items, first extra item: 'first-description-line-as-subtitle'&#10;  Use -v to get more diff">def test_recipe_is_documented_verbatim() -&gt; None:
+        missing = [recipe.name for recipe in RECIPES if recipe.template not in README]
+&gt;       assert missing == []
+E       AssertionError: assert ['first-descr...l-start-time'] == []
+E         
+E         Left contains 3 more items, first extra item: 'first-description-line-as-subtitle'
+E         Use -v to get more diff
+
+tests/test_readme_recipes.py:134: AssertionError</failure></testcase><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[formula-one-prefix-Das Erste: Gro\xdfer Preis von Mexiko]" time="0.008" /><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[first-description-line-as-subtitle-Formel 1 \u2013 Qualifying]" time="0.008" /><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[first-description-line-as-subtitle-Formel 1]" time="0.008" /><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[conditional-subtitle-Tatort (Der Fall)]" time="0.008" /><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[conditional-subtitle-Tagesschau]" time="0.008" /><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[local-start-time-Starts 12:00 on Das Erste]" time="0.009" /><testcase classname="tests.test_readme_recipes" name="test_every_registered_filter_is_documented" time="0.009"><failure message="AssertionError: assert ['abs', 'capi... 'first', ...] == []&#10;  &#10;  Left contains 37 more items, first extra item: 'abs'&#10;  Use -v to get more diff">def test_every_registered_filter_is_documented() -&gt; None:
+        documented = _subsection("Filters")
+&gt;       assert [name for name in sorted(ENV.filters) if f"`{name}`" not in documented] == []
+E       AssertionError: assert ['abs', 'capi... 'first', ...] == []
+E         
+E         Left contains 37 more items, first extra item: 'abs'
+E         Use -v to get more diff
+
+tests/test_readme_recipes.py:155: AssertionError</failure></testcase><testcase classname="tests.test_readme_recipes" name="test_every_variable_is_documented" time="0.008" /><testcase classname="tests.test_readme_recipes" name="test_limits_are_documented" time="0.008"><failure message="AssertionError: assert ['16', '300',...000', '50000'] == []&#10;  &#10;  Left contains 5 more items, first extra item: '16'&#10;  Use -v to get more diff">def test_limits_are_documented() -&gt; None:
+        limits = {
+            MAX_TITLE_TEMPLATE_LENGTH,
+            MAX_DESCRIPTION_TEMPLATE_LENGTH,
+            MAX_FILTER_CHAIN,
+            MAX_LITERAL_LENGTH,
+            MAX_RESULT_CHARS,
+        }
+        documented = _subsection("Limits")
+&gt;       assert [str(number) for number in sorted(limits) if str(number) not in documented] == []
+E       AssertionError: assert ['16', '300',...000', '50000'] == []
+E         
+E         Left contains 5 more items, first extra item: '16'
+E         Use -v to get more diff
+
+tests/test_readme_recipes.py:172: AssertionError</failure></testcase><testcase classname="tests.test_readme_recipes" name="test_formula_one_recipe_end_to_end" time="0.066" /><testcase classname="tests.test_readme_recipes" name="test_local_start_time_recipe_end_to_end" time="0.041" /></testsuite></testsuites>
