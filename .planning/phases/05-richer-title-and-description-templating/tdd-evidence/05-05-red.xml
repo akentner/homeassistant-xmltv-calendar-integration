@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="0.213" timestamp="2026-10-23T23:54:41.304391+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_readme_recipes" name="test_recipe_is_documented_verbatim" time="0.077"><failure message="AssertionError: assert ['formula-one-prefix'] == []&#10;  &#10;  Left contains one more item: 'formula-one-prefix'&#10;  Use -v to get more diff">def test_recipe_is_documented_verbatim() -&gt; None:
+        missing = [recipe.name for recipe in RECIPES if recipe.template not in README]
+&gt;       assert missing == []
+E       AssertionError: assert ['formula-one-prefix'] == []
+E         
+E         Left contains one more item: 'formula-one-prefix'
+E         Use -v to get more diff
+
+tests/test_readme_recipes.py:88: AssertionError</failure></testcase><testcase classname="tests.test_readme_recipes" name="test_recipe_renders_as_documented[formula-one-prefix-Das Erste: Gro\xdfer Preis von Mexiko]" time="0.014" /><testcase classname="tests.test_readme_recipes" name="test_formula_one_recipe_end_to_end" time="0.076" /></testsuite></testsuites>
