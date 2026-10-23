@@ -334,3 +334,12 @@ def test_preview_uses_title_template() -> None:
     )
 
     assert result.lines[0].endswith("· Das Erste · Formel 1: Großer Preis von Mexiko – Qualifying")
+
+
+def test_preview_title_template_shows_the_local_start() -> None:
+    # The feed is UTC; the calendar's zone is Europe/Berlin, so 10:00 UTC prints as 12:00 with +02:00 (D-05)
+    epg = _epg(_programme("Rennen", _at(10), _at(11)))
+
+    result = build_preview({KEY_TITLE_TEMPLATE: "{{ title }} at {{ start }}"}, epg, NOW - timedelta(hours=3), TZ)
+
+    assert result.lines[0].endswith("Rennen at 2026-10-13 12:00:00+02:00")

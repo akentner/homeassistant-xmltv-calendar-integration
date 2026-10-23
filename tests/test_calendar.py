@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
@@ -14,6 +15,7 @@ from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from custom_components.xmltv_calendar import calendar as calendar_module
 from custom_components.xmltv_calendar.calendar import build_events
 from custom_components.xmltv_calendar.xmltv.model import Channel, Programme
+from custom_components.xmltv_calendar.xmltv.render import EventTemplates
 from custom_components.xmltv_calendar.xmltv.window import MatchIndex
 
 if TYPE_CHECKING:
@@ -118,16 +120,30 @@ async def test_build_events_skips_out_of_range_programme(
     assert "daserste.de" in caplog.text
 
 
+async def test_build_events_converts_start_for_templates_in_the_given_zone(hass: HomeAssistant) -> None:
+    programme = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Rennen")
+    templates = EventTemplates.from_mapping({"title_template": "{{ title }} @ {{ start }}"})
+    berlin = ZoneInfo("Europe/Berlin")
+
+    (explicit,) = build_events([programme], CHANNELS, templates, berlin)
+    (default,) = build_events([programme], CHANNELS, templates)
+
+    assert explicit.summary == "Rennen @ 2026-10-13 02:00:00+02:00"
+    # Without a zone the Home Assistant default zone applies (phcc: US/Pacific, -07:00 in October)
+    assert default.summary == "Rennen @ 2026-10-12 17:00:00-07:00"
+    assert explicit.start == default.start == BUSY_DAY
+
+
 def test_build_events_skips_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
     good = _programme(BUSY_DAY, BUSY_DAY + timedelta(hours=1), "Good")
     bad = _programme(BUSY_DAY + timedelta(hours=2), BUSY_DAY + timedelta(hours=3), "Bad")
     real = calendar_module._to_event
 
-    def flaky(programme: Programme, channels: Any, templates: Any) -> Any:
+    def flaky(programme: Programme, channels: Any, templates: Any, *zone: Any) -> Any:
         if programme.title == "Bad":
             msg = "boom"
             raise ValueError(msg)
-        return real(programme, channels, templates)
+        return real(programme, channels, templates, *zone)
 
     monkeypatch.setattr(calendar_module, "_to_event", flaky)
 
