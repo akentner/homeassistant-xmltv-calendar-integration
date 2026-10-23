@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="13" time="0.207" timestamp="2026-10-23T23:36:28.685561+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.xmltv.test_template_filters" name="test_first_description_line_as_title_part" time="0.091"><failure message="AssertionError: assert 'Das Erste: Formel 1' == 'Das Erste: Qualifying'&#10;  &#10;  - Das Erste: Qualifying&#10;  + Das Erste: Formel 1">def test_first_description_line_as_title_part() -&gt; None:
+        programme = _programme("Formel 1", "Qualifying\nMehr Text")
+&gt;       assert _title("{{ channel }}: {{ description | first_line }}", programme) == "Das Erste: Qualifying"
+E       AssertionError: assert 'Das Erste: Formel 1' == 'Das Erste: Qualifying'
+E         
+E         - Das Erste: Qualifying
+E         + Das Erste: Formel 1
+
+tests/xmltv/test_template_filters.py:43: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_missing_description_cleans_the_dangling_separator" time="0.004"><failure message="AssertionError: assert 'Das Erste: Formel 1' == 'Das Erste'&#10;  &#10;  - Das Erste&#10;  + Das Erste: Formel 1">def test_missing_description_cleans_the_dangling_separator() -&gt; None:
+&gt;       assert _title("{{ channel }}: {{ description | first_line }}", _programme("Formel 1")) == "Das Erste"
+E       AssertionError: assert 'Das Erste: Formel 1' == 'Das Erste'
+E         
+E         - Das Erste
+E         + Das Erste: Formel 1
+
+tests/xmltv/test_template_filters.py:47: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_a_title_template_that_renders_nothing_falls_back_to_the_programme_title" time="0.004"><failure message="AssertionError: assert 'Das Erste: Formel 1' == 'Formel 1'&#10;  &#10;  - Formel 1&#10;  + Das Erste: Formel 1">def test_a_title_template_that_renders_nothing_falls_back_to_the_programme_title() -&gt; None:
+&gt;       assert _title("{{ description | first_line }}", _programme("Formel 1")) == "Formel 1"
+E       AssertionError: assert 'Das Erste: Formel 1' == 'Formel 1'
+E         
+E         - Formel 1
+E         + Das Erste: Formel 1
+
+tests/xmltv/test_template_filters.py:51: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_optional_sub_title_behind_if" time="0.005"><failure message="AssertionError: assert 'Das Erste: Formel 1' == 'Formel 1'&#10;  &#10;  - Formel 1&#10;  + Das Erste: Formel 1">def test_optional_sub_title_behind_if() -&gt; None:
+        template = "{% set sub = description | first_line %}{{ title }}{% if sub %} - {{ sub }}{% endif %}"
+&gt;       assert _title(template, _programme("Formel 1")) == "Formel 1"
+E       AssertionError: assert 'Das Erste: Formel 1' == 'Formel 1'
+E         
+E         - Formel 1
+E         + Das Erste: Formel 1
+
+tests/xmltv/test_template_filters.py:56: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[\n  \n  Zweite Zeile  \nDritte-Zweite Zeile]" time="0.005"><failure message="AssertionError: assert 'Das Erste: T' == '[Zweite Zeile]'&#10;  &#10;  - [Zweite Zeile]&#10;  + Das Erste: T">description = '\n  \n  Zweite Zeile  \nDritte', expected = 'Zweite Zeile'
+
+    @pytest.mark.parametrize(
+        ("description", "expected"),
+        [
+            ("\n  \n  Zweite Zeile  \nDritte", "Zweite Zeile"),
+            ("Erste\nZweite", "Erste"),
+            ("  Eine  ", "Eine"),
+            ("", ""),
+            (None, ""),
+        ],
+    )
+    def test_first_line_skips_blank_lines_and_strips(description: str | None, expected: str) -&gt; None:
+&gt;       assert _title("[{{ description | first_line }}]", _programme("T", description)) == f"[{expected}]"
+E       AssertionError: assert 'Das Erste: T' == '[Zweite Zeile]'
+E         
+E         - [Zweite Zeile]
+E         + Das Erste: T
+
+tests/xmltv/test_template_filters.py:71: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[Erste\nZweite-Erste]" time="0.004"><failure message="AssertionError: assert 'Das Erste: T' == '[Erste]'&#10;  &#10;  - [Erste]&#10;  + Das Erste: T">description = 'Erste\nZweite', expected = 'Erste'
+
+    @pytest.mark.parametrize(
+        ("description", "expected"),
+        [
+            ("\n  \n  Zweite Zeile  \nDritte", "Zweite Zeile"),
+            ("Erste\nZweite", "Erste"),
+            ("  Eine  ", "Eine"),
+            ("", ""),
+            (None, ""),
+        ],
+    )
+    def test_first_line_skips_blank_lines_and_strips(description: str | None, expected: str) -&gt; None:
+&gt;       assert _title("[{{ description | first_line }}]", _programme("T", description)) == f"[{expected}]"
+E       AssertionError: assert 'Das Erste: T' == '[Erste]'
+E         
+E         - [Erste]
+E         + Das Erste: T
+
+tests/xmltv/test_template_filters.py:71: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[  Eine  -Eine]" time="0.003"><failure message="AssertionError: assert 'Das Erste: T' == '[Eine]'&#10;  &#10;  - [Eine]&#10;  + Das Erste: T">description = '  Eine  ', expected = 'Eine'
+
+    @pytest.mark.parametrize(
+        ("description", "expected"),
+        [
+            ("\n  \n  Zweite Zeile  \nDritte", "Zweite Zeile"),
+            ("Erste\nZweite", "Erste"),
+            ("  Eine  ", "Eine"),
+            ("", ""),
+            (None, ""),
+        ],
+    )
+    def test_first_line_skips_blank_lines_and_strips(description: str | None, expected: str) -&gt; None:
+&gt;       assert _title("[{{ description | first_line }}]", _programme("T", description)) == f"[{expected}]"
+E       AssertionError: assert 'Das Erste: T' == '[Eine]'
+E         
+E         - [Eine]
+E         + Das Erste: T
+
+tests/xmltv/test_template_filters.py:71: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[-]" time="0.004"><failure message="AssertionError: assert 'Das Erste: T' == '[]'&#10;  &#10;  - []&#10;  + Das Erste: T">description = '', expected = ''
+
+    @pytest.mark.parametrize(
+        ("description", "expected"),
+        [
+            ("\n  \n  Zweite Zeile  \nDritte", "Zweite Zeile"),
+            ("Erste\nZweite", "Erste"),
+            ("  Eine  ", "Eine"),
+            ("", ""),
+            (None, ""),
+        ],
+    )
+    def test_first_line_skips_blank_lines_and_strips(description: str | None, expected: str) -&gt; None:
+&gt;       assert _title("[{{ description | first_line }}]", _programme("T", description)) == f"[{expected}]"
+E       AssertionError: assert 'Das Erste: T' == '[]'
+E         
+E         - []
+E         + Das Erste: T
+
+tests/xmltv/test_template_filters.py:71: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_skips_blank_lines_and_strips[None-]" time="0.003"><failure message="AssertionError: assert 'Das Erste: T' == '[]'&#10;  &#10;  - []&#10;  + Das Erste: T">description = None, expected = ''
+
+    @pytest.mark.parametrize(
+        ("description", "expected"),
+        [
+            ("\n  \n  Zweite Zeile  \nDritte", "Zweite Zeile"),
+            ("Erste\nZweite", "Erste"),
+            ("  Eine  ", "Eine"),
+            ("", ""),
+            (None, ""),
+        ],
+    )
+    def test_first_line_skips_blank_lines_and_strips(description: str | None, expected: str) -&gt; None:
+&gt;       assert _title("[{{ description | first_line }}]", _programme("T", description)) == f"[{expected}]"
+E       AssertionError: assert 'Das Erste: T' == '[]'
+E         
+E         - []
+E         + Das Erste: T
+
+tests/xmltv/test_template_filters.py:71: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_lines_drops_blank_lines_and_strips_each" time="0.005"><failure message="AssertionError: assert 'Das Erste: T' == '3'&#10;  &#10;  - 3&#10;  + Das Erste: T">def test_lines_drops_blank_lines_and_strips_each() -&gt; None:
+        programme = _programme("T", "  Eins \n\n  Zwei\n   \nDrei  ")
+&gt;       assert _title("{{ description | lines | length }}", programme) == "3"
+E       AssertionError: assert 'Das Erste: T' == '3'
+E         
+E         - 3
+E         + Das Erste: T
+
+tests/xmltv/test_template_filters.py:76: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_lines_of_a_missing_description_is_an_empty_list[]" time="0.004"><failure message="AssertionError: assert 'Das Erste: Tagesschau' == '0Tagesschau'&#10;  &#10;  - 0Tagesschau&#10;  + Das Erste: Tagesschau">description = ''
+
+    @pytest.mark.parametrize("description", ["", None])
+    def test_lines_of_a_missing_description_is_an_empty_list(description: str | None) -&gt; None:
+        programme = _programme("Tagesschau", description)
+&gt;       assert _title("{{ description | lines | length }}{{ title }}", programme) == "0Tagesschau"
+E       AssertionError: assert 'Das Erste: Tagesschau' == '0Tagesschau'
+E         
+E         - 0Tagesschau
+E         + Das Erste: Tagesschau
+
+tests/xmltv/test_template_filters.py:83: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_lines_of_a_missing_description_is_an_empty_list[None]" time="0.005"><failure message="AssertionError: assert 'Das Erste: Tagesschau' == '0Tagesschau'&#10;  &#10;  - 0Tagesschau&#10;  + Das Erste: Tagesschau">description = None
+
+    @pytest.mark.parametrize("description", ["", None])
+    def test_lines_of_a_missing_description_is_an_empty_list(description: str | None) -&gt; None:
+        programme = _programme("Tagesschau", description)
+&gt;       assert _title("{{ description | lines | length }}{{ title }}", programme) == "0Tagesschau"
+E       AssertionError: assert 'Das Erste: Tagesschau' == '0Tagesschau'
+E         
+E         - 0Tagesschau
+E         + Das Erste: Tagesschau
+
+tests/xmltv/test_template_filters.py:83: AssertionError</failure></testcase><testcase classname="tests.xmltv.test_template_filters" name="test_first_line_and_lines_treat_an_undefined_value_as_empty" time="0.004"><failure message="AssertionError: assert 'Das Erste: Tagesschau' == '|0'&#10;  &#10;  - |0&#10;  + Das Erste: Tagesschau">def test_first_line_and_lines_treat_an_undefined_value_as_empty() -&gt; None:
+        programme = _programme("Tagesschau")
+&gt;       assert _title("{{ categories[3] | first_line }}|{{ categories[3] | lines | length }}", programme) == "|0"
+E       AssertionError: assert 'Das Erste: Tagesschau' == '|0'
+E         
+E         - |0
+E         + Das Erste: Tagesschau
+
+tests/xmltv/test_template_filters.py:88: AssertionError</failure></testcase></testsuite></testsuites>
