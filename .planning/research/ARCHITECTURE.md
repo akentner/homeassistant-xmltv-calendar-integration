@@ -74,7 +74,7 @@ This uses HA's own mechanism for "several configurations sharing one expensive r
 |-----------|------|----------|----------------|
 | `xmltv/parser.py` | Turning XMLTV bytes or files into immutable `EpgData` | nothing (pure) | `xml.etree.ElementTree.iterparse` (C-accelerated) over `gzip.open()` or `open()`, `elem.clear()` after each `<programme>`, timestamps parsed to aware UTC `datetime`, past programmes dropped. Has no HA imports. |
 | `xmltv/model.py` | `Channel`, `Programme`, `EpgData` | nothing | `@dataclass(frozen=True, slots=True)`. `EpgData` uses `eq=False` (see anti-pattern 6). Programmes sorted by start, plus a `channels: dict[id, Channel]` map. |
-| `filter.py` | `FilterSpec` (channel set, compiled include/exclude regex, fields to match, title template) and the resulting `Match` list | `EpgData` (read-only) | Pure. `FilterSpec.from_subentry_data()` compiles once. `apply(epg) -> list[CalendarEvent-ready tuples]`. Title rendered with `str.format_map` over whitelisted keys (not Jinja). |
+| `filter.py` | `FilterSpec` (channel set, compiled include/exclude regex, fields to match, title template) and the resulting `Match` list | `EpgData` (read-only) | Pure. `FilterSpec.from_subentry_data()` compiles once. `apply(epg) -> list[CalendarEvent-ready tuples]`. Title rendered with `str.format_map` over whitelisted keys (not Jinja). Superseded in Phase 5 (D-01, D-02): sandboxed Jinja templates, see .planning/phases/05-richer-title-and-description-templating/05-CONTEXT.md. |
 | `source.py` (`SourceFetcher`) | Getting fresh bytes onto disk: URL or local path, conditional GET (ETag / Last-Modified), gzip detection by magic bytes, disk cache, path allowlist check | aiohttp session, filesystem (via executor) | Async. Returns a `FetchResult(path, changed: bool, fingerprint)`. Never parses. |
 | `coordinator.py` (`XmltvCoordinator`) | Refresh schedule (= the source's refresh interval), the current `EpgData`, error state | `SourceFetcher`, parser (via executor), listeners | `DataUpdateCoordinator[EpgData]` with `config_entry=parent_entry`. Raises `UpdateFailed` on fetch or parse errors and keeps the last good data. |
 | `calendar.py` (`XmltvCalendarEntity`) | One filter set's matches; `event` (current or next); `async_get_events` | coordinator (listener), `filter.py` (via executor) | `CoordinatorEntity[XmltvCoordinator]` + `CalendarEntity`. Recomputes matches on each coordinator update and stores them sorted by start. Reads use `bisect`. |
@@ -461,7 +461,7 @@ The relevant scale is feed size × number of calendars on one HA host, not users
 
 ### Anti-Pattern 10: Jinja templates for the event title
 **Why it's wrong:** Rendering a Jinja `Template` per event is slow, needs `hass`, and invites user templates that do I/O.
-**Do this instead:** `str.format_map` with a whitelisted dict (`channel`, `title`, `subtitle`, `episode`, `category`, `start`). Validate the keys in the flow and handle unknown keys with a safe default.
+**Do this instead:** `str.format_map` with a whitelisted dict (`channel`, `title`, `subtitle`, `episode`, `category`, `start`). Validate the keys in the flow and handle unknown keys with a safe default. Superseded in Phase 5 (D-01, D-02): sandboxed Jinja templates, see .planning/phases/05-richer-title-and-description-templating/05-CONTEXT.md.
 
 ### Anti-Pattern 11: Detecting gzip by extension or `Content-Type`
 **Why it's wrong:** Real providers send gzipped XML with wrong content types. `xmltv_epg` carries a workaround for elres.de. A server may also apply `Content-Encoding: gzip` on top of a `.gz` file.

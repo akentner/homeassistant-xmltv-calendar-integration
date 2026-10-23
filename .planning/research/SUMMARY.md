@@ -30,11 +30,11 @@ HA floor **2026.3.0** / Python **3.14.2** (first release requiring 3.14.2; suppo
 - `gzip` detected by magic bytes `1f 8b`, decompressed-size cap — servers mislabel gzip; bomb protection
 - HA shared aiohttp session + conditional GET (ETag/If-Modified-Since) + raw-file cache in `cache_path` — no re-download on restart/reload
 - Custom slicing timestamp parser — `strptime` mis-parses shortened timestamps and is ~7x slower
-- Restricted `str.format_map` for title templates (no `.`/`[` in fields, missing → empty) — Jinja `Template.render()` from executor hops to the loop; too slow for thousands of titles
+- Restricted `str.format_map` for title templates (no `.`/`[` in fields, missing → empty) — Jinja `Template.render()` from executor hops to the loop; too slow for thousands of titles. Superseded in Phase 5 (D-01, D-02): sandboxed Jinja templates, see .planning/phases/05-richer-title-and-description-templating/05-CONTEXT.md.
 - stdlib `re`, compiled once per filter set
 - CI: hassfest, `hacs/action`, Ruff, pytest; release workflow checking tag == manifest version (copy from mqtt-actions)
 
-**Avoid:** `python-xmltv` (2014), `py-xmltv` (2021), `pydantic-xml` (full tree, event-loop parsing in shadow578), Jinja for titles, pinning lxml (HA pins `lxml==6.1.2`).
+**Avoid:** `python-xmltv` (2014), `py-xmltv` (2021), `pydantic-xml` (full tree, event-loop parsing in shadow578), Jinja for titles, pinning lxml (HA pins `lxml==6.1.2`). Superseded in Phase 5 (D-01, D-02): sandboxed Jinja templates, see .planning/phases/05-richer-title-and-description-templating/05-CONTEXT.md.
 
 ### Expected Features
 
@@ -55,7 +55,7 @@ HA floor **2026.3.0** / Python **3.14.2** (first release requiring 3.14.2; suppo
 **Defer (v2+):**
 - DF-7 HA event on newly appearing matches (needs persisted seen-set), DF-14 retain past matches, DF-3 time-window filter, DF-5 new/premiere flags (feed coverage varies), DF-12 preferred language
 
-**Anti-features:** per-channel sensors, built-in notification system, bundled source catalogue, full schedule in attributes (recorder bloat, 16 KB limit), merging entries, Jinja titles, mixed plain/`/regex/` syntax, writable calendar, PVR control, YAML config, fuzzy/word/exact match modes.
+**Anti-features:** per-channel sensors, built-in notification system, bundled source catalogue, full schedule in attributes (recorder bloat, 16 KB limit), merging entries, Jinja titles, mixed plain/`/regex/` syntax, writable calendar, PVR control, YAML config, fuzzy/word/exact match modes. (Jinja titles: superseded in Phase 5 (D-01, D-02): sandboxed Jinja templates, see .planning/phases/05-richer-title-and-description-templating/05-CONTEXT.md.)
 
 ### Architecture Approach
 
