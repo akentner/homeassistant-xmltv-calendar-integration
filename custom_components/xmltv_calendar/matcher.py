@@ -265,6 +265,8 @@ class CalendarMatcher:
                     # An edit accepted during this worker owns its own feed snapshot and recheck.
                     # Discard stale work, but never discard that newer semantic obligation.
                     continue
+                if change is None and epg is not self.coordinator.data:
+                    continue  # Coalesce superseded DATA, without cancelling CONFIG's older baseline snapshot.
                 fire = change is None and reason == REFILTER_DATA and self._baseline_ready and identity_ready
                 self._commit_filter(epg, result, allowed, retention_days, fire=fire)
                 if change is None:
@@ -412,8 +414,8 @@ class CalendarMatcher:
             self._templates = templates
             spec = _build_spec(subentry.data, self.entity_id or subentry.title)
             if spec is not None:  # an uncompilable stored pattern keeps the previous filter and matches (T-02-01)
+                refilter = refilter or spec != self._spec
                 self._spec = spec
-                refilter = True
         # Store the new diff base before awaiting, so a concurrent listener call sees this edit as applied and the
         # same corrupt data is not retried and re-logged on every later listener call
         self._subentry_data = subentry.data
