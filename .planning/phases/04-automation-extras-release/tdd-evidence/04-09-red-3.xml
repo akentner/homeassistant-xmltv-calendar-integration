@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.200" timestamp="2026-10-23T15:06:52.083444+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_matcher_runtime" name="test_stop_captures_and_invalidates_worker" time="0.135"><failure message="AssertionError: assert 1 == 0&#10; +  where 1 = &lt;Mock id='139988308945824'&gt;.call_count">hass = &lt;HomeAssistant RUNNING&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7f51917a5010&gt;
+berlin_tz = None
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f5191986be0&gt;
+aioclient_mock = &lt;pytest_homeassistant_custom_component.test_util.aiohttp.AiohttpClientMocker object at 0x7f51917a5160&gt;
+hass_storage = {'auth': {'data': {'credentials': [], 'groups': [{'id': 'system-admin', 'name': 'Administrators'}, {'id': 'system-user...None, 'error_message': None, ...}, 'yaml_migration_done': True}, 'key': 'http', 'minor_version': 2, 'version': 2}, ...}
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7f51916e6da0&gt;
+
+    async def test_stop_captures_and_invalidates_worker(
+        hass: HomeAssistant,
+        freezer: Any,
+        berlin_tz: None,
+        monkeypatch: pytest.MonkeyPatch,
+        aioclient_mock: AiohttpClientMocker,
+        hass_storage: dict[str, Any],
+        setup_xmltv: Callable[..., Awaitable[Any]],
+    ) -&gt; None:
+        from custom_components.xmltv_calendar.matcher import signal_matches
+    
+        from .conftest import FEED_URL
+    
+        freezer.move_to(NOW)
+        entry = await setup_xmltv(BASIC_FEED, calendars=F1)
+        (sid,) = entry.subentries
+        runtime = entry.runtime_data
+        events = async_capture_events(hass, EVENT)
+        signalled = Mock()
+        unsub = async_dispatcher_connect(hass, signal_matches(sid), signalled)
+        freezer.move_to("2026-10-13T12:00:00+00:00")
+        async with _held_filter(hass, monkeypatch) as (entered, release):
+            aioclient_mock.clear_requests()
+            aioclient_mock.get(FEED_URL, content=_variant(1, BASIC_FEED, RACE_MARKER))
+            await runtime.coordinator.async_refresh()
+            await entered()
+            stopped = asyncio.Event()
+            hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, lambda _: stopped.set())
+            hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+            await asyncio.wait_for(stopped.wait(), 5)
+            put = Mock(wraps=runtime.match_store.put)
+            monkeypatch.setattr(runtime.match_store, "put", put)
+            release()
+        await hass.async_block_till_done()
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_FINAL_WRITE)
+        await hass.async_block_till_done()
+        unsub()
+&gt;       assert put.call_count == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = &lt;Mock id='139988308945824'&gt;.call_count
+
+tests/test_matcher_runtime.py:226: AssertionError</failure></testcase></testsuite></testsuites>
