@@ -549,6 +549,46 @@ async def test_advanced_checkbox_prechecked_on_edit(
     assert runtime.calendars[plain_id] is entity_plain
 
 
+async def test_stored_legacy_template_cannot_be_saved_again(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    legacy = "{title} ({channel})"
+    entry = await setup_xmltv(
+        FEED, calendars=(("Legacy", {CONF_CHANNELS: ["daserste.de"], CONF_TITLE_TEMPLATE: legacy}),)
+    )
+    legacy_id = _subentry_id(entry, "Legacy")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, legacy_id)
+    assert _default(result, CONF_ADVANCED) is True
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_NAME: "Legacy", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: True}
+    )
+    assert result["step_id"] == "advanced"
+    suggestions = _suggestions(result)
+    assert suggestions[CONF_TITLE_TEMPLATE] == legacy
+
+    # Unchanged: rejected, the stored data stays as it was
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], suggestions)
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_TITLE_TEMPLATE: "legacy_placeholder"}
+    assert dict(entry.subentries[legacy_id].data)[CONF_TITLE_TEMPLATE] == legacy
+
+    # Rewritten in Jinja: saved, and the calendar renders it
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**suggestions, CONF_TITLE_TEMPLATE: "{{ title }} ({{ channel }})"}
+    )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert dict(entry.subentries[legacy_id].data)[CONF_TITLE_TEMPLATE] == "{{ title }} ({{ channel }})"
+    assert "Tagesschau (Das Erste)" in await _summaries(hass, "calendar.legacy")
+
+
 async def test_unchecking_advanced_keeps_stored_values(
     hass: HomeAssistant,
     setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],

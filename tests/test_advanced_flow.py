@@ -315,6 +315,63 @@ async def test_every_compile_time_reason_reaches_the_form(
     assert not entry.subentries
 
 
+async def test_runtime_failure_on_a_sample_programme_is_rejected(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{{ 1 / 0 }}"})
+    )
+
+    assert result.get("errors") == {CONF_TITLE_TEMPLATE: "template_runtime_error"}
+    assert result["step_id"] == "advanced"
+    assert result["description_placeholders"]["template_error"].startswith("ZeroDivisionError")
+    assert not entry.subentries
+
+
+async def test_runtime_failure_in_the_description_template_marks_the_description_field(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], _without(**{CONF_DESCRIPTION_TEMPLATE: "{{ 1 / 0 }}"})
+    )
+
+    assert result.get("errors") == {CONF_DESCRIPTION_TEMPLATE: "template_runtime_error"}
+    assert result["description_placeholders"]["template_error"].startswith("ZeroDivisionError")
+
+
+async def test_runtime_failure_in_both_templates_gets_both_errors(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{{ 1 / 0 }}", CONF_DESCRIPTION_TEMPLATE: "{{ 1 / 0 }}"})
+    )
+
+    assert result.get("errors") == {
+        CONF_TITLE_TEMPLATE: "template_runtime_error",
+        CONF_DESCRIPTION_TEMPLATE: "template_runtime_error",
+    }
+    assert result["type"] is FlowResultType.FORM
+    assert not entry.subentries
+
+
 @pytest.mark.parametrize(
     "user_input",
     [

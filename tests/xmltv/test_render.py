@@ -18,6 +18,7 @@ from custom_components.xmltv_calendar.xmltv.render import (
     LEGACY_PLACEHOLDER,
     MAX_DESCRIPTION_TEMPLATE_LENGTH,
     MAX_TITLE_TEMPLATE_LENGTH,
+    TEMPLATE_RUNTIME_ERROR,
     UNKNOWN_PLACEHOLDER,
     VARIABLE_ORDER,
     EventTemplates,
@@ -391,6 +392,56 @@ def test_validate_template_raises_the_engine_reasons(template: str, reason: str,
 
 def test_default_title_template_validates() -> None:
     validate_template(DEFAULT_TITLE_TEMPLATE)
+
+
+def test_validate_template_rejects_a_zero_division_at_render() -> None:
+    with pytest.raises(TemplateError) as err:
+        validate_template("{{ 1 / 0 }}")
+    assert err.value.reason == TEMPLATE_RUNTIME_ERROR
+    assert err.value.detail.startswith("ZeroDivisionError")
+
+
+def test_validate_template_rejects_a_type_error_at_render() -> None:
+    with pytest.raises(TemplateError) as err:
+        validate_template("{{ title | truncate('a') }}")
+    assert err.value.reason == TEMPLATE_RUNTIME_ERROR
+    assert "Error" in err.value.detail
+
+
+def test_runtime_error_detail_is_cut_to_200_characters(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _Raising:
+        def render(self, **_values: object) -> str:
+            raise ValueError("x" * 500)
+
+    monkeypatch.setattr(render, "compile_template", lambda *_args, **_kwargs: _Raising())
+
+    with pytest.raises(TemplateError) as err:
+        validate_template("anything")
+    assert err.value.reason == TEMPLATE_RUNTIME_ERROR
+    assert err.value.detail.startswith("ValueError: ")
+    assert len(err.value.detail) == 200
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        "{{ subtitles[0] | upper }}",
+        "{{ categories[0] }}",
+        "{{ description | trim }}",
+        "{{ episode }}",
+        "{{ '' }}",
+    ],
+)
+def test_empty_optional_fields_never_fail_the_trial_render(template: str) -> None:
+    validate_template(template)
+    validate_template(template, description=True)
+
+
+def test_description_length_cap_still_applies_before_the_trial_render() -> None:
+    validate_template("a" * 3000, description=True)
+    with pytest.raises(TemplateError) as err:
+        validate_template("a" * 3000)
+    assert err.value.reason == INVALID_TEMPLATE
 
 
 # --- Descriptions (EVT-04, D-23) -----------------------------------------------------------------------------------
