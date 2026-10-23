@@ -263,6 +263,58 @@ async def test_both_templates_invalid_get_their_own_errors(
     assert "error" not in result["description_placeholders"]
 
 
+async def test_legacy_template_is_rejected_with_the_placeholder_named(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], _without(**{CONF_TITLE_TEMPLATE: "{channel}: {title}"})
+    )
+
+    assert result.get("errors") == {CONF_TITLE_TEMPLATE: "legacy_placeholder"}
+    placeholders = result["description_placeholders"]
+    assert placeholders["template_error"] == "{channel}"
+    assert placeholders["default_title"] == "{{ channel }}: {{ title }}"
+    assert {"channel", "channel_id", "title"} <= set(placeholders["variables"].split(", "))
+    assert "title_fields" not in placeholders
+    assert "description_fields" not in placeholders
+    assert not entry.subentries
+
+
+@pytest.mark.parametrize("field", [CONF_TITLE_TEMPLATE, CONF_DESCRIPTION_TEMPLATE])
+@pytest.mark.parametrize(
+    ("template", "reason"),
+    [
+        pytest.param("{% for x in titles %}{{ x }}{% endfor %}", "unsupported_syntax", id="for_loop"),
+        pytest.param("{{ title | nosuchfilter }}", "unknown_filter", id="unknown_filter"),
+        pytest.param("{{ titel }}", "unknown_placeholder", id="typo"),
+        pytest.param("{{ title", "invalid_template", id="unterminated"),
+    ],
+)
+async def test_every_compile_time_reason_reaches_the_form(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    field: str,
+    template: str,
+    reason: str,
+) -> None:
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=())
+    result = await _advanced_form(hass, entry)
+
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], _without(**{field: template}))
+
+    assert result.get("errors") == {field: reason}
+    assert result["description_placeholders"]["template_error"]
+    assert not entry.subentries
+
+
 @pytest.mark.parametrize(
     "user_input",
     [

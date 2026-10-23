@@ -298,12 +298,23 @@ def _flow_requirements() -> tuple[set[str], set[str]]:
             required.update(f"{section}.error.{error}" for error in _error_literals(scope))
         if section.startswith("config_subentries."):
             required.add(f"{section}.entry_type")
-    # Template errors are raised by render.compile_template and passed through as err.reason
+    # The flow assigns err.reason dynamically, so the engine's constant is the only guard: a reason added there
+    # without a text fails here (CFG-04)
     subentry = FLOW_SECTIONS["CalendarSubentryFlow"]
-    required.update(
-        f"{subentry}.error.{error}" for error in (render.INVALID_TEMPLATE, render.UNKNOWN_PLACEHOLDER, "invalid_regex")
-    )
+    required.update(f"{subentry}.error.{error}" for error in (*render.TEMPLATE_ERROR_REASONS, "invalid_regex"))
     return required, step_ids
+
+
+def test_template_error_reasons_guard_is_not_vacuous() -> None:
+    assert len(render.TEMPLATE_ERROR_REASONS) == 6
+    assert set(render.TEMPLATE_ERROR_REASONS) == {
+        "invalid_template",
+        "unknown_placeholder",
+        "unsupported_syntax",
+        "unknown_filter",
+        "legacy_placeholder",
+        "template_runtime_error",
+    }
 
 
 def _selector_keys() -> set[str]:
