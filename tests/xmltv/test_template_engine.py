@@ -17,6 +17,9 @@ from custom_components.xmltv_calendar.xmltv.template_engine import (
     INVALID_TEMPLATE,
     LEGACY_PLACEHOLDER,
     MAX_DESCRIPTION_TEMPLATE_LENGTH,
+    MAX_FILTER_CHAIN,
+    MAX_LITERAL_LENGTH,
+    MAX_RESULT_CHARS,
     MAX_TITLE_TEMPLATE_LENGTH,
     TEMPLATE_ERROR_REASONS,
     TEMPLATE_RUNTIME_ERROR,
@@ -349,7 +352,7 @@ def _chain(count: int) -> str:
 
 
 def test_the_bounds_are_the_documented_constants() -> None:
-    bounds = (template_engine.MAX_FILTER_CHAIN, template_engine.MAX_LITERAL_LENGTH, template_engine.MAX_RESULT_CHARS)
+    bounds = (MAX_FILTER_CHAIN, MAX_LITERAL_LENGTH, MAX_RESULT_CHARS)
     assert bounds == (16, 300, 50000)
 
 

@@ -60,6 +60,11 @@ DEFAULT_TIME_FORMAT = "%H:%M"
 # A1: bounds on the compile cost of admin-supplied text
 MAX_TITLE_TEMPLATE_LENGTH = 2000
 MAX_DESCRIPTION_TEMPLATE_LENGTH = 5000
+# Longest filter chain and text literal an expression may contain (A1), and the longest text replace and regex_replace
+# may return (A12): together they keep compile time and render memory small whatever an admin writes
+MAX_FILTER_CHAIN = 16
+MAX_LITERAL_LENGTH = 300
+MAX_RESULT_CHARS = 50000
 
 # Node classes a template may contain; everything else is unsupported_syntax. Deliberately absent: Call (A6, every
 # operation is a filter), Mul, Pow, Mod and Add (A7, resource use), Dict and Pair, and every statement but If, Assign
@@ -182,10 +187,24 @@ def _pattern(pattern: str, flags: int) -> re.Pattern[str]:
     return re.compile(pattern, flags)
 
 
+def _bounded(result: str) -> str:
+    """Return `result`, or raise ValueError when it is over MAX_RESULT_CHARS: the next filter never runs (T-05-11)."""
+    if len(result) > MAX_RESULT_CHARS:
+        msg = f"the result is longer than {MAX_RESULT_CHARS} characters"
+        raise ValueError(msg)
+    return result
+
+
 def regex_replace(value: object, find: object, replace: object = "", ignorecase: object = False) -> str:  # noqa: FBT002
     """Replace every match of the regex `find` in `value`; same signature as Home Assistant's own filter."""
     flags = re.IGNORECASE if ignorecase else 0
-    return _pattern(_text(find), flags).sub(_text(replace), _text(value))
+    return _bounded(_pattern(_text(find), flags).sub(_text(replace), _text(value)))
+
+
+def replace_text(value: object, old: object, new: object, count: object = None) -> str:
+    """Replace `old` by `new` like the standard filter, but refuse a result over MAX_RESULT_CHARS (A12)."""
+    limit = count if isinstance(count, int) else -1
+    return _bounded(_text(value).replace(_text(old), _text(new), limit))
 
 
 def lines(value: object) -> list[str]:
@@ -253,6 +272,7 @@ def format_time(value: object, fmt: object = DEFAULT_TIME_FORMAT) -> str:
 
 # Filter functions come first, so later plans only add functions and registry entries
 CUSTOM_FILTERS: dict[str, Callable[..., Any]] = {
+    "replace": replace_text,
     "regex_replace": regex_replace,
     "regex_search": regex_search,
     "strip_prefix": strip_prefix,
@@ -282,6 +302,21 @@ ENV = _build_env()
 def _check_node_class(node: nodes.Node) -> None:
     if type(node) not in _ALLOWED_NODES:
         raise TemplateError(UNSUPPORTED_SYNTAX, f"{type(node).__name__} (line {node.lineno})")
+
+
+def _check_literal_length(node: nodes.Const) -> None:
+    if isinstance(node.value, str) and len(node.value) > MAX_LITERAL_LENGTH:
+        raise TemplateError(INVALID_TEMPLATE, f"text longer than {MAX_LITERAL_LENGTH} characters (line {node.lineno})")
+
+
+def _check_chain_length(node: nodes.Filter) -> None:
+    """Count the filters chained onto this one; the walk meets the last filter of a chain first, so this runs once."""
+    length, link = 0, node
+    while isinstance(link, nodes.Filter):
+        length += 1
+        link = link.node
+    if length > MAX_FILTER_CHAIN:
+        raise TemplateError(UNSUPPORTED_SYNTAX, f"more than {MAX_FILTER_CHAIN} filters chained (line {node.lineno})")
 
 
 def _check_name(node: nodes.Name) -> None:
@@ -341,6 +376,7 @@ def _check_filter(node: nodes.Filter) -> None:
     if node.name not in ENV.filters:
         raise TemplateError(UNKNOWN_FILTER, node.name)
     _check_no_star_arguments(node)
+    _check_chain_length(node)
     if node.name in REGEX_FILTERS:
         _check_regex_arguments(node)
 
@@ -357,6 +393,8 @@ def _check_tree(tree: nodes.Template) -> None:
         _check_node_class(node)
         if isinstance(node, nodes.Name):
             _check_name(node)
+        elif isinstance(node, nodes.Const):
+            _check_literal_length(node)
         elif isinstance(node, nodes.Filter):
             _check_filter(node)
         elif isinstance(node, nodes.Test):
