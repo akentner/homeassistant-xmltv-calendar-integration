@@ -3,17 +3,17 @@ gsd_state_version: "1.0"
 milestone: v0.1.0
 current_phase: 05
 current_phase_name: Richer title and description templating
-status: completed
-stopped_at: Phase 5 context gathered
-last_updated: "2026-10-23T16:19:37.115Z"
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-10-23T21:30:29.187Z"
 last_activity: 2026-10-23
-last_activity_desc: Phase 04 complete
-state_head: c503fcd98782bfcac9e31f7c12a3e6dbce3a4873
+last_activity_desc: Phase 05 execution started
+state_head: 6148b1c2a2faff807e9a794f11923de5c29f882d
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 47
-  completed_plans: 42
+  completed_plans: 43
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-21)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 04 — Automation Extras & Release
+**Current focus:** Phase 05 — Richer title and description templating
 
 ## Current Position
 
-Phase: 05 (Richer title and description templating) — READY TO EXECUTE
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-10-23 — Phase 04 complete
+Phase: 05 (Richer title and description templating) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-10-23 — Phase 05 execution started
 
 Progress: [██████████] 100%
 
@@ -101,6 +101,7 @@ Progress: [██████████] 100%
 | Phase 04 P09 | 14 min | 3 tasks | 7 files |
 | Phase 04 P11 | 2min | 2 tasks | 5 files |
 | Phase 04 P10 | 12 min | 2 tasks | 2 files |
+| Phase 05 P01 | 11 min | 2 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -227,6 +228,8 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-11: failure_reason states derive directly from coordinator.FAILURE_REASONS; HA German serving and per-leaf/paired/synthetic omission tests enforce completeness.
 - [Phase 04]: 04-10: Pending configuration owns its config-time feed snapshot; newer DATA is diffed only after the silent baseline/recheck commits. Superseded DATA is coalesced independently.
 - [Phase 04]: 04-10: Template-only edits signal rendering without changing configuration revision, preserving real concurrent DATA announcements.
+- [Phase 05]: 05-01: ImmutableSandboxedEnvironment with an explicit node/filter/test allow-list walked before compile; every expression call and the operators multiply, power, modulo and plus are rejected — The sandbox bounds attribute access, not resources; the allow-list bounds compile and render cost (T-05-01, T-05-02)
+- [Phase 05]: 05-01: unknown_placeholder error key kept for undeclared variables; stored legacy single-brace templates fall back at read time, subentry shape and flow VERSION 1 unchanged — EVT-03 still rejects typos such as titel; D-08 forbids migration
 
 ### Roadmap Evolution
 
@@ -265,6 +268,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-23T15:29:49.869Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-richer-title-and-description-templating/05-CONTEXT.md
+Last session: 2026-10-23T21:30:29.009Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

@@ -214,11 +214,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
   3. The advanced form shows a translated (English and German) error naming the problem for unknown variables or filters, unsupported syntax, invalid syntax, the retired single-brace syntax and sample-render failures.
   4. Calendars that stored the old default `{channel}: {title}` keep working without a warning; custom old-syntax templates fall back to the new default `{{ channel }}: {{ title }}` with one warning, and the form refuses to save old-syntax text.
   5. Editing a template never changes event UIDs or re-announces matches, and the README documents variables, filters, limits, the upgrade and four recipes that tests render.
-**Plans:** 5 plans
+
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 05-01-PLAN.md — Tracer: sandboxed Jinja engine replaces `str.format` end to end (Formel 1 prefix recipe through flow, preview, storage and `get_events`), legacy fallback, reversed decision recorded (D-01..D-05, D-08, D-09, D-11) (wave 1)
+- [x] 05-01-PLAN.md — Tracer: sandboxed Jinja engine replaces `str.format` end to end (Formel 1 prefix recipe through flow, preview, storage and `get_events`), legacy fallback, reversed decision recorded (D-01..D-05, D-08, D-09, D-11) (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 05-02-PLAN.md — Flow surface: six translated error keys (EN/DE), legacy rejection, trial render, short help texts (D-10, D-12) (wave 2)
