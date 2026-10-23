@@ -52,7 +52,7 @@
 - [x] **AUT-02**: Calendar state is `on` while a matching programme airs; attributes show the current/next match
 - [x] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
 - [x] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
-- [ ] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
+- [x] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
 - [x] **AUT-06**: Each calendar device has a diagnostic "Last fetch" sensor (disabled by default) showing when the source last ran a refresh, what started it and how it ended (HTTP status, cache handling, counts), without URL or credentials
 
 ### Configuration UX
@@ -66,8 +66,8 @@
 
 - [x] **DST-01**: Integration installs via HACS (custom repository) with valid `hacs.json` / `manifest.json` and brand icon
 - [x] **DST-02**: CI runs hassfest, HACS validation, Ruff and pytest on every push
-- [ ] **DST-03**: Tagged releases are published with version matching `manifest.json`
-- [ ] **DST-04**: README documents setup, filter examples (regex), automation examples and calendar limitations (15-min trigger window, overlapping events)
+- [x] **DST-03**: Tagged releases are published with version matching `manifest.json`
+- [x] **DST-04**: README documents setup, filter examples (regex), automation examples and calendar limitations (15-min trigger window, overlapping events)
 
 ## v2 Requirements
 
@@ -138,7 +138,7 @@
 | AUT-02 | Phase 1 | Complete |
 | AUT-03 | Phase 4 | Complete |
 | AUT-04 | Phase 3 | Complete |
-| AUT-05 | Phase 4 | Gaps Found |
+| AUT-05 | Phase 4 | Complete |
 | AUT-06 | Phase 4 | Complete |
 | CFG-01 | Phase 1 | Complete |
 | CFG-02 | Phase 3 | Complete |
@@ -146,8 +146,8 @@
 | CFG-04 | Phase 4 | Complete |
 | DST-01 | Phase 1 | Complete |
 | DST-02 | Phase 1 | Complete |
-| DST-03 | Phase 4 | Gaps Found |
-| DST-04 | Phase 4 | Gaps Found |
+| DST-03 | Phase 4 | Complete |
+| DST-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 46 total

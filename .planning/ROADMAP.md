@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: First Filtered Calendar** - One source with channel + regex filtered calendars showing correct events in HA; pure library, scaffold and CI first (completed 2026-10-15)
 - [x] **Phase 2: Precise Filters & Preview** - Field-scoped Unicode-safe regex, duration and time-window filters, title/description templates, live preview, instant reconfigure (completed 2026-10-15)
 - [x] **Phase 3: Resilient Sources** - Disk cache, conditional GET, daily schedule, timezone options, options flow, setup progress, last-good data, Repairs, diagnostics (completed 2026-10-21)
-- [ ] **Phase 4: Automation Extras & Release** - Next-match sensor, new-match event, past-match retention, blueprint, German translation, README, tagged HACS releases
+- [x] **Phase 4: Automation Extras & Release** - Next-match sensor, new-match event, past-match retention, blueprint, German translation, README, tagged HACS releases (completed 2026-10-23)
 
 ## Phase Details
 
@@ -161,7 +161,7 @@ Plans:
   4. Every config, subentry and options flow step, error and abort reason is shown in German when HA runs in German, and in English otherwise.
   5. Pushing a version tag publishes a GitHub release whose version matches `manifest.json`, and HACS offers it for install/update. The README documents setup, regex filter examples, automation examples and calendar limitations (15-min trigger window, overlapping events).
 
-**Plans**: 11/11 plans executed; gap-closure verification and human checks pending
+**Plans**: 11/11 plans complete; gap-closure verification and human checks pending
 
 Plans:
 **Wave 1**
@@ -201,4 +201,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. First Filtered Calendar | 11/11 | Complete    | 2026-10-15 |
 | 2. Precise Filters & Preview | 10/10 | Complete    | 2026-10-15 |
 | 3. Resilient Sources | 10/10 | Complete    | 2026-10-21 |
-| 4. Automation Extras & Release | 11/11 | In Progress | - |
+| 4. Automation Extras & Release | 11/11 | Complete    | 2026-10-23 |
