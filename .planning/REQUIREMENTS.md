@@ -43,14 +43,14 @@
 - [x] **EVT-04**: Event description contains sub-title, episode, categories and description by default; user can override it with a description template
 - [x] **EVT-05**: Event start/end are correct and timezone-aware for all XMLTV timestamp variants; missing stop times are inferred
 - [x] **EVT-06**: Events have stable UIDs across refreshes
-- [ ] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
-- [ ] **EVT-08**: An HA event is fired when a new matching programme appears in the feed (not on first refresh, not again after restart)
+- [x] **EVT-07**: Matches from the past N days (configurable, ≤7) remain visible in the calendar even after the feed drops them
+- [x] **EVT-08**: An HA event is fired when a new matching programme appears in the feed (not on first refresh, not again after restart)
 
 ### Automation
 
 - [x] **AUT-01**: Calendar works with calendar triggers (start/end, offsets) and `calendar.get_events`
 - [x] **AUT-02**: Calendar state is `on` while a matching programme airs; attributes show the current/next match
-- [ ] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
+- [x] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
 - [x] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
 - [ ] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
 - [x] **AUT-06**: Each calendar device has a diagnostic "Last fetch" sensor (disabled by default) showing when the source last ran a refresh, what started it and how it ended (HTTP status, cache handling, counts), without URL or credentials
@@ -132,11 +132,11 @@
 | EVT-04 | Phase 2 | Complete |
 | EVT-05 | Phase 1 | Complete |
 | EVT-06 | Phase 1 | Complete |
-| EVT-07 | Phase 4 | Gaps Found |
-| EVT-08 | Phase 4 | Gaps Found |
+| EVT-07 | Phase 4 | Complete |
+| EVT-08 | Phase 4 | Complete |
 | AUT-01 | Phase 1 | Complete |
 | AUT-02 | Phase 1 | Complete |
-| AUT-03 | Phase 4 | Gaps Found |
+| AUT-03 | Phase 4 | Complete |
 | AUT-04 | Phase 3 | Complete |
 | AUT-05 | Phase 4 | Gaps Found |
 | AUT-06 | Phase 4 | Complete |

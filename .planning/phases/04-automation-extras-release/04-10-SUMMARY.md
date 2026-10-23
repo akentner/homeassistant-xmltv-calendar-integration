@@ -131,6 +131,8 @@ All adjustments directly preserve correctness of the planned ordering change. No
 
 No introduced stubs, placeholders, TODOs, skipped tests or new security surface. Empty initialization is wired to real coordinator/Store data.
 
+Sequential workflow close-out committed this summary before updating STATE/ROADMAP. The SDK advanced the plan, recorded metrics/decisions/session and updated ROADMAP to 11/11 executed while retaining In Progress. `state.update-progress` intentionally declined recalculation (`phase scope is unscoped, not complete`); the existing 75% phase-level bar remains unchanged. Position text explicitly records verification/human checks pending rather than inventing acceptance. Shared requirement readiness returned all three plan IDs ready before marking their implementation complete.
+
 The full verification command ran, but its existing environment gates remain:
 - `tests/xmltv/test_real_feed.py:26`: 04-10 full-suite verification: licensed real-feed fixture deferred and XMLTV_REAL_FEED not supplied.
 - `tests/test_repo_structure.py:388`: 04-10 full-suite verification: three existing shellcheck cases skipped because shellcheck is not installed.

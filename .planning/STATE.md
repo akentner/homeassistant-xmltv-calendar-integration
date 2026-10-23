@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-11-PLAN.md; 04-10 remains; Phase 04 human checks pending
-last_updated: "2026-10-23T13:18:40.218Z"
+stopped_at: Completed 04-10-PLAN.md; all Phase 04 plans executed, human verification and release remain pending
+last_updated: "2026-10-23T13:57:42.335Z"
 last_activity: 2026-10-23
 last_activity_desc: Phase 04 execution started
-state_head: 5b986024dc760fc2881d61fd6a67955f25d73dfb
+state_head: 65bfd06ad9279368112ba7a94eb8cb8898224944
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 42
-  completed_plans: 41
+  completed_plans: 42
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 10 of 11 (next incomplete; 04-11 complete)
-Status: Ready to execute
+Plan: 11 of 11 (all plans executed)
+Status: Awaiting Phase 04 verification; human checks and release pending
 Last activity: 2026-10-23 — Phase 04 execution started
 
 Progress: [████████░░] 75%
@@ -99,6 +99,7 @@ Progress: [████████░░] 75%
 | Phase 04 P08 | 11 min | 2 tasks | 7 files |
 | Phase 04 P09 | 14 min | 3 tasks | 7 files |
 | Phase 04 P11 | 2min | 2 tasks | 5 files |
+| Phase 04 P10 | 12 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -223,6 +224,8 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-09: CalendarMatcher is runtime-owned per subentry; calendar is a view, sensors and diagnostics read runtime.matchers, events use registry calendar identity including disabled/renamed entities
 - [Phase 04]: 04-09: Successful unload captures, invalidates and detaches matchers before Store flush; failed unload keeps matching active. Runtime activity and post-await membership checks prevent stale reconciliation
 - [Phase 04]: 04-11: failure_reason states derive directly from coordinator.FAILURE_REASONS; HA German serving and per-leaf/paired/synthetic omission tests enforce completeness.
+- [Phase 04]: 04-10: Pending configuration owns its config-time feed snapshot; newer DATA is diffed only after the silent baseline/recheck commits. Superseded DATA is coalesced independently.
+- [Phase 04]: 04-10: Template-only edits signal rendering without changing configuration revision, preserving real concurrent DATA announcements.
 
 ### Pending Todos
 
@@ -257,6 +260,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-23T13:18:40.074Z
-Stopped at: Completed 04-11-PLAN.md; 04-10 remains; Phase 04 human checks pending
+Last session: 2026-10-23T13:57:42.195Z
+Stopped at: Completed 04-10-PLAN.md; all Phase 04 plans executed, human verification and release remain pending
 Resume file: None
