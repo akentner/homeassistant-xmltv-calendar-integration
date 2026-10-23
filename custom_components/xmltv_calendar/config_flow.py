@@ -438,12 +438,10 @@ class XmltvOptionsFlow(OptionsFlow):
 # Free-text filter fields: one pattern per line, blank lines ignored (D-05)
 _PATTERN_FIELDS = (CONF_CHANNEL_REGEX, CONF_INCLUDE, CONF_EXCLUDE)
 
-# Variable names shown in the advanced step help texts; passed as a placeholder value because a literal {{ x }} in a
-# translation would be an ICU placeholder
-_VARIABLE_NAMES = ", ".join(VARIABLE_ORDER)
+# Variable names and the default title shown in the advanced step texts; passed as placeholder values because a
+# literal {{ x }} in a translation would be an ICU placeholder
 _ADVANCED_PLACEHOLDERS = {
-    "title_fields": _VARIABLE_NAMES,
-    "description_fields": _VARIABLE_NAMES,
+    "variables": ", ".join(VARIABLE_ORDER),
     "default_title": DEFAULT_TITLE_TEMPLATE,
 }
 

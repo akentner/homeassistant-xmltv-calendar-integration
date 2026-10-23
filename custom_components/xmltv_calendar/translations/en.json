@@ -152,8 +152,8 @@
             "weekdays": "Only programmes on these days. Leave empty for every day.",
             "min_duration": "In minutes, inclusive. Leave empty for no lower limit.",
             "max_duration": "In minutes, inclusive. Leave empty for no upper limit.",
-            "title_template": "Placeholders: {title_fields}. Default: {default_title}",
-            "description_template": "Placeholders: {description_fields}. Leave empty for the default description (sub-title, episode, categories, description).",
+            "title_template": "Jinja template for the event title, for example {default_title}. Variables: {variables}. Filters and recipes are in the README.",
+            "description_template": "Jinja template for the event description. Variables: {variables}. Leave empty for the default description (sub-title, episode, categories, description). See the README.",
             "retention_days": "Ended matches stay in this calendar for this many days after the feed no longer lists them, also across restarts. 0 to 7, default 1."
           }
         },
@@ -182,7 +182,11 @@
         "time_equal": "From and To must differ.",
         "duration_order": "The minimum duration must not be longer than the maximum.",
         "invalid_template": "The template is not valid: {template_error}",
-        "unknown_placeholder": "{template_error} is not an allowed placeholder. Allowed in titles: {title_fields}. Allowed in descriptions: {description_fields}."
+        "unknown_placeholder": "{template_error} is not a known variable. Available variables: {variables}.",
+        "unsupported_syntax": "This syntax is not allowed here: {template_error}. Titles and descriptions support expressions, conditions, set and filters only.",
+        "unknown_filter": "{template_error} is not an available filter or test. The README lists them.",
+        "legacy_placeholder": "{template_error} uses the retired single-brace syntax. Write variables in double braces, for example {default_title}.",
+        "template_runtime_error": "The template failed on a sample programme: {template_error}"
       },
       "abort": {
         "source_not_loaded": "The source is not loaded. Wait until it has been downloaded, then try again.",
