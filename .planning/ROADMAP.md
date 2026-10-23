@@ -215,7 +215,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
   4. Calendars that stored the old default `{channel}: {title}` keep working without a warning; custom old-syntax templates fall back to the new default `{{ channel }}: {{ title }}` with one warning, and the form refuses to save old-syntax text.
   5. Editing a template never changes event UIDs or re-announces matches, and the README documents variables, filters, limits, the upgrade and four recipes that tests render.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -227,6 +227,6 @@ Plans:
 - [x] 05-04-PLAN.md — Local start and end through calendar, sensor, event and preview; warn-once and no-re-announce regressions (D-05, D-03, D-08) (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 05-05-PLAN.md — README Templates section with four recipes verified by tests, stack notes rewritten (D-12, D-08, D-01, D-02) (wave 3)
+- [x] 05-05-PLAN.md — README Templates section with four recipes verified by tests, stack notes rewritten (D-12, D-08, D-01, D-02) (wave 3)
 
 **Notes**: `jinja2` ships with HA core and is imported without a manifest requirement. Storage keys and `VERSION` are unchanged (no migration, D-08). Choices inside the room D-01..D-12 leave, to confirm in plan review: sandbox class `ImmutableSandboxedEnvironment` (subclass of the one D-01 names), `trim_blocks`/`lstrip_blocks` on, error key `unknown_placeholder` kept for typos, expression calls and the operators `+ * ** %` rejected, size-guarded `replace`; accepted residual risk: a hand-crafted template can still grow a value exponentially through repeated `set` and `~` (admin-only, bounded by the length cap).

@@ -3,17 +3,17 @@ gsd_state_version: "1.0"
 milestone: v0.1.0
 current_phase: 05
 current_phase_name: Richer title and description templating
-status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-10-23T21:53:12.926Z"
+status: verifying
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-10-23T21:59:51.715Z"
 last_activity: 2026-10-23
 last_activity_desc: Phase 05 execution started
-state_head: 7d04a14d2116540e241f3dae6586c403af617633
+state_head: 91874145b03791ffaa0d2f94594d93cf183e66a9
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 47
-  completed_plans: 46
+  completed_plans: 47
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 
 Phase: 05 (Richer title and description templating) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-23 — Phase 05 execution started
 
 Progress: [██████████] 100%
@@ -105,6 +105,7 @@ Progress: [██████████] 100%
 | Phase 05 P02 | 7min | 2 tasks | 13 files |
 | Phase 05 P03 | 6 min | 3 tasks | 3 files |
 | Phase 05 P04 | 10min | 2 tasks | 6 files |
+| Phase 05 P05 | 5 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -237,6 +238,8 @@ Recent decisions affecting current work:
 - [Phase 05]: time filter never catches strftime errors: a bad directive is a render error handled by the D-03 fallback
 - [Phase 05]: Template caps: filter chain 16, text literal 300, replace/regex_replace result 50000 characters (A1, A12); T-05-12 tilde growth accepted as residual risk
 - [Phase 05]: 05-04: Home Assistant zone resolved once per batch on the event loop and passed explicitly to templates; build_events defaults tz to the HA zone
+- [Phase 05]: README recipes are verified by rendering them through the real engine; filter, variable and limit completeness is derived from ENV.filters, VARIABLE_ORDER and the MAX_* constants
+- [Phase 05]: regex_replace group references are documented in the angle form g<1>, because Jinja turns a plain backslash-one in a string literal into a control character
 
 ### Roadmap Evolution
 
@@ -275,6 +278,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-23T21:53:12.745Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-10-23T21:59:51.544Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
