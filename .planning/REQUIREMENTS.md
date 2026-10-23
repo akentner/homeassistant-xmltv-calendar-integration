@@ -53,14 +53,14 @@
 - [ ] **AUT-03**: Each calendar has a next-match timestamp sensor (attributes: title, channel, start, end)
 - [x] **AUT-04**: User can trigger a manual refresh (`homeassistant.update_entity`)
 - [ ] **AUT-05**: Repo ships a blueprint "notify before a matching programme starts" (`mode: queued`)
-- [ ] **AUT-06**: Each calendar device has a diagnostic "Last fetch" sensor (disabled by default) showing when the source last ran a refresh, what started it and how it ended (HTTP status, cache handling, counts), without URL or credentials
+- [x] **AUT-06**: Each calendar device has a diagnostic "Last fetch" sensor (disabled by default) showing when the source last ran a refresh, what started it and how it ended (HTTP status, cache handling, counts), without URL or credentials
 
 ### Configuration UX
 
 - [x] **CFG-01**: All setup is possible via UI (config flow for source, subentry flow for calendars); no YAML
 - [x] **CFG-02**: User can edit source settings (refresh, timezone options) via options flow
 - [x] **CFG-03**: User sees a progress indicator while a source is downloaded during setup
-- [ ] **CFG-04**: UI is available in English and German
+- [x] **CFG-04**: UI is available in English and German
 
 ### Distribution
 
@@ -139,11 +139,11 @@
 | AUT-03 | Phase 4 | Gaps Found |
 | AUT-04 | Phase 3 | Complete |
 | AUT-05 | Phase 4 | Gaps Found |
-| AUT-06 | Phase 4 | Gaps Found |
+| AUT-06 | Phase 4 | Complete |
 | CFG-01 | Phase 1 | Complete |
 | CFG-02 | Phase 3 | Complete |
 | CFG-03 | Phase 3 | Complete |
-| CFG-04 | Phase 4 | Gaps Found |
+| CFG-04 | Phase 4 | Complete |
 | DST-01 | Phase 1 | Complete |
 | DST-02 | Phase 1 | Complete |
 | DST-03 | Phase 4 | Gaps Found |

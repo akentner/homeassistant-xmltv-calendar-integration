@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 04
 current_phase_name: Automation Extras & Release
 status: executing
-stopped_at: Completed 04-09-PLAN.md; 04-10 and 04-11 remain
-last_updated: "2026-10-23T13:14:15.999Z"
+stopped_at: Completed 04-11-PLAN.md; 04-10 remains; Phase 04 human checks pending
+last_updated: "2026-10-23T13:18:40.218Z"
 last_activity: 2026-10-23
 last_activity_desc: Phase 04 execution started
-state_head: 5ee470040b50ace32cfe4163025859dbdfcfac7d
+state_head: 5b986024dc760fc2881d61fd6a67955f25d73dfb
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 42
-  completed_plans: 40
+  completed_plans: 41
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 04 (Automation Extras & Release) — EXECUTING
-Plan: 10 of 11
+Plan: 10 of 11 (next incomplete; 04-11 complete)
 Status: Ready to execute
 Last activity: 2026-10-23 — Phase 04 execution started
 
@@ -98,6 +98,7 @@ Progress: [████████░░] 75%
 | Phase 04 P07 | 4 min | 2 tasks | 6 files |
 | Phase 04 P08 | 11 min | 2 tasks | 7 files |
 | Phase 04 P09 | 14 min | 3 tasks | 7 files |
+| Phase 04 P11 | 2min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -221,6 +222,7 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-08: README documents 0.1.0 fully; release v0.1.0 is pushed by the user after phase UAT (no tag created by the assistant)
 - [Phase 04]: 04-09: CalendarMatcher is runtime-owned per subentry; calendar is a view, sensors and diagnostics read runtime.matchers, events use registry calendar identity including disabled/renamed entities
 - [Phase 04]: 04-09: Successful unload captures, invalidates and detaches matchers before Store flush; failed unload keeps matching active. Runtime activity and post-await membership checks prevent stale reconciliation
+- [Phase 04]: 04-11: failure_reason states derive directly from coordinator.FAILURE_REASONS; HA German serving and per-leaf/paired/synthetic omission tests enforce completeness.
 
 ### Pending Todos
 
@@ -255,6 +257,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-23T13:14:15.860Z
-Stopped at: Completed 04-09-PLAN.md; 04-10 and 04-11 remain
+Last session: 2026-10-23T13:18:40.074Z
+Stopped at: Completed 04-11-PLAN.md; 04-10 remains; Phase 04 human checks pending
 Resume file: None
