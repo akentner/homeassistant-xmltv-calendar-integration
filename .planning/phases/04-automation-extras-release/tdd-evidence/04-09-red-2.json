@@ -7,5 +7,8 @@
   "expected": "Last fetch reports 3 live matches without a calendar object",
   "actual": "Last fetch matches is None",
   "reportPath": ".planning/phases/04-automation-extras-release/tdd-evidence/04-09-red-2.xml",
-  "semanticAssessment": "Actual setup/disable/reload/refresh completed; assertion failed on missing count from presentation dependency, not fixture or collection."
+  "semanticAssessment": "Actual setup/disable/reload/refresh completed; assertion failed on missing count from presentation dependency, not fixture or collection.",
+  "runStartedAt": "2026-10-23 15:03:51.515500143 +0200",
+  "runStartedAtSource": "Filesystem birth time of console log opened immediately before the actual pytest command",
+  "reportModifiedAt": "2026-10-23T13:03:52.652229+00:00"
 }

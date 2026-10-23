@@ -42,8 +42,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-# Why a calendar refilters; only new feed data after the entity's first refilter announces new matches (D-10, D-11)
-REFILTER_INITIAL = "initial"  # entity added: new calendar, HA start, entry reload (also after source option changes)
+# Why a matcher refilters; only new feed data after its silent baseline announces matches (D-10, D-11)
+REFILTER_INITIAL = "initial"  # new subentry, HA start, entry reload (also after source option changes)
 REFILTER_DATA = "data"  # the coordinator has new feed data
 REFILTER_CONFIG = "config"  # the calendar's filter was edited in place
 # Payload keys of the new-match event taken from describe_match (D-07); entity_id and calendar are added
@@ -110,7 +110,7 @@ class CalendarMatcher:
         self._runtime = entry.runtime_data
         self.coordinator = self._runtime.coordinator
         self._subentry_id = subentry.subentry_id
-        # The (title, data) the entity was built from: the diff base of differs_from (D-04)
+        # The last applied (title, data): the diff base of differs_from (D-04)
         self._subentry_title = subentry.title
         self._subentry_data = subentry.data
         self._spec = _build_spec(subentry.data, subentry.title)
@@ -137,6 +137,7 @@ class CalendarMatcher:
         if self._active:
             return
         self._active = True
+        self._identity_ready = False
         self._unsub_coordinator = self.coordinator.async_add_listener(self._handle_coordinator_update)
         self._unsub_stop = self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, self._handle_stop)
         await self._async_refilter(REFILTER_INITIAL)
@@ -163,12 +164,14 @@ class CalendarMatcher:
     @callback
     def async_identity_ready(self) -> None:
         """Open event dispatch only after calendar platform registration completed."""
-        self._identity_ready = self.entity_id is not None
-        async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
+        if self._is_current():
+            self._identity_ready = self.entity_id is not None
+            async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
 
     def _is_current(self) -> bool:
         return (
             self._active
+            and self._runtime.active
             and getattr(self._entry, "runtime_data", None) is self._runtime
             and self._runtime.matchers.get(self._subentry_id) is self
             and self._subentry_id in self._entry.subentries
@@ -176,7 +179,7 @@ class CalendarMatcher:
 
     @callback
     def _handle_stop(self, _event: Event) -> None:
-        self._capture_now()
+        self.async_stop()
 
     @callback
     def _capture_now(self) -> None:
@@ -200,8 +203,8 @@ class CalendarMatcher:
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """Re-filter in the executor when the coordinator has new data; otherwise only rewrite the state."""
-        if self.coordinator.data is self._epg:
+        """Re-filter changed data only while this matcher belongs to the live runtime."""
+        if not self._is_current() or self.coordinator.data is self._epg:
             # Unchanged data, e.g. a success/failure transition: the matches are still valid (RESEARCH Pattern 5)
             return
         self._entry.async_create_task(
@@ -221,7 +224,9 @@ class CalendarMatcher:
         generation = self._generation
         if not self._is_current():
             return
-        identity_ready = self._identity_ready
+        # Registry admission can finish after a newly added disabled calendar's platform callback. Snapshot the
+        # identity before awaiting: data that arrived before registration remains a silent startup baseline.
+        identity_ready = self._identity_ready or self.entity_id is not None
         epg = self.coordinator.data
         if epg is None:
             return
@@ -354,6 +359,8 @@ class CalendarMatcher:
 
     async def async_apply_subentry(self, subentry: ConfigSubentry) -> None:
         """Apply an edited calendar subentry in place: rename the device, rebuild filter and templates (D-04)."""
+        if not self._is_current():
+            return
         refilter = False
         write_state = False
         if subentry.data != self._subentry_data:
@@ -374,14 +381,11 @@ class CalendarMatcher:
         self._subentry_data = subentry.data
         if subentry.title != self._subentry_title:
             self._subentry_title = subentry.title
-            if self.hass is not None:
-                # The friendly name follows the device name by itself; the entity_id stays the same
-                registry = dr.async_get(self.hass)
-                device = registry.async_get_device_by_identifier((DOMAIN, self._subentry_id), self._entry.entry_id)
-                if device is not None:
-                    registry.async_update_device(device.id, name=subentry.title)
-        if self.hass is None:  # not added yet: async_added_to_hass filters (Pitfall 10)
-            return
+            # The friendly name follows the device name by itself; the entity_id stays the same.
+            registry = dr.async_get(self.hass)
+            device = registry.async_get_device_by_identifier((DOMAIN, self._subentry_id), self._entry.entry_id)
+            if device is not None:
+                registry.async_update_device(device.id, name=subentry.title)
         if refilter:
             await self._async_refilter(REFILTER_CONFIG)
         elif write_state:  # a refilter sends the signal itself

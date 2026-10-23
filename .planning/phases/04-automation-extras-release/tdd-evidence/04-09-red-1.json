@@ -7,5 +7,8 @@
   "expected": "Live next-match sensor after calendar disable/reload",
   "actual": "Sensor is unknown",
   "reportPath": ".planning/phases/04-automation-extras-release/tdd-evidence/04-09-red-1.xml",
-  "semanticAssessment": "Target executes actual setup and reload; next timestamp assertion fails because disabled calendar never refilters."
+  "semanticAssessment": "Target executes actual setup and reload; next timestamp assertion fails because disabled calendar never refilters.",
+  "runStartedAt": "2026-10-23 14:59:22.430548448 +0200",
+  "runStartedAtSource": "Filesystem birth time of console log opened immediately before the actual pytest command",
+  "reportModifiedAt": "2026-10-23T12:59:24.622932+00:00"
 }

@@ -7,5 +7,8 @@
   "expected": "No writes or signals after HA stop invalidates held executor work",
   "actual": "Held worker writes once after stop",
   "reportPath": ".planning/phases/04-automation-extras-release/tdd-evidence/04-09-red-3.xml",
-  "semanticAssessment": "Explicit worker-entry and stop-event gates completed. Target fails on put.call_count == 0 (actual 1), demonstrating late mutation, not a timeout or fixture fault."
+  "semanticAssessment": "Explicit worker-entry and stop-event gates completed. Target fails on put.call_count == 0 (actual 1), demonstrating late mutation, not a timeout or fixture fault.",
+  "runStartedAt": "2026-10-23 15:06:51.116155664 +0200",
+  "runStartedAtSource": "Filesystem birth time of console log opened immediately before the actual pytest command",
+  "reportModifiedAt": "2026-10-23T13:06:52.283179+00:00"
 }

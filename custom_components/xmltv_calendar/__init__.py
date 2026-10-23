@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
+from homeassistant.core import callback
 from homeassistant.helpers import issue_registry as ir
 
 from .cache import FeedCache, cache_key
@@ -15,6 +16,7 @@ from .matcher import CalendarMatcher
 from .sensor import async_add_subentry_sensors
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigSubentry
     from homeassistant.core import HomeAssistant
 
 PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR]
@@ -57,6 +59,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> boo
 async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> None:
     """Reload only when the source settings changed; otherwise reconcile calendar subentries in place."""
     runtime = entry.runtime_data
+    if not runtime.active:
+        return
     if (dict(entry.data), dict(entry.options)) != runtime.source_snapshot:
         hass.config_entries.async_schedule_reload(entry.entry_id)
         return
@@ -71,9 +75,8 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
         subentry = entry.subentries.get(subentry_id)
         if subentry is not None and matcher.differs_from(subentry):
             await matcher.async_apply_subentry(subentry)
-    # A platform not set up yet has no callback: its own setup loop picks the subentries up (RESEARCH Pitfall 2)
-    add_calendar = runtime.add_entities.get(Platform.CALENDAR)
-    sensors_ready = Platform.SENSOR in runtime.add_entities
+            if not runtime.active or getattr(entry, "runtime_data", None) is not runtime:
+                return
     for subentry_id, subentry in entry.subentries.items():
         if subentry.subentry_type != SUBENTRY_TYPE_CALENDAR:
             continue
@@ -81,12 +84,26 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
             matcher = CalendarMatcher(hass, entry, subentry)
             runtime.matchers[subentry_id] = matcher
             await matcher.async_start()
-        if add_calendar is not None and subentry_id not in runtime.calendars:
-            entity = XmltvCalendarEntity(runtime.coordinator, entry, subentry)
-            runtime.calendars[subentry_id] = entity
-            add_calendar([entity], config_subentry_id=subentry_id)
-        if sensors_ready and subentry_id not in runtime.sensors:
-            async_add_subentry_sensors(runtime, entry, subentry)
+            # Removal/unload/replacement can finish while the first executor job is held (T-04-24).
+            if not runtime.active or getattr(entry, "runtime_data", None) is not runtime:
+                return
+            if subentry_id not in entry.subentries or runtime.matchers.get(subentry_id) is not matcher:
+                continue
+        _async_add_presentations(runtime, entry, subentry)
+
+
+@callback
+def _async_add_presentations(runtime: XmltvRuntimeData, entry: XmltvConfigEntry, subentry: ConfigSubentry) -> None:
+    """Add presentation objects only after matcher initialization; platform admission is HA's decision."""
+    subentry_id = subentry.subentry_id
+    # A platform not set up yet has no callback: its own setup loop picks up the subentries (Pitfall 2).
+    add_calendar = runtime.add_entities.get(Platform.CALENDAR)
+    if add_calendar is not None and subentry_id not in runtime.calendars:
+        entity = XmltvCalendarEntity(runtime.coordinator, entry, subentry)
+        runtime.calendars[subentry_id] = entity
+        add_calendar([entity], config_subentry_id=subentry_id)
+    if Platform.SENSOR in runtime.add_entities and subentry_id not in runtime.sensors:
+        async_add_subentry_sensors(runtime, entry, subentry)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bool:
@@ -95,6 +112,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bo
     if unloaded:
         for matcher in entry.runtime_data.matchers.values():
             matcher.async_stop()
+        entry.runtime_data.active = False
         await entry.runtime_data.match_store.async_flush()
     return unloaded
 
@@ -104,6 +122,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> No
     if (runtime := getattr(entry, "runtime_data", None)) is not None:
         for matcher in runtime.matchers.values():
             matcher.async_stop(capture=False)
+        runtime.active = False
     await FeedCache(hass, cache_key(entry)).async_remove()
     await MatchStore(hass, cache_key(entry)).async_remove()
     ir.async_delete_issue(hass, DOMAIN, issue_id(entry.entry_id))
