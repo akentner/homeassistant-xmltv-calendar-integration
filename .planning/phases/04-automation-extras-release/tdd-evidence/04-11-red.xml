@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="9" time="0.280" timestamp="2026-10-23T15:16:12.767745+02:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_translations" name="test_home_assistant_serves_german_strings" time="0.086" /><testcase classname="tests.test_translations" name="test_de_values_follow_hassfest_rules" time="0.013" /><testcase classname="tests.test_translations" name="test_de_has_same_keys_as_en" time="0.013" /><testcase classname="tests.test_translations" name="test_de_keeps_placeholders" time="0.013" /><testcase classname="tests.test_translations" name="test_de_keeps_literals" time="0.011" /><testcase classname="tests.test_translations" name="test_every_flow_key_is_translated" time="0.017" /><testcase classname="tests.test_translations" name="test_every_vocabulary_and_entity_key_is_translated" time="0.017"><failure message="AssertionError: assert ['entity.sens...ble_to_fetch'] == []&#10;  &#10;  Left contains 6 more items, first extra item: 'entity.sensor.last_fetch.state_attributes.failure_reason.state.empty_feed'&#10;  Use -v to get more diff">def test_every_vocabulary_and_entity_key_is_translated() -&gt; None:
+&gt;       assert _missing(_vocabulary_requirements(), _flatten(_load(EN_JSON))) == []
+E       AssertionError: assert ['entity.sens...ble_to_fetch'] == []
+E         
+E         Left contains 6 more items, first extra item: 'entity.sensor.last_fetch.state_attributes.failure_reason.state.empty_feed'
+E         Use -v to get more diff
+
+tests/test_translations.py:374: AssertionError</failure></testcase><testcase classname="tests.test_translations" name="test_failure_reason_vocabulary_is_required" time="0.018"><failure message="AssertionError: en.json&#10;assert ['entity.sens...ble_to_fetch'] == []&#10;  &#10;  Left contains 6 more items, first extra item: 'entity.sensor.last_fetch.state_attributes.failure_reason.state.empty_feed'&#10;  Use -v to get more diff">def test_failure_reason_vocabulary_is_required() -&gt; None:
+        required = _vocabulary_requirements()
+        reason_keys = {
+            f"entity.sensor.last_fetch.state_attributes.failure_reason.state.{reason}"
+            for reason in coordinator.FAILURE_REASONS
+        }
+        assert reason_keys &lt;= required
+        for path in (EN_JSON, DE_JSON):
+            translations = _load(path)
+&gt;           assert _missing(reason_keys, _flatten(translations)) == [], path.name
+E           AssertionError: en.json
+E           assert ['entity.sens...ble_to_fetch'] == []
+E             
+E             Left contains 6 more items, first extra item: 'entity.sensor.last_fetch.state_attributes.failure_reason.state.empty_feed'
+E             Use -v to get more diff
+
+tests/test_translations.py:386: AssertionError</failure></testcase><testcase classname="tests.test_translations" name="test_german_ui_is_served_for_every_required_key" time="0.023"><failure message="AssertionError: assert ['entity.sens...ble_to_fetch'] == []&#10;  &#10;  Left contains 6 more items, first extra item: 'entity.sensor.last_fetch.state_attributes.failure_reason.state.empty_feed'&#10;  Use -v to get more diff">hass = &lt;HomeAssistant RUNNING&gt;
+
+    async def test_german_ui_is_served_for_every_required_key(hass: HomeAssistant) -&gt; None:
+        required = _flow_requirements()[0] | _vocabulary_requirements()
+        served: dict[str, Any] = {}
+        for category in ("config", "options", "config_subentries", "selector", "exceptions", "issues", "entity"):
+            translations = await async_get_translations(hass, "de", category, [DOMAIN])
+            prefix = f"component.{DOMAIN}."
+            served.update({key.removeprefix(prefix): value for key, value in translations.items()})
+        english = _flatten(_load(EN_JSON))
+&gt;       assert _missing(required, served) == []
+E       AssertionError: assert ['entity.sens...ble_to_fetch'] == []
+E         
+E         Left contains 6 more items, first extra item: 'entity.sensor.last_fetch.state_attributes.failure_reason.state.empty_feed'
+E         Use -v to get more diff
+
+tests/test_translations.py:399: AssertionError</failure></testcase></testsuite></testsuites>

@@ -200,6 +200,7 @@ ATTEMPT_VOCABULARIES = {
     "trigger": cache.ATTEMPT_TRIGGERS,
     "outcome": cache.ATTEMPT_OUTCOMES,
     "cache": cache.ATTEMPT_CACHE,
+    "failure_reason": coordinator.FAILURE_REASONS,
 }
 
 
@@ -371,6 +372,20 @@ def test_every_flow_key_is_translated() -> None:
 
 def test_every_vocabulary_and_entity_key_is_translated() -> None:
     assert _missing(_vocabulary_requirements(), _flatten(_load(EN_JSON))) == []
+
+
+def test_failure_reason_vocabulary_is_required() -> None:
+    required = _vocabulary_requirements()
+    reason_keys = {
+        f"entity.sensor.last_fetch.state_attributes.failure_reason.state.{reason}"
+        for reason in coordinator.FAILURE_REASONS
+    }
+    assert reason_keys <= required
+    for path in (EN_JSON, DE_JSON):
+        translations = _load(path)
+        assert _missing(reason_keys, _flatten(translations)) == [], path.name
+        states = translations["entity"]["sensor"]["last_fetch"]["state_attributes"]["failure_reason"]["state"]
+        assert set(states) == coordinator.FAILURE_REASONS
 
 
 async def test_german_ui_is_served_for_every_required_key(hass: HomeAssistant) -> None:
