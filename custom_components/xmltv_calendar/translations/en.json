@@ -373,7 +373,15 @@
             "name": "HTTP status"
           },
           "failure_reason": {
-            "name": "Failure reason"
+            "name": "Failure reason",
+            "state": {
+              "unable_to_fetch": "Unable to fetch",
+              "invalid_feed": "Invalid feed",
+              "feed_too_large": "Feed too large",
+              "path_not_allowed": "Path not allowed",
+              "file_not_found": "File not found",
+              "empty_feed": "Empty feed"
+            }
           },
           "cache": {
             "name": "Cache",

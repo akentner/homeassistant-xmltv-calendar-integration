@@ -373,7 +373,15 @@
             "name": "HTTP-Status"
           },
           "failure_reason": {
-            "name": "Fehlergrund"
+            "name": "Fehlergrund",
+            "state": {
+              "unable_to_fetch": "Abruf fehlgeschlagen",
+              "invalid_feed": "Ungültiger Feed",
+              "feed_too_large": "Feed zu groß",
+              "path_not_allowed": "Pfad nicht erlaubt",
+              "file_not_found": "Datei nicht gefunden",
+              "empty_feed": "Leerer Feed"
+            }
           },
           "cache": {
             "name": "Cache",
