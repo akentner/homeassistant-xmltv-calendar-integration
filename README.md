@@ -132,10 +132,10 @@ Check **Advanced options** in the calendar form to open a second form:
   window crossing midnight, for example `22:00` to `02:00`, counts for the day it starts. Set both or neither.
 - **Weekdays**: only programmes starting on these days. Empty means every day.
 - **Minimum duration** and **Maximum duration**: in minutes, inclusive. Empty means no limit.
-- **Title template**: the event title. Placeholders: `{channel}`, `{title}`, `{subtitle}`, `{episode}`,
-  `{category}`, `{channel_id}`. Default: `{channel}: {title}`.
-- **Description template**: the event description, with the same placeholders plus `{description}`. Empty means the
-  default description (sub-title, episode, categories and description).
+- **Title template**: the event title, written as a template (see [Templates](#templates)). Default:
+  `{{ channel }}: {{ title }}`.
+- **Description template**: the event description, also a template. Empty means the default description (sub-title,
+  episode, categories and description).
 - **Keep past matches (days)**: 0 to 7, default 1. An ended match stays in the calendar for this many days after the
   feed no longer lists it, also across restarts. Limits:
   - A programme the feed still lists is always shown, whatever this value is. Feeds usually keep a programme for a
@@ -144,6 +144,41 @@ Check **Advanced options** in the calendar form to open a second form:
     ended meanwhile can be missing.
   - Changing the source's timezone settings drops the kept matches, because their times were read with the old
     settings.
+
+### Templates
+
+The title and the description of an event are templates: a small, sandboxed subset of
+[Jinja](https://jinja.palletsprojects.com/), the language Home Assistant uses for its own templates. A template can
+read the programme's data (the variables below), but not Home Assistant's states, and it is rendered only for the
+programmes of the requested window.
+
+#### Variables
+
+Every variable is always present. A missing value is empty text (or an empty list), never an error.
+
+| Variable | Type | Content |
+|----------|------|---------|
+| `channel` | text | Channel display name |
+| `channel_id` | text | Channel ID from the feed |
+| `title` | text | Programme title (the first title in the feed) |
+| `titles` | list of text | All titles in the feed |
+| `subtitle` | text | First sub-title |
+| `subtitles` | list of text | All sub-titles |
+| `episode` | text | Episode number as written in the feed |
+| `category` | text | All categories joined with a comma |
+| `categories` | list of text | All categories |
+| `description` | text | Programme description |
+| `start` | date and time | Start, in the Home Assistant time zone |
+| `end` | date and time | End, in the Home Assistant time zone |
+
+#### Recipes
+
+Strip a redundant "Formel 1" prefix from the title (title template). `Formel 1: Großer Preis von Mexiko` on Das Erste
+becomes `Das Erste: Großer Preis von Mexiko`:
+
+```
+{{ channel }}: {{ title | regex_replace('^Formel ?1:? ?', '') }}
+```
 
 ## Entities
 
