@@ -4,16 +4,16 @@ milestone: v0.1.0
 current_phase: 05
 current_phase_name: Richer title and description templating
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-10-23T21:35:28.979Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-10-23T21:42:54.604Z"
 last_activity: 2026-10-23
 last_activity_desc: Phase 05 execution started
-state_head: 0e27b5e79d199e3e7bc049e5426be66d10913eb9
+state_head: d1a4903278d85bc2d78d983c90d26383bde82bfd
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 47
-  completed_plans: 44
+  completed_plans: 45
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 05 (Richer title and description templating) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-10-23 — Phase 05 execution started
 
@@ -103,6 +103,7 @@ Progress: [██████████] 100%
 | Phase 04 P10 | 12 min | 2 tasks | 2 files |
 | Phase 05 P01 | 11 min | 2 tasks | 20 files |
 | Phase 05 P02 | 7min | 2 tasks | 13 files |
+| Phase 05 P03 | 6 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -232,6 +233,8 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-01: ImmutableSandboxedEnvironment with an explicit node/filter/test allow-list walked before compile; every expression call and the operators multiply, power, modulo and plus are rejected — The sandbox bounds attribute access, not resources; the allow-list bounds compile and render cost (T-05-01, T-05-02)
 - [Phase 05]: 05-01: unknown_placeholder error key kept for undeclared variables; stored legacy single-brace templates fall back at read time, subentry shape and flow VERSION 1 unchanged — EVT-03 still rejects typos such as titel; D-08 forbids migration
 - [Phase 05]: 05-02: help texts pass variables and default_title as placeholder values; trial render uses synthetic samples and caps the detail at 200 characters
+- [Phase 05]: time filter never catches strftime errors: a bad directive is a render error handled by the D-03 fallback
+- [Phase 05]: Template caps: filter chain 16, text literal 300, replace/regex_replace result 50000 characters (A1, A12); T-05-12 tilde growth accepted as residual risk
 
 ### Roadmap Evolution
 
@@ -270,6 +273,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-23T21:35:28.786Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-10-23T21:42:54.421Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
