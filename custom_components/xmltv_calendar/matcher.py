@@ -1,7 +1,8 @@
 """Entity-independent matching, events and retention for a calendar subentry."""
 
+import asyncio
 import logging
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -48,6 +49,18 @@ REFILTER_DATA = "data"  # the coordinator has new feed data
 REFILTER_CONFIG = "config"  # the calendar's filter was edited in place
 # Payload keys of the new-match event taken from describe_match (D-07); entity_id and calendar are added
 EVENT_MATCH_KEYS = ("title", "summary", "channel", "channel_id", "start", "end", "uid")
+
+
+@dataclass(frozen=True, slots=True)
+class _ConfigSnapshot:
+    """An accepted edit's silent baseline and raw recheck, independent of later DATA."""
+
+    revision: int
+    spec: FilterSpec | None
+    epg: EpgData | None
+    recheck: tuple[Programme, ...]
+    retention_days: int
+    tz: tzinfo
 
 
 def device_info(subentry_id: str, title: str) -> DeviceInfo:
@@ -125,6 +138,11 @@ class CalendarMatcher:
         self._retained_shown: frozenset[Programme] = frozenset()
         self._index = MatchIndex(())
         self._generation = 0
+        self._config_revision = 0
+        self._committed_config_revision = 0
+        self._config_pending = False
+        self._pending_config: _ConfigSnapshot | None = None
+        self._refilter_lock = asyncio.Lock()
         # True once a refilter completed: the matches it saw are the silent baseline (D-10)
         self._baseline_ready = False
         self._active = False
@@ -204,7 +222,7 @@ class CalendarMatcher:
     @callback
     def _handle_coordinator_update(self) -> None:
         """Re-filter changed data only while this matcher belongs to the live runtime."""
-        if not self._is_current() or self.coordinator.data is self._epg:
+        if not self._is_current() or (self.coordinator.data is self._epg and not self._config_pending):
             # Unchanged data, e.g. a success/failure transition: the matches are still valid (RESEARCH Pattern 5)
             return
         self._entry.async_create_task(
@@ -212,46 +230,67 @@ class CalendarMatcher:
         )
 
     async def _async_refilter(self, reason: str) -> None:
-        """
-        Apply the filter off the loop; a newer run wins over an older one still in flight.
+        """Serialize commits; DATA cannot cancel a configuration baseline/recheck obligation."""
+        async with self._refilter_lock:
+            while self._is_current():
+                change = self._pending_config
+                if change is None and reason == REFILTER_CONFIG:
+                    return  # Another waiter already committed this edit (or a newer one).
+                epg = change.epg if change is not None else self.coordinator.data
+                if epg is None:
+                    return
+                if change is None and reason == REFILTER_DATA and epg is self._epg:
+                    return
+                spec = change.spec if change is not None else self._spec
+                revision = self._config_revision
+                generation = self._generation
+                retention_days = change.retention_days if change is not None else self._retention_days
+                tz = change.tz if change is not None else dt_util.get_default_time_zone()
+                recheck = change.recheck if change is not None else None
+                # Data that arrived before registry admission remains a silent startup baseline.
+                identity_ready = self._identity_ready or self.entity_id is not None
+                if spec is None:
+                    self._epg = epg
+                    self._channels = epg.channels
+                    self._feed_matches = ()
+                    self._retained_shown = frozenset()
+                    self._index = MatchIndex(())
+                    self._baseline_ready = True
+                    async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
+                    return
+                result, allowed = await self.hass.async_add_executor_job(_apply_filter, spec, epg, recheck, tz)
+                if generation != self._generation or not self._is_current():
+                    return
+                if revision != self._config_revision:
+                    # An edit accepted during this worker owns its own feed snapshot and recheck.
+                    # Discard stale work, but never discard that newer semantic obligation.
+                    continue
+                fire = change is None and reason == REFILTER_DATA and self._baseline_ready and identity_ready
+                self._commit_filter(epg, result, allowed, retention_days, fire=fire)
+                if change is None:
+                    return
+                self._committed_config_revision = change.revision
+                self._pending_config = None
+                self._config_pending = False
+                # A DATA caller interrupted by CONFIG still processes newer data after the silent baseline.
+                # A CONFIG caller leaves queued DATA to its own waiter, never repurposing it as config work.
 
-        Every match joins the calendar's persisted seen-set. Unseen future matches are announced only for new feed
-        data after a baseline exists, so additions, restarts, reloads and edits stay silent (D-08..D-11). A config
-        refilter that supersedes an in-flight data refilter absorbs that run's new matches silently: rare, an edit
-        during a refresh (RESEARCH Pattern 1).
+    @callback
+    def _commit_filter(
+        self,
+        epg: EpgData,
+        result: FilterResult,
+        allowed: frozenset[Programme] | None,
+        retention_days: int,
+        *,
+        fire: bool,
+    ) -> None:
         """
-        self._generation += 1
-        generation = self._generation
-        if not self._is_current():
-            return
-        # Registry admission can finish after a newly added disabled calendar's platform callback. Snapshot the
-        # identity before awaiting: data that arrived before registration remains a silent startup baseline.
-        identity_ready = self._identity_ready or self.entity_id is not None
-        epg = self.coordinator.data
-        if epg is None:
-            return
-        if self._spec is None:  # stored pattern does not compile: no matches, other calendars unaffected
-            self._epg = epg
-            self._channels = epg.channels
-            self._feed_matches = ()
-            self._retained_shown = frozenset()
-            self._index = MatchIndex(())
-            self._baseline_ready = True
-            async_dispatcher_send(self.hass, signal_matches(self._subentry_id))
-            return
+        Apply one validated snapshot synchronously to the Store, index and consumers.
+
+        Only DATA against a committed baseline announces; edits and startup still populate seen silently.
+        """
         store = self._entry.runtime_data.match_store
-        # A filter edit re-checks the retained programmes and the previous run's matches against the new filter (D-17)
-        recheck = (
-            (*(item.programme for item in store.get(self._subentry_id).retained), *self._feed_matches)
-            if reason == REFILTER_CONFIG
-            else None
-        )
-        # Window and weekdays use Home Assistant's configured time zone (D-10)
-        result, allowed = await self.hass.async_add_executor_job(
-            _apply_filter, self._spec, epg, recheck, dt_util.get_default_time_zone()
-        )
-        if generation != self._generation or not self._is_current():
-            return
         record = store.get(self._subentry_id)
         previous = self._feed_matches
         kept = record.retained
@@ -259,19 +298,18 @@ class CalendarMatcher:
             kept = tuple(item for item in kept if item.programme in allowed)
             previous = tuple(programme for programme in previous if programme in allowed)
         now = dt_util.utcnow()
-        cutoff = now - timedelta(days=self._retention_days)
+        cutoff = now - timedelta(days=retention_days)
         # Ended matches of the previous and the new run are retained: the parser drops programmes that ended more than
         # a day ago, so the previous run may hold the only copy (D-16, RESEARCH Pitfall 4)
         retained = (
             capture_ended(kept, (*previous, *result.matches), {**self._channels, **epg.channels}, now)
-            if self._retention_days > 0
+            if retention_days > 0
             else ()
         )
         retained = prune_retained(retained, cutoff)
         new, seen = new_matches(result.matches, record.seen, now)
         # Entries ended before the retention window can never fire again (D-13)
         store.put(self._subentry_id, CalendarMatches(seen=prune_seen(seen, cutoff), retained=retained))
-        fire = reason == REFILTER_DATA and self._baseline_ready and identity_ready
         merged = merge_matches(result.matches, retained)
         self._epg = epg
         self._channels = _channel_map(epg.channels, retained)
@@ -387,6 +425,19 @@ class CalendarMatcher:
             if device is not None:
                 registry.async_update_device(device.id, name=subentry.title)
         if refilter:
+            self._config_revision += 1
+            self._config_pending = True
+            self._pending_config = _ConfigSnapshot(
+                revision=self._config_revision,
+                spec=self._spec,
+                epg=self.coordinator.data,
+                recheck=(
+                    *(item.programme for item in self._runtime.match_store.get(self._subentry_id).retained),
+                    *self._feed_matches,
+                ),
+                retention_days=self._retention_days,
+                tz=dt_util.get_default_time_zone(),
+            )
             await self._async_refilter(REFILTER_CONFIG)
         elif write_state:  # a refilter sends the signal itself
             async_dispatcher_send(self.hass, signal_matches(self._subentry_id))

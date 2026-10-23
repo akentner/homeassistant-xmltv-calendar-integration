@@ -98,7 +98,7 @@ async def test_data_during_config_preserves_baseline_and_retention(
         freezer.move_to("2026-10-13T12:00:00+00:00")
         await _refresh(hass, aioclient_mock, entry, _variant(1, BASIC_FEED, RACE_MARKER))
         assert "Formel 1: Großer Preis von Mexiko" in _retained_titles(await _stored(hass_storage, entry))
-        data = {"channels": ["daserste.de"], "include_regex": "Tagesschau|Rennen|Sprint"}
+        data = {"channels": ["daserste.de"], "include": "Tagesschau|Rennen|Sprint"}
         feed = _variant(2, _with(RACE_XML), RACE_MARKER)
     else:
         data = {"channels": ["daserste.de", "zdf.de"]}
