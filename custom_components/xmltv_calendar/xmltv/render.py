@@ -4,9 +4,10 @@ import logging
 import re
 import zlib
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from .model import Channel, Programme
 from .settings import DEFAULT_TITLE_TEMPLATE, KEY_DESCRIPTION_TEMPLATE, KEY_TITLE_TEMPLATE, with_defaults
 from .template_engine import (
     INVALID_TEMPLATE,
@@ -29,8 +30,6 @@ if TYPE_CHECKING:
     from datetime import tzinfo
 
     from jinja2 import Template
-
-    from .model import Channel, Programme
 
 __all__ = [
     "DEFAULT_TEMPLATES",
@@ -106,9 +105,48 @@ def default_description(programme: Programme) -> str | None:
     return "\n\n".join(part for part in (head, programme.description or "") if part) or None
 
 
+# Synthetic programmes for the trial render of the flow validation: one fully populated, one with every optional field
+# empty. Synthetic by design, so an error detail never carries feed content (T-05-08)
+_SAMPLE_CHANNEL = Channel(id="sample.example", display_name="Sample Channel")
+SAMPLE_FULL = Programme(
+    channel_id="sample.example",
+    start=datetime(2026, 1, 15, 20, 15, tzinfo=UTC),
+    stop=datetime(2026, 1, 15, 21, 45, tzinfo=UTC),
+    titles=("Sample Title", "Sample Original Title"),
+    sub_titles=("Sample Subtitle", "Sample Second Subtitle"),
+    description="First description line.\nSecond description line.",
+    categories=("Sport", "Motorsport"),
+    episode="S2024E05",
+)
+SAMPLE_SPARSE = Programme(
+    channel_id="sample.example",
+    start=datetime(2026, 1, 15, 20, 15, tzinfo=UTC),
+    stop=datetime(2026, 1, 15, 21, 45, tzinfo=UTC),
+    titles=("Sample Title",),
+    sub_titles=(),
+    description=None,
+    categories=(),
+    episode=None,
+)
+_MAX_RUNTIME_DETAIL = 200
+
+
 def validate_template(text: str, *, description: bool = False) -> None:
-    """Raise a TemplateError when `text` is not a usable title (or description) template; the flow's validation."""
-    compile_template(text, max_length=MAX_DESCRIPTION_TEMPLATE_LENGTH if description else MAX_TITLE_TEMPLATE_LENGTH)
+    """
+    Raise a TemplateError when `text` is not a usable title (or description) template; the flow's validation.
+
+    After a successful compile the template is rendered once for a full and once for a sparse synthetic programme, so a
+    template that fails at render time is rejected before it is stored (D-10). Empty optional fields alone never fail.
+    """
+    template = compile_template(
+        text, max_length=MAX_DESCRIPTION_TEMPLATE_LENGTH if description else MAX_TITLE_TEMPLATE_LENGTH
+    )
+    for sample in (SAMPLE_FULL, SAMPLE_SPARSE):
+        try:
+            template.render(**template_values(sample, _SAMPLE_CHANNEL, tz=UTC))
+        except Exception as err:  # user template code can raise anything; BLE001 does not fire as it is re-raised
+            detail = f"{type(err).__name__}: {err}"
+            raise TemplateError(TEMPLATE_RUNTIME_ERROR, detail[:_MAX_RUNTIME_DETAIL]) from err
 
 
 def template_values(programme: Programme, channel: Channel | None, *, tz: tzinfo | None = None) -> dict[str, Any]:
