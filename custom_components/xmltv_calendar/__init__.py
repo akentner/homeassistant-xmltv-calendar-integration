@@ -11,6 +11,7 @@ from .const import DOMAIN, SUBENTRY_TYPE_CALENDAR
 from .coordinator import XmltvCoordinator, issue_id
 from .data import XmltvConfigEntry, XmltvRuntimeData
 from .match_store import MatchStore
+from .matcher import CalendarMatcher
 from .sensor import async_add_subentry_sensors
 
 if TYPE_CHECKING:
@@ -42,7 +43,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> boo
     )
     # The only update listener: subentry add, remove and edit (title or data) never re-download the source
     entry.async_on_unload(entry.add_update_listener(_async_entry_updated))
+    for subentry_id, subentry in entry.subentries.items():
+        if subentry.subentry_type == SUBENTRY_TYPE_CALENDAR:
+            matcher = CalendarMatcher(hass, entry, subentry)
+            entry.runtime_data.matchers[subentry_id] = matcher
+            await matcher.async_start()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    for matcher in entry.runtime_data.matchers.values():
+        matcher.async_identity_ready()
     return True
 
 
@@ -52,22 +60,27 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
     if (dict(entry.data), dict(entry.options)) != runtime.source_snapshot:
         hass.config_entries.async_schedule_reload(entry.entry_id)
         return
-    for subentry_id in set(runtime.calendars) - set(entry.subentries):
-        runtime.calendars.pop(subentry_id)  # HA already removed the entities and their device
+    for subentry_id in set(runtime.matchers) - set(entry.subentries):
+        runtime.matchers.pop(subentry_id).async_stop(capture=False)
+        runtime.calendars.pop(subentry_id, None)  # HA already removed the entities and their device
         runtime.match_store.forget(subentry_id)
     for subentry_id in runtime.sensors - set(entry.subentries):
         runtime.sensors.discard(subentry_id)
     # Edited calendars are applied in place (D-04); listener calls run as concurrent tasks, so iterate over a copy
-    for subentry_id, entity in list(runtime.calendars.items()):
+    for subentry_id, matcher in list(runtime.matchers.items()):
         subentry = entry.subentries.get(subentry_id)
-        if subentry is not None and entity.differs_from(subentry):
-            await entity.async_apply_subentry(subentry)
+        if subentry is not None and matcher.differs_from(subentry):
+            await matcher.async_apply_subentry(subentry)
     # A platform not set up yet has no callback: its own setup loop picks the subentries up (RESEARCH Pitfall 2)
     add_calendar = runtime.add_entities.get(Platform.CALENDAR)
     sensors_ready = Platform.SENSOR in runtime.add_entities
     for subentry_id, subentry in entry.subentries.items():
         if subentry.subentry_type != SUBENTRY_TYPE_CALENDAR:
             continue
+        if subentry_id not in runtime.matchers:
+            matcher = CalendarMatcher(hass, entry, subentry)
+            runtime.matchers[subentry_id] = matcher
+            await matcher.async_start()
         if add_calendar is not None and subentry_id not in runtime.calendars:
             entity = XmltvCalendarEntity(runtime.coordinator, entry, subentry)
             runtime.calendars[subentry_id] = entity
@@ -79,12 +92,18 @@ async def _async_entry_updated(hass: HomeAssistant, entry: XmltvConfigEntry) -> 
 async def async_unload_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> bool:
     """Unload the platforms, then write the match store now so a reload never loads stale records (Pitfall 3)."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    await entry.runtime_data.match_store.async_flush()
+    if unloaded:
+        for matcher in entry.runtime_data.matchers.values():
+            matcher.async_stop()
+        await entry.runtime_data.match_store.async_flush()
     return unloaded
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: XmltvConfigEntry) -> None:
     """Delete the source's cached feed, metadata and health, match store and Repairs issue when it is removed."""
+    if (runtime := getattr(entry, "runtime_data", None)) is not None:
+        for matcher in runtime.matchers.values():
+            matcher.async_stop(capture=False)
     await FeedCache(hass, cache_key(entry)).async_remove()
     await MatchStore(hass, cache_key(entry)).async_remove()
     ir.async_delete_issue(hass, DOMAIN, issue_id(entry.entry_id))
