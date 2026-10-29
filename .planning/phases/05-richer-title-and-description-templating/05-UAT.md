@@ -3,7 +3,7 @@ status: complete
 phase: 05-richer-title-and-description-templating
 source: [05-VERIFICATION.md]
 started: 2026-10-23T22:03:55Z
-updated: 2026-10-23T23:08:56.746Z
+updated: 2026-10-29T22:16:40.415Z
 ---
 
 ## Current Test
@@ -22,8 +22,7 @@ result: pass
 
 ### 3. hassfest and HACS action after push
 expected: Both green (translations/strings, manifest without new requirements).
-result: skipped
-reason: "kann noch nicht getestet werden (hassfest/HACS action run only after push)"
+result: pass
 
 ### 4. Decision: regex validation bypass via map/select/reject with filter names as text
 expected: Either extend validation to map/select/reject with regex_replace/regex_search (or reject those calls), or document the residual risk next to the set/tilde growth in ROADMAP and README.
@@ -32,10 +31,10 @@ result: pass
 ## Summary
 
 total: 4
-passed: 3
+passed: 4
 issues: 0
 pending: 0
-skipped: 1
+skipped: 0
 blocked: 0
 
 ## Gaps
