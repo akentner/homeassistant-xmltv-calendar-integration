@@ -15,6 +15,7 @@ from custom_components.xmltv_calendar.calendar import XmltvCalendarEntity
 from custom_components.xmltv_calendar.const import (
     CONF_ADVANCED,
     CONF_CHANNELS,
+    CONF_DESCRIPTION_TEMPLATE,
     CONF_NAME,
     CONF_TITLE_TEMPLATE,
     CONF_WEEKDAYS,
@@ -587,6 +588,76 @@ async def test_stored_legacy_template_cannot_be_saved_again(
 
     assert dict(entry.subentries[legacy_id].data)[CONF_TITLE_TEMPLATE] == "{{ title }} ({{ channel }})"
     assert "Tagesschau (Das Erste)" in await _summaries(hass, "calendar.legacy")
+
+
+async def test_unchecking_advanced_cannot_save_a_stored_legacy_template(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+) -> None:
+    """Unticking Advanced options on an edit opens the advanced form instead of saving a stored template (WR-02)."""
+    freezer.move_to(NOW)
+    legacy = "{title} ({channel})"
+    entry = await setup_xmltv(
+        FEED, calendars=(("Stale", {CONF_CHANNELS: ["daserste.de"], CONF_TITLE_TEMPLATE: legacy}),)
+    )
+    stale_id = _subentry_id(entry, "Stale")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, stale_id)
+    assert _default(result, CONF_ADVANCED) is True
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_NAME: "Stale", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: False}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "advanced"
+    assert result["errors"] == {CONF_TITLE_TEMPLATE: "legacy_placeholder"}
+    assert result["description_placeholders"]["template_error"] == "{title}"
+    assert _suggested(result, CONF_TITLE_TEMPLATE) == legacy
+    assert dict(entry.subentries[stale_id].data)[CONF_TITLE_TEMPLATE] == legacy
+
+    # Rewritten in Jinja: the flow reaches the preview and saves the corrected template
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**_suggestions(result), CONF_TITLE_TEMPLATE: "{{ title }} ({{ channel }})"}
+    )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": "save"})
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert dict(entry.subentries[stale_id].data)[CONF_TITLE_TEMPLATE] == "{{ title }} ({{ channel }})"
+
+
+@pytest.mark.parametrize(
+    ("field", "stored", "reason", "detail"),
+    [
+        pytest.param(CONF_DESCRIPTION_TEMPLATE, "{description}", "legacy_placeholder", "{description}", id="legacy"),
+        pytest.param(CONF_TITLE_TEMPLATE, "{{ title | nosuchfilter }}", "unknown_filter", "nosuchfilter", id="filter"),
+    ],
+)
+async def test_unchecking_advanced_rejects_every_unusable_stored_template(
+    hass: HomeAssistant,
+    setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+    freezer: Any,
+    field: str,
+    stored: str,
+    reason: str,
+    detail: str,
+) -> None:
+    """Both template fields are checked when the advanced step is skipped (WR-02)."""
+    freezer.move_to(NOW)
+    entry = await setup_xmltv(FEED, calendars=(("Stale", {CONF_CHANNELS: ["daserste.de"], field: stored}),))
+    stale_id = _subentry_id(entry, "Stale")
+
+    result = await entry.start_subentry_reconfigure_flow(hass, stale_id)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_NAME: "Stale", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: False}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "advanced"
+    assert result["errors"] == {field: reason}
+    assert result["description_placeholders"]["template_error"] == detail
+    assert _suggested(result, field) == stored
+    assert dict(entry.subentries[stale_id].data)[field] == stored
 
 
 async def test_unchecking_advanced_keeps_stored_values(

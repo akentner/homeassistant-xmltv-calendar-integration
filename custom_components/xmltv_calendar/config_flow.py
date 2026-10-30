@@ -516,6 +516,23 @@ def _advanced_values(user_input: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _template_errors(values: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
+    """Return the form errors and the template_error placeholder for the title and description templates."""
+    errors: dict[str, str] = {}
+    placeholders: dict[str, str] = {}
+    # D-10: the engine's reason is the form error key; a blank description template means the default description
+    templates = [(CONF_TITLE_TEMPLATE, False)]
+    if values[CONF_DESCRIPTION_TEMPLATE].strip():
+        templates.append((CONF_DESCRIPTION_TEMPLATE, True))
+    for field, description in templates:
+        try:
+            validate_template(values[field], description=description)
+        except TemplateError as err:
+            errors[field] = err.reason
+            placeholders.setdefault("template_error", err.detail)
+    return errors, placeholders
+
+
 def _advanced_errors(values: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
     """
     Return the form errors and their placeholders for built advanced values, all checked in one pass.
@@ -523,7 +540,6 @@ def _advanced_errors(values: dict[str, Any]) -> tuple[dict[str, str], dict[str, 
     Template errors use their own template_error placeholder, never the regex pattern/error ones (Pitfall 12).
     """
     errors: dict[str, str] = {}
-    placeholders: dict[str, str] = {}
     # A6: an empty selection is rejected instead of silently meaning the default fields
     for field in (CONF_INCLUDE_FIELDS, CONF_EXCLUDE_FIELDS):
         if not values[field]:
@@ -538,16 +554,8 @@ def _advanced_errors(values: dict[str, Any]) -> tuple[dict[str, str], dict[str, 
     minimum, maximum = values[CONF_MIN_DURATION], values[CONF_MAX_DURATION]
     if minimum is not None and maximum is not None and minimum > maximum:
         errors[CONF_MAX_DURATION] = "duration_order"
-    # D-10: the engine's reason is the form error key; a blank description template means the default description
-    templates = [(CONF_TITLE_TEMPLATE, False)]
-    if values[CONF_DESCRIPTION_TEMPLATE].strip():
-        templates.append((CONF_DESCRIPTION_TEMPLATE, True))
-    for field, description in templates:
-        try:
-            validate_template(values[field], description=description)
-        except TemplateError as err:
-            errors[field] = err.reason
-            placeholders.setdefault("template_error", err.detail)
+    template_errors, placeholders = _template_errors(values)
+    errors.update(template_errors)
     return errors, placeholders
 
 
@@ -616,7 +624,7 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
                 self._show_advanced = bool(user_input.get(CONF_ADVANCED, False))
                 if self._show_advanced:
                     return await self.async_step_advanced()
-                return await self.async_step_preview()
+                return await self._preview_or_templates()
 
         # Stored IDs missing from the feed stay selectable, so an edit can be saved unchanged (Phase 1 D-04)
         channel_ids = sorted(set(entry.runtime_data.coordinator.data.channels) | set(pending[CONF_CHANNELS]))
@@ -643,6 +651,15 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
             step_id="basic", data_schema=schema, errors=errors, description_placeholders=placeholders
         )
 
+    async def _preview_or_templates(self) -> SubentryFlowResult:
+        """Go to the preview; an unusable stored template opens the advanced form with its error instead (D-08)."""
+        pending = self._load_pending()
+        errors, placeholders = _template_errors(with_defaults(pending))
+        if not errors:
+            return await self.async_step_preview()
+        self._show_advanced = True
+        return self._advanced_step_form(_advanced_suggestions(pending), errors, placeholders)
+
     async_step_user = async_step_basic
     # Same form for edits; self.source tells add and edit apart (FLT-11)
     async_step_reconfigure = async_step_basic
@@ -666,6 +683,12 @@ class CalendarSubentryFlow(ConfigSubentryFlow):
 
         # After an error the form shows exactly what was submitted, cleared fields included
         suggestions = user_input if user_input is not None else _advanced_suggestions(pending)
+        return self._advanced_step_form(suggestions, errors, placeholders)
+
+    def _advanced_step_form(
+        self, suggestions: dict[str, Any], errors: dict[str, str], placeholders: dict[str, str]
+    ) -> SubentryFlowResult:
+        """Show the advanced form; HA routes the next submit by this step id."""
         schema = self.add_suggested_values_to_schema(_advanced_schema(), suggestions)
         return self.async_show_form(
             step_id="advanced",
