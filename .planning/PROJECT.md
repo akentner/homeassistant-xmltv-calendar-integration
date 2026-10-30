@@ -27,10 +27,12 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 - ✓ Refresh schedule configurable and editable per source: interval or daily at a fixed time — Phase 3
 - ✓ Complete setup and later editing of all settings via Config Flow, Subentry Flow and Options Flow (no YAML), with a progress indicator during the setup download — Phase 3
 - ✓ Sources are resilient: disk cache across restarts, conditional requests (ETag / If-Modified-Since), last good data kept on failure, backoff, Repairs issue after 24 h of failures, diagnostics, timezone options, manual refresh via `update_entity` — Phase 3
+- ✓ Automation extras: next-match sensor, new-match event with payload, recent past matches, ready-made blueprint — Phase 4
+- ✓ Distributed as HACS repository (hacs.json, tagged releases v1.0.0 and v1.0.1, CI with hassfest + HACS validation), bilingual README — Phase 1 and Phase 4, released v1.0.0
 
 ### Active
 
-- [ ] Distributed as HACS repository (hacs.json, releases, CI with hassfest + HACS validation) — custom-repo install + green CI since Phase 1; tagged releases in Phase 4
+(None — define the next milestone's requirements with `/gsd-new-milestone`)
 
 ### Out of Scope
 
@@ -44,7 +46,9 @@ Configured filters reliably turn a (possibly large) XMLTV feed into a calendar s
 
 - Part of the user's Home Assistant ecosystem monorepo (`~/Projects/`), alongside phone-logger, kroki integration etc. — independent Git repo.
 - Target HA host: `ha-host`.
-- No concrete XMLTV source yet — development and tests use fixture files. Real sources later may be TVHeadend, iptv-org/epg, epg.best etc.
+- Shipped v1.0.0 (2026-10-26) and v1.0.1 (2026-10-30): about 6.7k lines of integration code and 15.5k lines of tests, no runtime requirements (stdlib parsing, `jinja2` from HA core). Development and tests use fixture files; a real-feed acceptance test stays opt-in via `XMLTV_REAL_FEED`.
+- Known and accepted: the Jinja regex-check bypass via `map`/`select`/`reject` naming the filter as text (T-05-03) and exponential growth through `set` and `~` (T-05-12), both admin-only and documented in the README Limits. Phase 5 review findings WR-01, WR-04 and IN-01..IN-04 are open (`05-REVIEW-DISPOSITION.md`).
+- Real sources may be TVHeadend, iptv-org/epg, epg.best etc.
 - XMLTV format: `<channel id>` with `<display-name>`, `<programme start stop channel>` with `<title>`, `<sub-title>`, `<desc>`, `<category>`, `<episode-num>`; timestamps like `20261012203000 +0200`.
 - Motivating example: "Which TV channel broadcasts Formula 1 next, and when?" — visible in the calendar and usable as automation trigger.
 
@@ -91,4 +95,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-23 after Phase 5 planning (sandboxed Jinja templates replace restricted placeholders)*
+*Last updated: 2026-10-30 after v1.0.1 milestone*
