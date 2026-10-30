@@ -275,6 +275,10 @@ of the machine Home Assistant runs on and are not guaranteed.
 - `replace` and `regex_replace` may produce up to 50000 characters.
 - Templates are meant to be written by hand and kept short. Deliberately crafted templates that reuse a variable many
   times with the tilde to grow a text exponentially are not a supported use; they are not reachable from feed content.
+- The checks on regular expressions (literal pattern, 300 characters, no nested repetition) apply to direct
+  `regex_replace` and `regex_search` calls. A call that names the filter as text, such as
+  `map('regex_replace', ...)`, `select('regex_search', ...)` or `reject(...)`, is not checked. A crafted pattern
+  with nested repetition can then make rendering slow. Do not use these forms; they are not reachable from feed content.
 
 #### Checking templates
 
