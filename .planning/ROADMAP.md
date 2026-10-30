@@ -215,7 +215,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
   4. Calendars that stored the old default `{channel}: {title}` keep working without a warning; custom old-syntax templates fall back to the new default `{{ channel }}: {{ title }}` with one warning, and the form refuses to save old-syntax text.
   5. Editing a template never changes event UIDs or re-announces matches, and the README documents variables, filters, limits, the upgrade and four recipes that tests render.
 
-**Plans:** 5/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
