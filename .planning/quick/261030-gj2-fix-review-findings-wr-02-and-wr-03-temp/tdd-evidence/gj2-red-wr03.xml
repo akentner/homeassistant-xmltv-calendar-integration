@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.181" timestamp="2026-10-30T12:03:20.430302+01:00" hostname="lap-aleken-lati5540"><testcase classname="tests.xmltv.test_template_engine" name="test_mixed_template_with_a_retired_name_is_rejected" time="0.087"><failure message="Failed: DID NOT RAISE &lt;class 'custom_components.xmltv_calendar.xmltv.template_engine.TemplateError'&gt;">def test_mixed_template_with_a_retired_name_is_rejected() -&gt; None:
+        """A partly migrated template no longer renders the literal {channel} into every title (WR-03)."""
+&gt;       err = _reject("{channel} - {{ title }}")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/xmltv/test_template_engine.py:279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = '{channel} - {{ title }}', kwargs = {}, started = 298759.164385023
+err = &lt;ExceptionInfo for raises contextmanager&gt;
+
+    def _reject(text: str, **kwargs: Any) -&gt; TemplateError:
+        started = time.perf_counter()
+&gt;       with pytest.raises(TemplateError) as err:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE &lt;class 'custom_components.xmltv_calendar.xmltv.template_engine.TemplateError'&gt;
+
+tests/xmltv/test_template_engine.py:60: Failed</failure></testcase></testsuite></testsuites>

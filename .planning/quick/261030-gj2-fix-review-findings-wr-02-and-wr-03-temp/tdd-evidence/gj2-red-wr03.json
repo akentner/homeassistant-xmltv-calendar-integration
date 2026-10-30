@@ -1,0 +1,13 @@
+{
+ "command": "uv run --frozen pytest tests/xmltv/test_template_engine.py -q -p no:cacheprovider -k test_mixed_template_with_a_retired_name_is_rejected --junitxml=.planning/quick/261030-gj2-fix-review-findings-wr-02-and-wr-03-temp/tdd-evidence/gj2-red-wr03.xml",
+ "exitCode": 1,
+ "reportPath": ".planning/quick/261030-gj2-fix-review-findings-wr-02-and-wr-03-temp/tdd-evidence/gj2-red-wr03.xml",
+ "runStartedAt": "2026-10-30T11:03:19.000Z",
+ "targetFile": "tests/xmltv/test_template_engine.py",
+ "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"1\" skipped=\"0\" tests=\"1\" time=\"0.181\" timestamp=\"2026-10-30T12:03:20.430302+01:00\" hostname=\"lap-aleken-lati5540\"><testcase classname=\"tests.xmltv.test_template_engine\" name=\"test_mixed_template_with_a_retired_name_is_rejected\" time=\"0.087\"><failure message=\"Failed: DID NOT RAISE &lt;class 'custom_components.xmltv_calendar.xmltv.template_engine.TemplateError'&gt;\">def test_mixed_template_with_a_retired_name_is_rejected() -&gt; None:\n        \"\"\"A partly migrated template no longer renders the literal {channel} into every title (WR-03).\"\"\"\n&gt;       err = _reject(\"{channel} - {{ title }}\")\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\ntests/xmltv/test_template_engine.py:279: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntext = '{channel} - {{ title }}', kwargs = {}, started = 298759.164385023\nerr = &lt;ExceptionInfo for raises contextmanager&gt;\n\n    def _reject(text: str, **kwargs: Any) -&gt; TemplateError:\n        started = time.perf_counter()\n&gt;       with pytest.raises(TemplateError) as err:\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       Failed: DID NOT RAISE &lt;class 'custom_components.xmltv_calendar.xmltv.template_engine.TemplateError'&gt;\n\ntests/xmltv/test_template_engine.py:60: Failed</failure></testcase></testsuite></testsuites>",
+ "reportModifiedAt": "2026-10-30T11:03:20.000Z",
+ "targetTest": "test_mixed_template_with_a_retired_name_is_rejected",
+ "expected": "compile_template('{channel} - {{ title }}') raises TemplateError with reason legacy_placeholder and detail {channel}",
+ "actual": "Failed: DID NOT RAISE TemplateError (the mixed template compiled)",
+ "semanticAssessment": "Target executed and failed on its planned assertion: _check_legacy returns early when the text contains the opening tag markers, so the mixed template compiles instead of raising TemplateError (WR-03). The test imports and runs; no collection, import or fixture fault."
+}

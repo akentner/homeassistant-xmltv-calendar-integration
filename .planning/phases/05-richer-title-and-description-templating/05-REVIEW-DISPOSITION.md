@@ -9,11 +9,11 @@ findings:
     title: "A second template error shows the first template's detail"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Unchecking \"Advanced options\" saves a stored template without validating it"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The legacy-syntax check is bypassed by any text containing `{{` or `{%`"
   - id: WR-04
     severity: warning
@@ -35,7 +35,7 @@ findings:
     severity: info
     disposition: open
     title: "Edge-separator stripping can eat legitimate trailing characters, and the default description path is not cleaned"
-open: 8
+open: 6
 total: 8
 ---
 
@@ -44,8 +44,8 @@ total: 8
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
 | WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
+| WR-02 | warning | fixed | quick 261030-gj2 |
+| WR-03 | warning | fixed | quick 261030-gj2 |
 | WR-04 | warning | open | - |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.284" timestamp="2026-10-30T12:02:01.904896+01:00" hostname="lap-aleken-lati5540"><testcase classname="tests.test_reconfigure" name="test_unchecking_advanced_cannot_save_a_stored_legacy_template" time="0.183"><failure message="AssertionError: assert &lt;FlowResultType.MENU: 'menu'&gt; is &lt;FlowResultType.FORM: 'form'&gt;&#10; +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM">hass = &lt;HomeAssistant RUNNING&gt;
+setup_xmltv = &lt;function setup_xmltv.&lt;locals&gt;._setup at 0x7efd4ee79900&gt;
+freezer = &lt;freezegun.api.FrozenDateTimeFactory object at 0x7efd4f2f7380&gt;
+
+    async def test_unchecking_advanced_cannot_save_a_stored_legacy_template(
+        hass: HomeAssistant,
+        setup_xmltv: Callable[..., Awaitable[MockConfigEntry]],
+        freezer: Any,
+    ) -&gt; None:
+        """Unticking Advanced options on an edit opens the advanced form instead of saving a stored template (WR-02)."""
+        freezer.move_to(NOW)
+        legacy = "{title} ({channel})"
+        entry = await setup_xmltv(
+            FEED, calendars=(("Stale", {CONF_CHANNELS: ["daserste.de"], CONF_TITLE_TEMPLATE: legacy}),)
+        )
+        stale_id = _subentry_id(entry, "Stale")
+    
+        result = await entry.start_subentry_reconfigure_flow(hass, stale_id)
+        assert _default(result, CONF_ADVANCED) is True
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {CONF_NAME: "Stale", CONF_CHANNELS: ["daserste.de"], CONF_ADVANCED: False}
+        )
+&gt;       assert result["type"] is FlowResultType.FORM
+E       AssertionError: assert &lt;FlowResultType.MENU: 'menu'&gt; is &lt;FlowResultType.FORM: 'form'&gt;
+E        +  where &lt;FlowResultType.FORM: 'form'&gt; = FlowResultType.FORM
+
+tests/test_reconfigure.py:611: AssertionError</failure></testcase></testsuite></testsuites>

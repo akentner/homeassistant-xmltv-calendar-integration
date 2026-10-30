@@ -267,6 +267,7 @@ None yet.
 | 261015-su3 | Add German translation de.json mirroring en.json with key/placeholder parity test | 2026-10-15 | 4345d53 | [261015-su3-add-german-translation-de-json-mirroring](./quick/261015-su3-add-german-translation-de-json-mirroring/) |
 | 261015-u6j | Collapse line breaks in preview feed text (WR-05) | 2026-10-15 | 9b87e7f | [261015-u6j-collapse-line-breaks-in-preview-feed-tex](./quick/261015-u6j-collapse-line-breaks-in-preview-feed-tex/) |
 | 261016-1ox | Fix review findings WR-01 and WR-02, defer WR-03 and WR-04 | 2026-10-16 | 03c2f9b | [261016-1ox-fix-review-findings-wr-01-and-wr-02-defe](./quick/261016-1ox-fix-review-findings-wr-01-and-wr-02-defe/) |
+| 261030-gj2 | Fix review findings WR-02 and WR-03 from the Phase 5 review | 2026-10-30 | 56794e5 | [261030-gj2-fix-review-findings-wr-02-and-wr-03-temp](./quick/261030-gj2-fix-review-findings-wr-02-and-wr-03-temp/) |
 | 4 | Rename repository references to homeassistant-xmltv-calendar-integration (fast; 5 files, exceeds fast's 3-edit guideline, mechanical rename) | 2026-10-16 | 93ad979 | — |
 
 ## Deferred Items
