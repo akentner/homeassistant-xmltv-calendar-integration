@@ -1,15 +1,15 @@
 ---
 gsd_state_version: "1.0"
-milestone: v0.1.0
+milestone: v1.0.1
 status: Awaiting next milestone
-stopped_at: Phase 05 complete — all phases complete
+stopped_at: Milestone v1.0.1 archived — awaiting next milestone
 last_updated: "2026-10-30T11:39:08.352Z"
 last_activity: 2026-10-30
 last_activity_desc: Milestone v1.0.1 completed and archived
 state_head: 62a845af5297e263e39e246b88734fb7fbd6baf0
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 47
   completed_plans: 47
 current_phase: 05
@@ -19,10 +19,10 @@ current_phase: 05
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-21)
+See: .planning/PROJECT.md (updated 2026-10-30)
 
 **Core value:** Configured filters reliably turn a (possibly large) XMLTV feed into a calendar showing exactly the programmes the user cares about, with channel and start time clearly visible.
-**Current focus:** Phase 05 — Richer title and description templating
+**Current focus:** Planning next milestone (`/gsd-new-milestone`)
 
 ## Current Position
 
@@ -268,6 +268,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
+| deferred_items | 04/deferred-items.md: 04-09 real-feed acceptance test and shellcheck cases skip, Phase 04 human items pending | acknowledged | 2026-10-30 | v1.0.1 |
 | fixture | D-15 real German feed excerpt (`tests/fixtures/real_de_excerpt.xml`) plus `scripts/trim_feed.py`; `tests/xmltv/test_real_feed.py` skips until it exists | deferred (user decision "none", 01-09 Task 2: licensing risk in a public repo) | 2026-10-14 (01-09) | v1 |
 
 ## Session Continuity
