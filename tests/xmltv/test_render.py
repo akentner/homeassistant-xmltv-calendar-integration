@@ -283,6 +283,17 @@ def test_stored_legacy_template_falls_back_with_one_warning(caplog: pytest.LogCa
     assert templates == DEFAULT_TEMPLATES  # the effective source is the default
 
 
+def test_stored_mixed_template_falls_back_with_one_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        templates = EventTemplates.from_mapping({KEY_TITLE_TEMPLATE: "{channel} - {{ title }}"}, "Abend")
+
+    (message,) = _warnings(caplog)
+    assert "Abend" in message
+    assert LEGACY_PLACEHOLDER in message
+    assert to_event_fields(R1, CHANNEL, templates)["summary"] == "Das Erste: Tatort"
+    assert templates == DEFAULT_TEMPLATES
+
+
 def test_stored_legacy_description_falls_back_to_the_default_description(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
         templates = EventTemplates.from_mapping({KEY_DESCRIPTION_TEMPLATE: "{description}"}, "Abend")
@@ -379,6 +390,7 @@ def test_validate_template_uses_the_caps_of_the_template_kind() -> None:
     [
         ("{{ foo }}", UNKNOWN_PLACEHOLDER, "foo"),
         ("{legacy} {title}", LEGACY_PLACEHOLDER, "{title}"),
+        ("{channel} - {{ title }}", LEGACY_PLACEHOLDER, "{channel}"),
         ("{{ title", INVALID_TEMPLATE, None),
     ],
 )

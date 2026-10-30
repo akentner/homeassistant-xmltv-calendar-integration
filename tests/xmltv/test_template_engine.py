@@ -262,6 +262,10 @@ def test_deeply_nested_input_is_a_template_error_not_a_crash() -> None:
         ("x {title}", "{title}"),
         ("{channel_id}", "{channel_id}"),
         ("{episode}", "{episode}"),
+        ("{title} {{ channel }}", "{title}"),
+        ("{% if title %}{title}{% endif %}", "{title}"),
+        ("{{ title }}{channel_id}", "{channel_id}"),
+        ("{%- if title -%}{description}{%- endif -%}", "{description}"),
     ],
 )
 def test_legacy_single_brace_text_is_detected(template: str, detail: str) -> None:
@@ -270,17 +274,47 @@ def test_legacy_single_brace_text_is_detected(template: str, detail: str) -> Non
     assert err.detail == detail
 
 
+def test_mixed_template_with_a_retired_name_is_rejected() -> None:
+    """A partly migrated template no longer renders the literal {channel} into every title (WR-03)."""
+    err = _reject("{channel} - {{ title }}")
+    assert err.reason == LEGACY_PLACEHOLDER
+    assert err.detail == "{channel}"
+
+
 @pytest.mark.parametrize(
     ("template", "expected"),
     [
         ("{{ title }} {live}", "T {live}"),
         ("{live}", "{live}"),
-        ("{title} {{ channel }}", "{title} Das Erste"),
-        ("{% if title %}{title}{% endif %}", "{title}"),
     ],
 )
-def test_only_pure_legacy_text_is_legacy(template: str, expected: str) -> None:
+def test_names_outside_the_closed_set_stay_literal_text(template: str, expected: str) -> None:
     assert _render(template, title="T") == expected
+
+
+@pytest.mark.parametrize(
+    ("template", "expected"),
+    [
+        ("{{ title }}", "T"),
+        ("{% if title %}x{% endif %}", "x"),
+        ("{# {title} #}{{ title }}", "T"),
+        ("{{ '{title}' }}", "{title}"),
+        ('{{ "a{title}b" | replace("{title}", "-") }}', "a-b"),
+    ],
+)
+def test_braces_outside_literal_text_are_not_legacy(template: str, expected: str) -> None:
+    assert _render(template, title="T") == expected
+
+
+@pytest.mark.parametrize(
+    ("template", "reason"),
+    [
+        ("{{ {'a': title} }}", UNSUPPORTED_SYNTAX),
+        ("{{ {title} }}", INVALID_TEMPLATE),
+    ],
+)
+def test_braces_inside_expressions_never_give_the_legacy_reason(template: str, reason: str) -> None:
+    assert _reject(template).reason == reason
 
 
 def test_text_longer_than_the_cap_is_rejected() -> None:

@@ -408,26 +408,31 @@ def _check_variables(tree: nodes.Template) -> None:
         raise TemplateError(UNKNOWN_PLACEHOLDER, ", ".join(sorted(unknown)))
 
 
-def _check_legacy(text: str) -> None:
-    """Reject the retired single-brace syntax, which Jinja would render literally (D-08)."""
-    if "{{" in text or "{%" in text:
-        return
-    if (match := _LEGACY_PLACEHOLDER.search(text)) is not None:
-        raise TemplateError(LEGACY_PLACEHOLDER, match[0])
+def _check_legacy(tree: nodes.Template) -> None:
+    """
+    Reject a retired single-brace name in the literal text of the template, which Jinja would render as written (D-08).
+
+    Only text outside expression, statement and comment tags is searched, so a template that already uses Jinja is
+    checked too, and braces inside an expression (string literals, filter arguments) never match.
+    """
+    for data in tree.find_all(nodes.TemplateData):
+        if (match := _LEGACY_PLACEHOLDER.search(data.data)) is not None:
+            raise TemplateError(LEGACY_PLACEHOLDER, match[0])
 
 
 def compile_template(text: str, *, max_length: int = MAX_TITLE_TEMPLATE_LENGTH) -> jinja2.Template:
     """
     Return the compiled template, or raise a TemplateError whose reason is a flow error key.
 
-    Stages: length cap, legacy syntax, parse, allow-list walk, undeclared variables, compile from the checked tree.
+    Stages: length cap, parse, allow-list walk, legacy syntax in the literal text, undeclared variables, compile from
+    the checked tree.
     """
     if len(text) > max_length:
         raise TemplateError(INVALID_TEMPLATE, f"longer than {max_length} characters")
-    _check_legacy(text)
     try:
         tree = ENV.parse(text)
         _check_tree(tree)
+        _check_legacy(tree)
         _check_variables(tree)
         return ENV.from_string(tree)
     except jinja2.TemplateSyntaxError as err:
